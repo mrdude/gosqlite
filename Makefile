@@ -4,15 +4,9 @@
 
 include $(GOROOT)/src/Make.inc
 
-TARG=fsqlite
+TARG=github.com/gwenn/sqlite
 
 CGOFILES=\
-	fsqlite.go
-
-ifeq ($(GOOS),darwin)
-CGO_LDFLAGS=/usr/lib/libsqlite3.0.dylib
-else
-CGO_LDFLAGS=-lsqlite3
-endif
+	sqlite.go
 
 include $(GOROOT)/src/Make.pkg

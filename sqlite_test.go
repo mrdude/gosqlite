@@ -1,57 +1,68 @@
-package fsqlite
+package sqlite
 
 import (
 	"testing"
-        "fmt"
+	"os"
 )
 
-func TestOpen(t *testing.T) {
-	db, err := Open("/tmp/test.db")
+func open(t *testing.T) *Conn {
+	db, err := Open("")
 	if err != nil {
-		t.Errorf("couldn't open database file: %s", err)
+		t.Fatalf("couldn't open database file: %s", err)
 	}
 	if db == nil {
-		t.Error("opened database is nil")
+		t.Fatal("opened database is nil")
 	}
+	return db
+}
+
+func createTable(db *Conn, t *testing.T) {
+	err := db.Exec("DROP TABLE IF EXISTS test;" +
+		"CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+		" float_num REAL, int_num INTEGER, a_string TEXT); -- bim")
+	if err != nil {
+		t.Fatalf("error creating table: %s", err)
+	}
+}
+
+func TestOpen(t *testing.T) {
+	db := open(t)
 	db.Close()
 }
 
 func TestCreateTable(t *testing.T) {
-	db, err := Open("/tmp/test.db")
-	db.Exec("DROP TABLE test")
-	err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	if err != nil {
-		t.Errorf("error creating table: %s", err)
-	}
-}
-
-type OutRow struct {
-	Key      int64
-	FloatNum float64
-	IntNum   int64
-	AString  string
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
 }
 
 func TestInsert(t *testing.T) {
-	db, _ := Open("/tmp/test.db")
-	db.Exec("DROP TABLE test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
 	for i := 0; i < 1000; i++ {
 		ierr := db.Exec("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)", float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
-			t.Errorf("insert error: %s", ierr)
+			t.Fatalf("insert error: %s", ierr)
+		}
+		c := db.Changes()
+		if c != 1 {
+			t.Errorf("insert error: %d <> 1", c)
 		}
 	}
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
-	cs.Exec()
-	if !cs.Next() {
-		t.Error("no result for count")
+	defer cs.Finalize()
+	if ok, err := cs.Next(); !ok {
+		if err != nil {
+			t.Fatalf("error preparing count: %s", err)
+		}
+		t.Fatal("no result for count")
 	}
 	var i int
 	err := cs.Scan(&i)
 	if err != nil {
-		t.Errorf("error scanning count: %s", err)
+		t.Fatalf("error scanning count: %s", err)
 	}
 	if i != 1000 {
 		t.Errorf("count should be 1000, but it is %d", i)
@@ -59,169 +70,153 @@ func TestInsert(t *testing.T) {
 }
 
 func TestInsertWithStatement(t *testing.T) {
-	db, _ := Open("/tmp/test_is.db")
-	db.Exec("DROP TABLE test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
 	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 	if serr != nil {
-		t.Errorf("prepare error: %s", serr)
+		t.Fatalf("prepare error: %s", serr)
 	}
 	if s == nil {
-		t.Error("statement is nil")
+		t.Fatal("statement is nil")
 	}
+	defer s.Finalize()
 
 	for i := 0; i < 1000; i++ {
 		ierr := s.Exec(float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
-			t.Errorf("insert error: %s", ierr)
+			t.Fatalf("insert error: %s", ierr)
 		}
-		s.Next()
+		c := db.Changes()
+		if c != 1 {
+			t.Errorf("insert error: %d <> 1", c)
+		}
 	}
-	s.Finalize()
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
-	cs.Exec()
-	if !cs.Next() {
-		t.Error("no result for count")
+	defer cs.Finalize()
+	if ok, _ := cs.Next(); !ok {
+		t.Fatal("no result for count")
 	}
 	var i int
 	err := cs.Scan(&i)
 	if err != nil {
-		t.Errorf("error scanning count: %s", err)
-	}
-	if i != 1000 {
-		t.Errorf("count should be 1000, but it is %d", i)
-	}
-}
-
-func TestInsertWithStatement2(t *testing.T) {
-	db, _ := Open("/tmp/test_is2.db")
-	db.Exec("DROP TABLE test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
-	if serr != nil {
-		t.Errorf("prepare error: %s", serr)
-	}
-	if s == nil {
-		t.Error("statement is nil")
-	}
-
-	for i := 0; i < 1000; i++ {
-		ierr := s.Exec2(float64(i)*float64(3.14), i, "hello")
-		if ierr != nil {
-			t.Errorf("insert error: %s", ierr)
-		}
-		s.Next()
-	}
-	s.Finalize()
-
-	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
-	cs.Exec()
-	if !cs.Next() {
-		t.Error("no result for count")
-	}
-	var i int
-	err := cs.Scan(&i)
-	if err != nil {
-		t.Errorf("error scanning count: %s", err)
+		t.Fatalf("error scanning count: %s", err)
 	}
 	if i != 1000 {
 		t.Errorf("count should be 1000, but it is %d", i)
 	}
 
-        rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test ORDER BY int_num LIMIT 10")
+	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test ORDER BY int_num LIMIT 2")
 	var fnum float64
 	var inum int64
 	var sstr string
-	for rs.Next() {
-			rs.Scan(&fnum, &inum, &sstr)
-                        fmt.Printf("fnum = %f, inum = %d, sstre = %s\n", fnum, inum, sstr)
-		        }
+	if ok, _ := rs.Next(); ok {
+		rs.Scan(&fnum, &inum, &sstr)
+		if fnum != 0 {
+			t.Errorf("Expected 0 <> %f\n", fnum)
+		}
+		if inum != 0 {
+			t.Errorf("Expected 0 <> %d\n", inum)
+		}
+		if sstr != "hello" {
+			t.Errorf("Expected 'hello' <> %s\n", sstr)
+		}
+	}
+	if ok, _ := rs.Next(); ok {
+		var fnum float64
+		var inum int64
+		var sstr string
+		rs.NamedScan("a_string", &sstr, "float_num", &fnum, "int_num", &inum)
+		if fnum != 3.14 {
+			t.Errorf("Expected 3.14 <> %f\n", fnum)
+		}
+		if inum != 1 {
+			t.Errorf("Expected 1 <> %d\n", inum)
+		}
+		if sstr != "hello" {
+			t.Errorf("Expected 'hello' <> %s\n", sstr)
+		}
+	}
 }
 
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("/tmp/test_bs.db")
-	db.Exec("DROP TABLE test")
+	db, _ := Open("")
+	defer db.Close()
+	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 
 	for i := 0; i < 1000; i++ {
 		s.Exec(float64(i)*float64(3.14), i, "hello")
-		s.Next()
 	}
 	s.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
+		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
 
-	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
-	cs.Exec()
+		var fnum float64
+		var inum int64
+		var sstr string
 
-	var fnum float64
-	var inum int64
-	var sstr string
-
-		for cs.Next() {
+		var ok bool
+		var err os.Error
+		for ok, err = cs.Next(); ok; ok, err = cs.Next() {
 			cs.Scan(&fnum, &inum, &sstr)
 		}
+		if err != nil {
+			panic(err)
+		}
+		cs.Finalize()
 	}
 }
 
-func BenchmarkScan2(b *testing.B) {
+func BenchmarkNamedScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("/tmp/test_bs2.db")
-	db.Exec("DROP TABLE test")
+	db, _ := Open("")
+	defer db.Close()
+	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 
 	for i := 0; i < 1000; i++ {
 		s.Exec(float64(i)*float64(3.14), i, "hello")
-		s.Next()
 	}
 	s.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
-	cs.Exec()
+		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
 
-	var fnum float64
-	var inum int64
-	var sstr string
+		var fnum float64
+		var inum int64
+		var sstr string
 
-		for cs.Next() {
-			cs.Scan2(&fnum, &inum, &sstr)
+		var ok bool
+		var err os.Error
+		for ok, err = cs.Next(); ok; ok, err = cs.Next() {
+			cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr)
 		}
+		if err != nil {
+			panic(err)
+		}
+		cs.Finalize()
 	}
 }
 
 func BenchmarkInsert(b *testing.B) {
-	db, _ := Open("/tmp/test_bi.db")
-	db.Exec("DROP TABLE test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
+	db, _ := Open("")
+	defer db.Close()
+	db.Exec("DROP TABLE IF EXISTS test")
+	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+		" float_num REAL, int_num INTEGER, a_string TEXT)")
+	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string)" +
+		" VALUES (?, ?, ?)")
+	defer s.Finalize()
 
-//	for x := 0; x < b.N; x++ {
-                for i := 0; i < b.N; i++ {
-                        s.Exec(float64(i)*float64(3.14), i, "hello")
-                                s.Next()
-                }
-//        }
-	s.Finalize()
-}
-
-func BenchmarkInsert2(b *testing.B) {
-	db, _ := Open("/tmp/test_bi2.db")
-	db.Exec("DROP TABLE test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
-
-//	for x := 0; x < b.N; x++ {
-                for i := 0; i < b.N; i++ {
-                        s.Exec2(float64(i)*float64(3.14), i, "hello")
-                                s.Next()
-                }
-//        }
-	s.Finalize()
+	for i := 0; i < b.N; i++ {
+		s.Exec(float64(i)*float64(3.14), i, "hello")
+	}
 }

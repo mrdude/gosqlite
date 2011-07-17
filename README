@@ -1,8 +1,10 @@
-This is based on Russ Cox's original gosqlite package:
+Yet another SQLite binding based on:
+ - original [Russ Cox's][http://code.google.com/p/gosqlite/] implementation,
+ - the [Patrick Crosby's][https://github.com/patrickxb/fgosqlite/] fork.
 
-    http://code.google.com/p/gosqlite/
-
-I added Scan2 and Exec2 which use sqlite api calls to get/bind values instead of the 
-original which basically converted everything to strings.
-
-Scan2 and Exec2 are significantly faster.  See the benchmarks in fgosqlite_test.go.
+Conn#Exec handles multiple statements (separated by semicolons) properly.
+Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
+Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
+Stmt#Next returns a (bool, os.Error) couple like Reader#Read. But its use in for loop becomes inelegant...
+Stmt#Scan uses native sqlite3_column_x methods.
+Stmt#NamedScan is added. It's compliant with [go-dbi][https://github.com/thomaslee/go-dbi/] API but I think its signature should be improved/modified.
