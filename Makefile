@@ -7,6 +7,7 @@ include $(GOROOT)/src/Make.inc
 TARG=github.com/gwenn/sqlite
 
 CGOFILES=\
-	sqlite.go
+	sqlite.go\
+	backup.go
 
 include $(GOROOT)/src/Make.pkg
