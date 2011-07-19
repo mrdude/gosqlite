@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"strings"
 	"testing"
 	"os"
 )
@@ -22,6 +23,13 @@ func createTable(db *Conn, t *testing.T) {
 		" float_num REAL, int_num INTEGER, a_string TEXT); -- bim")
 	if err != nil {
 		t.Fatalf("error creating table: %s", err)
+	}
+}
+
+func TestVersion(t *testing.T) {
+	v := Version()
+	if !strings.HasPrefix(v, "3") {
+		t.Fatalf("unexpected library version: %s", v)
 	}
 }
 
@@ -51,8 +59,23 @@ func TestInsert(t *testing.T) {
 		}
 	}
 
+	lastId := db.LastInsertRowid()
+	if lastId != 1000 {
+		t.Errorf("last insert row id error: %d <> 1000", lastId)
+	}
+
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
+
+	paramCount := cs.BindParameterCount()
+	if paramCount != 0 {
+		t.Errorf("bind parameter count error: %d <> 0", paramCount)
+	}
+	columnCount := cs.ColumnCount()
+	if columnCount != 1 {
+		t.Errorf("column count error: %d <> 1", columnCount)
+	}
+
 	if ok, err := cs.Next(); !ok {
 		if err != nil {
 			t.Fatalf("error preparing count: %s", err)
@@ -82,6 +105,11 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 	defer s.Finalize()
 
+	paramCount := s.BindParameterCount()
+	if paramCount != 3 {
+		t.Errorf("bind parameter count error: %d <> 3", paramCount)
+	}
+
 	for i := 0; i < 1000; i++ {
 		ierr := s.Exec(float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
@@ -108,6 +136,15 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 
 	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test ORDER BY int_num LIMIT 2")
+	columnCount := rs.ColumnCount()
+	if columnCount != 3 {
+		t.Errorf("column count error: %d <> 3", columnCount)
+	}
+	secondColumnName := rs.ColumnName(1)
+	if secondColumnName != "int_num" {
+		t.Errorf("column name error: %s <> 'int_num'", secondColumnName)
+	}
+
 	var fnum float64
 	var inum int64
 	var sstr string

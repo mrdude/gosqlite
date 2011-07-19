@@ -324,9 +324,9 @@ func (s *Stmt) BindParameterIndex(name string) int {
 }
 
 func (s *Stmt) Bind(args ...interface{}) os.Error {
-	rv := C.sqlite3_reset(s.stmt)
-	if rv != 0 {
-		return s.c.error(rv)
+	err := s.Reset()
+	if err != nil {
+		return err
 	}
 
 	n := s.BindParameterCount()
@@ -335,6 +335,7 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 	}
 
 	for i, v := range args {
+		var rv C.int
 		index := C.int(i + 1)
 		switch v := v.(type) {
 		case nil:
@@ -393,6 +394,7 @@ func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
 }
 
+// The leftmost column is number 0.
 func (s *Stmt) ColumnName(index int) string {
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
