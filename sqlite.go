@@ -26,7 +26,6 @@ static int my_bind_text(sqlite3_stmt *stmt, int n, char *p, int np) {
 static int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
 	return sqlite3_bind_blob(stmt, n, p, np, SQLITE_TRANSIENT);
 }
-
 */
 import "C"
 

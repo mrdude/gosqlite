@@ -177,6 +177,40 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 }
 
+func TestTables(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	tables, err := db.Tables()
+	if err != nil {
+		t.Fatalf("error looking for tables: %s", err)
+	}
+	if len(tables) != 0 {
+		t.Errorf("Expected no table but got %d\n", len(tables))
+	}
+	createTable(db, t)
+	tables, err = db.Tables()
+	if err != nil {
+		t.Fatalf("error looking for tables: %s", err)
+	}
+	if len(tables) != 1 {
+		t.Errorf("Expected one table but got %d\n", len(tables))
+	}
+	if tables[0] != "test" {
+		t.Errorf("Wrong table name: 'test' <> %s\n", tables[0])
+	}
+	columns, err := db.Columns("test")
+	if err != nil {
+		t.Fatalf("error looking for columns: %s", err)
+	}
+	if len(columns) != 4 {
+		t.Errorf("Expected 4 columns <> %d", len(columns))
+	}
+	column := columns[2]
+	if column.name != "int_num" {
+		t.Errorf("Wrong column name: 'int_num' <> %s", column.name)
+	}
+}
+
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
