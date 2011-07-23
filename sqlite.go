@@ -220,7 +220,7 @@ type Stmt struct {
 	cols map[string]int // cached columns index by name
 }
 
-func (c *Conn) Prepare(cmd string) (*Stmt, os.Error) {
+func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 	if c == nil || c.db == nil {
 		return nil, os.NewError("nil sqlite database")
 	}
@@ -236,7 +236,14 @@ func (c *Conn) Prepare(cmd string) (*Stmt, os.Error) {
 	if tail != nil && C.strlen(tail) > 0 {
 		t = C.GoString(tail)
 	}
-	return &Stmt{c: c, stmt: stmt, tail: t}, nil
+	s := &Stmt{c: c, stmt: stmt, tail: t}
+	if len(args) > 0 {
+		err := s.Bind(args)
+		if err != nil {
+			return s, err
+		}
+	}
+	return s, nil
 }
 
 // Don't use it with SELECT or anything that returns data.

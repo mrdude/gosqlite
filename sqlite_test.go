@@ -135,7 +135,7 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Errorf("count should be 1000, but it is %d", i)
 	}
 
-	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test ORDER BY int_num LIMIT 2")
+	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test where a_string like ? ORDER BY int_num LIMIT 2", "hel%")
 	columnCount := rs.ColumnCount()
 	if columnCount != 3 {
 		t.Errorf("column count error: %d <> 3", columnCount)
