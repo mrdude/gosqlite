@@ -38,6 +38,24 @@ func TestOpen(t *testing.T) {
 	db.Close()
 }
 
+func TestEnableFKey(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	b, err := db.IsFKeyEnabled()
+	if err != nil {
+		t.Fatalf("Error while checking if FK are enabled: %s", err)
+	}
+	if !b {
+		b, err = db.EnableFKey(true)
+		if err != nil {
+			t.Fatalf("Error while enabling FK: %s", err)
+		}
+		if !b {
+			t.Error("cannot enabled FK")
+		}
+	}
+}
+
 func TestCreateTable(t *testing.T) {
 	db := open(t)
 	defer db.Close()

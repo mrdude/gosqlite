@@ -26,6 +26,11 @@ static int my_bind_text(sqlite3_stmt *stmt, int n, char *p, int np) {
 static int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
 	return sqlite3_bind_blob(stmt, n, p, np, SQLITE_TRANSIENT);
 }
+
+// cgo doesn't support varargs
+static int my_db_config(sqlite3 *db, int op, int v, int *ok) {
+	return sqlite3_db_config(db, op, v, ok);
+}
 */
 import "C"
 
@@ -110,7 +115,7 @@ func (c *Conn) error(rv C.int) os.Error {
 	if c == nil || c.db == nil {
 		return os.NewError("nil sqlite database")
 	}
-	if rv == 0 {
+	if rv == C.SQLITE_OK {
 		return nil
 	}
 	if rv == 21 { // misuse
@@ -130,7 +135,7 @@ func Version() string {
 
 func EnableSharedCache(b bool) os.Error {
 	rv := C.sqlite3_enable_shared_cache(btocint(b))
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		return Errno(rv)
 	}
 	return nil
@@ -152,7 +157,7 @@ func Open(filename string) (*Conn, os.Error) {
 			C.SQLITE_OPEN_CREATE|
 			C.SQLITE_OPEN_URI,
 		nil)
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		if db != nil {
 			C.sqlite3_close(db)
 		}
@@ -166,10 +171,25 @@ func Open(filename string) (*Conn, os.Error) {
 
 func (c *Conn) BusyTimeout(ms int) os.Error {
 	rv := C.sqlite3_busy_timeout(c.db, C.int(ms))
-	if rv == 0 {
+	if rv == C.SQLITE_OK {
 		return nil
 	}
 	return Errno(rv)
+}
+
+func (c *Conn) EnableFKey(b bool) (bool, os.Error) {
+	return c.queryOrSetEnableFKey(btocint(b))
+}
+func (c *Conn) IsFKeyEnabled() (bool, os.Error) {
+	return c.queryOrSetEnableFKey(-1)
+}
+func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, os.Error) {
+	var ok C.int
+	rv := C.my_db_config(c.db, C.SQLITE_DBCONFIG_ENABLE_FKEY, i, &ok)
+	if rv == C.SQLITE_OK {
+		return (ok == 1), nil
+	}
+	return false, Errno(rv)
 }
 
 // Don't use it with SELECT or anything that returns data.
@@ -229,7 +249,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
 	rv := C.sqlite3_prepare_v2(c.db, cmdstr, -1, &stmt, &tail)
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		return nil, c.error(rv)
 	}
 	var t string
@@ -309,7 +329,7 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 			}
 			rv = C.my_bind_blob(s.stmt, index, unsafe.Pointer(p), C.int(len(v)))
 		}
-		if rv != 0 {
+		if rv != C.SQLITE_OK {
 			return s.c.error(rv)
 		}
 	}
@@ -330,7 +350,7 @@ func (s *Stmt) Next() (bool, os.Error) {
 
 func (s *Stmt) Reset() os.Error {
 	rv := C.sqlite3_reset(s.stmt)
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		return s.c.error(rv)
 	}
 	return nil
@@ -432,7 +452,7 @@ func (s *Stmt) scanField(index int, value interface{}) os.Error {
 }
 func (s *Stmt) Finalize() os.Error {
 	rv := C.sqlite3_finalize(s.stmt)
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		return s.c.error(rv)
 	}
 	s.stmt = nil
@@ -444,7 +464,7 @@ func (c *Conn) Close() os.Error {
 		return os.NewError("nil sqlite database")
 	}
 	rv := C.sqlite3_close(c.db)
-	if rv != 0 {
+	if rv != C.SQLITE_OK {
 		return c.error(rv)
 	}
 	c.db = nil
