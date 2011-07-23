@@ -70,27 +70,33 @@ func (c *Conn) Columns(table string) ([]Column, os.Error) {
 }
 
 type ForeignKey struct {
-	Id    int
-	Seq   int
 	Table string
-	From  string
-	To    string
+	From  []string
+	To    []string
 }
 
-func (c *Conn) ForeignKeys(table string) ([]ForeignKey, os.Error) {
+func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 	s, err := c.Prepare(Mprintf("pragma foreign_key_list(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
-	var fks []ForeignKey = make([]ForeignKey, 0, 20)
+	var fks = make(map[int]*ForeignKey)
 	var ok bool
+	var id, seq int
+	var ref, from, to string
 	for ok, err = s.Next(); ok; ok, err = s.Next() {
-		fk := ForeignKey{}
-		err = s.NamedScan("id", &fk.Id, "seq", &fk.Seq, "table", &fk.Table, "from", &fk.From, "to", &fk.To)
+		err = s.NamedScan("id", &id, "seq", &seq, "table", &ref, "from", &from, "to", &to)
 		if err != nil {
 			return nil, err
 		}
-		fks = append(fks, fk)
+		fk, ex := fks[id]
+		if !ex {
+			fk = &ForeignKey{Table: ref}
+			fks[id] = fk
+		}
+		// TODO Ensure columns are appended in the correct order...
+		fk.From = append(fk.From, from)
+		fk.To = append(fk.To, to)
 	}
 	if err != nil {
 		return nil, err

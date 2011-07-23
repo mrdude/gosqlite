@@ -255,7 +255,7 @@ func TestForeignKeys(t *testing.T) {
 		t.Fatalf("Expected 1 FK <> %d", len(fks))
 	}
 	fk := fks[0]
-	if fk.From != "parentId" || fk.Table != "parent" || fk.To != "id" {
+	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
 		t.Errorf("Unexpected FK data: %#v", fk)
 	}
 }

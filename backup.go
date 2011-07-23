@@ -37,7 +37,7 @@ type Backup struct {
 
 func (b *Backup) Step(npage int) os.Error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
-	if rv == 0 || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
+	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
 		return nil
 	}
 	return Errno(rv)
