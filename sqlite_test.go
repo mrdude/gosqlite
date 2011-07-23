@@ -198,6 +198,7 @@ func TestInsertWithStatement(t *testing.T) {
 func TestTables(t *testing.T) {
 	db := open(t)
 	defer db.Close()
+
 	tables, err := db.Tables()
 	if err != nil {
 		t.Fatalf("error looking for tables: %s", err)
@@ -216,16 +217,46 @@ func TestTables(t *testing.T) {
 	if tables[0] != "test" {
 		t.Errorf("Wrong table name: 'test' <> %s\n", tables[0])
 	}
+}
+
+func TestColumns(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
+
 	columns, err := db.Columns("test")
 	if err != nil {
-		t.Fatalf("error looking for columns: %s", err)
+		t.Fatalf("error listing columns: %s", err)
 	}
 	if len(columns) != 4 {
-		t.Errorf("Expected 4 columns <> %d", len(columns))
+		t.Fatalf("Expected 4 columns <> %d", len(columns))
 	}
 	column := columns[2]
-	if column.name != "int_num" {
-		t.Errorf("Wrong column name: 'int_num' <> %s", column.name)
+	if column.Name != "int_num" {
+		t.Errorf("Wrong column name: 'int_num' <> %s", column.Name)
+	}
+}
+
+func TestForeignKeys(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY);" +
+		"CREATE TABLE child (id INTEGER PRIMARY KEY, parentId INTEGER, " +
+		"FOREIGN KEY (parentId) REFERENCES parent(id));")
+	if err != nil {
+		t.Fatalf("error creating tables: %s", err)
+	}
+	fks, err := db.ForeignKeys("child")
+	if err != nil {
+		t.Fatalf("error listing FKs: %s", err)
+	}
+	if len(fks) != 1 {
+		t.Fatalf("Expected 1 FK <> %d", len(fks))
+	}
+	fk := fks[0]
+	if fk.From != "parentId" || fk.Table != "parent" || fk.To != "id" {
+		t.Errorf("Unexpected FK data: %#v", fk)
 	}
 }
 
