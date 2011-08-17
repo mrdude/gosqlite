@@ -9,6 +9,7 @@ TARG=github.com/gwenn/sqlite
 CGOFILES=\
 	sqlite.go\
 	backup.go\
-	meta.go
+	meta.go\
+	trace.go
 
 include $(GOROOT)/src/Make.pkg

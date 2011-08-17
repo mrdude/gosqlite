@@ -1,10 +1,20 @@
 package sqlite
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"os"
 )
+
+func trace(d interface{}, t string) {
+	fmt.Printf("%s: %s\n", d, t)
+}
+
+func authorizer(d interface{}, action int, arg1, arg2, arg3, arg4 string) int {
+	fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, arg3, arg4)
+	return 0
+}
 
 func open(t *testing.T) *Conn {
 	db, err := Open("")
@@ -14,6 +24,8 @@ func open(t *testing.T) *Conn {
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
+	//db.Trace(trace, "TRACE")
+	//db.SetAuthorizer(authorizer, "AUTH") FIXME panic
 	return db
 }
 
@@ -35,6 +47,8 @@ func TestVersion(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	db := open(t)
+	db.Trace(nil, nil)
+	db.SetAuthorizer(nil, nil)
 	db.Close()
 }
 
@@ -138,6 +152,7 @@ func TestInsertWithStatement(t *testing.T) {
 			t.Errorf("insert error: %d <> 1", c)
 		}
 	}
+	s.Finalize()
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()

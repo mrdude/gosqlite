@@ -17,6 +17,7 @@ import (
 	"unsafe"
 )
 
+// Calls sqlite3_backup_init
 func NewBackup(dst *Conn, dstTable string, src *Conn, srcTable string) (*Backup, os.Error) {
 	dname := C.CString(dstTable)
 	sname := C.CString(srcTable)
@@ -35,6 +36,7 @@ type Backup struct {
 	dst, src *Conn
 }
 
+// Calls sqlite3_backup_step
 func (b *Backup) Step(npage int) os.Error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
 	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
@@ -48,10 +50,12 @@ type BackupStatus struct {
 	PageCount int
 }
 
+// Calls sqlite3_backup_remaining and sqlite3_backup_pagecount
 func (b *Backup) Status() BackupStatus {
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
 }
 
+// Calls sqlite3_backup_step, sqlite3_backup_remaining and sqlite3_backup_pagecount
 func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) os.Error {
 	var err os.Error
 	for {
@@ -67,6 +71,7 @@ func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) os.Error {
 	return b.dst.error(C.sqlite3_errcode(b.dst.db))
 }
 
+// Calls sqlite3_backup_finish
 func (b *Backup) Close() os.Error {
 	if b.sb == nil {
 		return os.EINVAL

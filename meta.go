@@ -21,6 +21,7 @@ import (
 	"unsafe"
 )
 
+// Selects tables (no view) from 'sqlite_master' and filters system tables out.
 func (c *Conn) Tables() ([]string, os.Error) {
 	s, err := c.Prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
 	if err != nil {
@@ -48,6 +49,7 @@ type Column struct {
 	Pk        bool
 }
 
+// Executes pragma 'table_info'
 func (c *Conn) Columns(table string) ([]Column, os.Error) {
 	s, err := c.Prepare(Mprintf("pragma table_info(%Q)", table))
 	if err != nil {
@@ -75,6 +77,7 @@ type ForeignKey struct {
 	To    []string
 }
 
+// Executes pragma 'foreign_key_list'
 func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 	s, err := c.Prepare(Mprintf("pragma foreign_key_list(%Q)", table))
 	if err != nil {
@@ -104,6 +107,7 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 	return fks, nil
 }
 
+// Calls 'sqlite3_mprintf'
 func Mprintf(format string, arg string) string {
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))

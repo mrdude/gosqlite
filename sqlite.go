@@ -124,15 +124,18 @@ func (c *Conn) error(rv C.int) os.Error {
 	return os.NewError(Errno(rv).String() + ": " + C.GoString(C.sqlite3_errmsg(c.db)))
 }
 
+// Connection
 type Conn struct {
 	db *C.sqlite3
 }
 
+// Calls sqlite3_libversion
 func Version() string {
 	p := C.sqlite3_libversion()
 	return C.GoString(p)
 }
 
+// Calls sqlite3_enable_shared_cache
 func EnableSharedCache(b bool) os.Error {
 	rv := C.sqlite3_enable_shared_cache(btocint(b))
 	if rv != C.SQLITE_OK {
@@ -143,6 +146,7 @@ func EnableSharedCache(b bool) os.Error {
 
 // ':memory:' for memory db
 // '' for temp db
+// Calls sqlite3_open_v2
 func Open(filename string) (*Conn, os.Error) {
 	if C.sqlite3_threadsafe() == 0 {
 		return nil, os.NewError("sqlite library was not compiled for thread-safe operation")
@@ -166,9 +170,10 @@ func Open(filename string) (*Conn, os.Error) {
 	if db == nil {
 		return nil, os.NewError("sqlite succeeded without returning a database")
 	}
-	return &Conn{db}, nil
+	return &Conn{db: db}, nil
 }
 
+// Calls sqlite3_busy_timeout
 func (c *Conn) BusyTimeout(ms int) os.Error {
 	rv := C.sqlite3_busy_timeout(c.db, C.int(ms))
 	if rv == C.SQLITE_OK {
@@ -177,9 +182,11 @@ func (c *Conn) BusyTimeout(ms int) os.Error {
 	return Errno(rv)
 }
 
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b)
 func (c *Conn) EnableFKey(b bool) (bool, os.Error) {
 	return c.queryOrSetEnableFKey(btocint(b))
 }
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
 func (c *Conn) IsFKeyEnabled() (bool, os.Error) {
 	return c.queryOrSetEnableFKey(-1)
 }
@@ -193,6 +200,7 @@ func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, os.Error) {
 }
 
 // Don't use it with SELECT or anything that returns data.
+// Calls sqlite3_prepare_v2, sqlite3_bind_*, sqlite3_step and sqlite3_finalize
 func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 	for len(cmd) > 0 {
 		s, err := c.Prepare(cmd)
@@ -221,18 +229,22 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 	return nil
 }
 
+// Calls sqlite3_changes
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
 }
 
+// Calls sqlite3_last_insert_rowid
 func (c *Conn) LastInsertRowid() int64 {
 	return int64(C.sqlite3_last_insert_rowid(c.db))
 }
 
+// Calls sqlite3_interrupt
 func (c *Conn) Interrupt() {
 	C.sqlite3_interrupt(c.db)
 }
 
+// Prepared Statement (sqlite3_stmt)
 type Stmt struct {
 	c    *Conn
 	stmt *C.sqlite3_stmt
@@ -240,6 +252,7 @@ type Stmt struct {
 	cols map[string]int // cached columns index by name
 }
 
+// Calls sqlite3_prepare_v2 and sqlite3_bind_*
 func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 	if c == nil || c.db == nil {
 		return nil, os.NewError("nil sqlite database")
@@ -267,6 +280,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 }
 
 // Don't use it with SELECT or anything that returns data.
+// Calls sqlite3_bind_* and sqlite3_step
 func (s *Stmt) Exec(args ...interface{}) os.Error {
 	err := s.Bind(args...)
 	if err != nil {
@@ -279,16 +293,19 @@ func (s *Stmt) Exec(args ...interface{}) os.Error {
 	return nil
 }
 
+// Calls sqlite3_bind_parameter_count
 func (s *Stmt) BindParameterCount() int {
 	return int(C.sqlite3_bind_parameter_count(s.stmt))
 }
 
+// Calls sqlite3_bind_parameter_index
 func (s *Stmt) BindParameterIndex(name string) int {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	return int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 }
 
+// Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 func (s *Stmt) Bind(args ...interface{}) os.Error {
 	err := s.Reset()
 	if err != nil {
@@ -336,6 +353,7 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 	return nil
 }
 
+// Calls sqlite3_step
 func (s *Stmt) Next() (bool, os.Error) {
 	rv := C.sqlite3_step(s.stmt)
 	err := Errno(rv)
@@ -348,6 +366,7 @@ func (s *Stmt) Next() (bool, os.Error) {
 	return false, nil
 }
 
+// Calls sqlite3_reset
 func (s *Stmt) Reset() os.Error {
 	rv := C.sqlite3_reset(s.stmt)
 	if rv != C.SQLITE_OK {
@@ -356,15 +375,18 @@ func (s *Stmt) Reset() os.Error {
 	return nil
 }
 
+// Calls sqlite3_column_count
 func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
 }
 
 // The leftmost column is number 0.
+// Calls sqlite3_column_name
 func (s *Stmt) ColumnName(index int) string {
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
+// Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 	if len(args)%2 != 0 {
 		return os.NewError("Expected an even number of arguments")
@@ -387,6 +409,7 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 	return nil
 }
 
+// Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 func (s *Stmt) Scan(args ...interface{}) os.Error {
 	n := s.ColumnCount()
 	if n != len(args) {
@@ -450,6 +473,8 @@ func (s *Stmt) scanField(index int, value interface{}) os.Error {
 	}
 	return nil
 }
+
+// Calls sqlite3_finalize
 func (s *Stmt) Finalize() os.Error {
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
@@ -459,6 +484,7 @@ func (s *Stmt) Finalize() os.Error {
 	return nil
 }
 
+// Calls sqlite3_close
 func (c *Conn) Close() os.Error {
 	if c == nil || c.db == nil {
 		return os.NewError("nil sqlite database")
