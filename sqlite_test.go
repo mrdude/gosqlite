@@ -25,7 +25,7 @@ func open(t *testing.T) *Conn {
 		t.Fatal("opened database is nil")
 	}
 	//db.Trace(trace, "TRACE")
-	//db.SetAuthorizer(authorizer, "AUTH") FIXME panic
+	//db.SetAuthorizer(authorizer, "AUTH")
 	return db
 }
 
@@ -273,6 +273,60 @@ func TestForeignKeys(t *testing.T) {
 	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
 		t.Errorf("Unexpected FK data: %#v", fk)
 	}
+}
+
+func TestBlob(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	err := db.Exec("CREATE TABLE test (content BLOB);")
+	if err != nil {
+		t.Fatalf("error creating tables: %s", err)
+	}
+	s, err := db.Prepare("INSERT INTO test VALUES (?)")
+	if err != nil {
+		t.Fatalf("prepare error: %s", err)
+	}
+	if s == nil {
+		t.Fatal("statement is nil")
+	}
+	defer s.Finalize()
+	err = s.Exec(ZeroBlobLength(10))
+	if err != nil {
+		t.Fatalf("insert error: %s", err)
+	}
+	rowid := db.LastInsertRowid()
+
+	bw, err := db.NewBlobReadWriter("main", "test", "content", rowid)
+	if err != nil {
+		t.Fatalf("blob open error: %s", err)
+	}
+	defer bw.Close()
+	content := []byte("Clob")
+	n, err := bw.Write(content)
+	if err != nil {
+		t.Fatalf("blob write error: %s", err)
+	}
+
+	br, err := db.NewBlobReader("main", "test", "content", rowid)
+	if err != nil {
+		t.Fatalf("blob open error: %s", err)
+	}
+	defer br.Close()
+	size, err := br.Size()
+	if err != nil {
+		t.Fatalf("blob size error: %s", err)
+	}
+	content = make([]byte, size)
+	n, err = br.Read(content)
+	if err != nil {
+		t.Fatalf("blob read error: %s", err)
+	}
+	if n != 10 {
+		t.Fatalf("Expected 10 bytes <> %d", n)
+	}
+	//fmt.Printf("%#v\n", content)
+	br.Close()
 }
 
 func BenchmarkScan(b *testing.B) {

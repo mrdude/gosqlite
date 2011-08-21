@@ -10,6 +10,7 @@ CGOFILES=\
 	sqlite.go\
 	backup.go\
 	meta.go\
-	trace.go
+	trace.go\
+	blob.go
 
 include $(GOROOT)/src/Make.pkg

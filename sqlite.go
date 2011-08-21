@@ -345,6 +345,10 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 				p = &v[0]
 			}
 			rv = C.my_bind_blob(s.stmt, index, unsafe.Pointer(p), C.int(len(v)))
+		case ZeroBlobLength:
+			rv = C.sqlite3_bind_zeroblob(s.stmt, index, C.int(v))
+		default:
+			return os.NewError("unsupported type in Bind: " + reflect.TypeOf(v).String())
 		}
 		if rv != C.SQLITE_OK {
 			return s.c.error(rv)
