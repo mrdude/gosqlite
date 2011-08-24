@@ -135,19 +135,10 @@ func Version() string {
 	return C.GoString(p)
 }
 
-// Calls sqlite3_enable_shared_cache
-func EnableSharedCache(b bool) os.Error {
-	rv := C.sqlite3_enable_shared_cache(btocint(b))
-	if rv != C.SQLITE_OK {
-		return Errno(rv)
-	}
-	return nil
-}
-
 // ':memory:' for memory db
 // '' for temp db
 // Calls sqlite3_open_v2
-func Open(filename string) (*Conn, os.Error) {
+func Open(filename string) (*Conn, os.Error) { // TODO flags parameter + constants
 	if C.sqlite3_threadsafe() == 0 {
 		return nil, os.NewError("sqlite library was not compiled for thread-safe operation")
 	}
@@ -230,7 +221,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 }
 
 // Calls sqlite3_changes
-func (c *Conn) Changes() int {
+func (c *Conn) Changes() int { // TODO TotalChanges
 	return int(C.sqlite3_changes(c.db))
 }
 
@@ -242,6 +233,11 @@ func (c *Conn) LastInsertRowid() int64 {
 // Calls sqlite3_interrupt
 func (c *Conn) Interrupt() {
 	C.sqlite3_interrupt(c.db)
+}
+
+// Calls sqlite3_get_autocommit
+func (c *Conn) GetAutocommit() bool {
+	return C.sqlite3_get_autocommit(c.db) != 0
 }
 
 // Prepared Statement (sqlite3_stmt)
@@ -307,13 +303,13 @@ func (s *Stmt) BindParameterIndex(name string) int {
 
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 func (s *Stmt) Bind(args ...interface{}) os.Error {
-	err := s.Reset()
+	err := s.Reset() // TODO sqlite3_clear_bindings: Contrary to the intuition of many, sqlite3_reset() does not reset the bindings on a prepared statement. Use this routine to reset all host parameters to NULL.
 	if err != nil {
 		return err
 	}
 
 	n := s.BindParameterCount()
-	if n != len(args) {
+	if n != len(args) { // TODO What happens when the number of arguments is less than the number of parameters?
 		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n))
 	}
 
@@ -445,6 +441,8 @@ func (s *Stmt) fieldIndex(name string) (int, os.Error) {
 }
 
 func (s *Stmt) scanField(index int, value interface{}) os.Error {
+	// TODO How to handle NULL value correctly?
+	// sqlite3_column_type & SQLITE_NULL
 	switch value := value.(type) {
 	case *string:
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
@@ -490,9 +488,10 @@ func (s *Stmt) Finalize() os.Error {
 
 // Calls sqlite3_close
 func (c *Conn) Close() os.Error {
-	if c == nil || c.db == nil {
+	if c == nil {
 		return os.NewError("nil sqlite database")
 	}
+	// TODO sqlite3_next_stmt & dangling statements?
 	rv := C.sqlite3_close(c.db)
 	if rv != C.SQLITE_OK {
 		return c.error(rv)
