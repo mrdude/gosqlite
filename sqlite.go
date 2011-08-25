@@ -221,8 +221,12 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 }
 
 // Calls sqlite3_changes
-func (c *Conn) Changes() int { // TODO TotalChanges
+func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
+}
+// Calls sqlite3_total_changes
+func (c *Conn) TotalChanges() int {
+	return int(C.sqlite3_total_changes(c.db))
 }
 
 // Calls sqlite3_last_insert_rowid
@@ -303,7 +307,7 @@ func (s *Stmt) BindParameterIndex(name string) int {
 
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 func (s *Stmt) Bind(args ...interface{}) os.Error {
-	err := s.Reset() // TODO sqlite3_clear_bindings: Contrary to the intuition of many, sqlite3_reset() does not reset the bindings on a prepared statement. Use this routine to reset all host parameters to NULL.
+	err := s.Reset() // TODO sqlite3_clear_bindings?
 	if err != nil {
 		return err
 	}
@@ -375,6 +379,15 @@ func (s *Stmt) Reset() os.Error {
 	return nil
 }
 
+// Calls sqlite3_clear_bindings
+func (s *Stmt) ClearBindings() os.Error {
+	rv := C.sqlite3_clear_bindings(s.stmt)
+	if rv != C.SQLITE_OK {
+		return s.c.error(rv)
+	}
+	return nil
+}
+
 // Calls sqlite3_column_count
 func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
@@ -383,9 +396,17 @@ func (s *Stmt) ColumnCount() int {
 // The leftmost column is number 0.
 // Calls sqlite3_column_name
 func (s *Stmt) ColumnName(index int) string {
+	// If there is no AS clause then the name of the column is unspecified and may change from one release of SQLite to the next.
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
+// The leftmost column is number 0.
+// Calls sqlite3_column_type
+func (s *Stmt) columnType(index int) C.int {
+	return C.sqlite3_column_type(s.stmt, C.int(index))
+}
+
+// NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 	if len(args)%2 != 0 {
@@ -401,7 +422,7 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 			return err
 		}
 		ptr := args[i+1]
-		err = s.scanField(index, ptr)
+		_, err = s.scanField(index, ptr, false)
 		if err != nil {
 			return err
 		}
@@ -409,15 +430,17 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 	return nil
 }
 
+// NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
+// TODO How to avoid NULL conversion?
 // Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 func (s *Stmt) Scan(args ...interface{}) os.Error {
 	n := s.ColumnCount()
-	if n != len(args) {
+	if n != len(args) { // TODO What happens when the number of arguments is less than the number of columns?
 		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n))
 	}
 
 	for i, v := range args {
-		err := s.scanField(i, v)
+		_, err := s.scanField(i, v, false)
 		if err != nil {
 			return err
 		}
@@ -440,40 +463,69 @@ func (s *Stmt) fieldIndex(name string) (int, os.Error) {
 	return 0, os.NewError("invalid column name: " + name)
 }
 
-func (s *Stmt) scanField(index int, value interface{}) os.Error {
-	// TODO How to handle NULL value correctly?
-	// sqlite3_column_type & SQLITE_NULL
+// Set nullable to false to skip NULL type test.
+// Returns true when nullable is true and field is null.
+func (s *Stmt) scanField(index int, value interface{}, nullable bool) (bool, os.Error) {
+	var isNull bool
 	switch value := value.(type) {
 	case *string:
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
 		if p == nil {
-			value = nil
+			*value = ""
+			isNull = true
 		} else {
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 			*value = C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
 		}
 	case *int:
-		*value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
+		// After a type conversion, the value returned by sqlite3_column_type() is undefined.
+		if nullable && s.columnType(index) == C.SQLITE_NULL {
+			*value = 0
+			isNull = true
+		} else {
+			*value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
+		}
 	case *int64:
-		*value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		if nullable && s.columnType(index) == C.SQLITE_NULL {
+			*value = 0
+			isNull = true
+		} else {
+			*value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		}
 	case *byte:
-		*value = byte(C.sqlite3_column_int(s.stmt, C.int(index)))
+		if nullable && s.columnType(index) == C.SQLITE_NULL {
+			*value = 0
+			isNull = true
+		} else {
+			*value = byte(C.sqlite3_column_int(s.stmt, C.int(index)))
+		}
 	case *bool:
-		*value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
+		if nullable && s.columnType(index) == C.SQLITE_NULL {
+			*value = false
+			isNull = true
+		} else {
+			*value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
+		}
 	case *float64:
-		*value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
+		if nullable && s.columnType(index) == C.SQLITE_NULL {
+			*value = 0
+			isNull = true
+		} else {
+			*value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
+		}
 	case *[]byte:
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
 		if p == nil {
-			value = nil
+			*value = nil
+			isNull = true
 		} else {
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 			*value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
 		}
 	default:
-		return os.NewError("unsupported type in Scan: " + reflect.TypeOf(value).String())
+		return false, os.NewError("unsupported type in Scan: " + reflect.TypeOf(value).String())
 	}
-	return nil
+	return isNull, nil
 }
 
 // Calls sqlite3_finalize
