@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package sqlite provides access to the SQLite library, version 3.
+
 package sqlite
 
 /*
@@ -107,7 +108,7 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 	return fks, nil
 }
 
-// Calls 'sqlite3_mprintf'
+// Calls http://sqlite.org/c3ref/mprintf.html
 func Mprintf(format string, arg string) string {
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))

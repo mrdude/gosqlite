@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package sqlite provides access to the SQLite library, version 3.
+
 package sqlite
 
 /*
@@ -41,7 +42,7 @@ func goXTrace(pArg unsafe.Pointer, t *C.char) {
 	arg.f(arg.d, C.GoString(t))
 }
 
-// Calls sqlite3_trace
+// Calls sqlite3_trace, http://sqlite.org/c3ref/profile.html
 func (c *Conn) Trace(f SqliteTrace, arg interface{}) {
 	if f == nil {
 		C.sqlite3_trace(c.db, nil, nil)
@@ -71,7 +72,7 @@ func goXAuth(pUserData unsafe.Pointer, action C.int, arg1, arg2, arg3, arg4 *C.c
 	return C.int(result)
 }
 
-// Calls sqlite3_set_authorizer
+// Calls http://sqlite.org/c3ref/set_authorizer.html
 func (c *Conn) SetAuthorizer(f SqliteAuthorizer, arg interface{}) int {
 	// c.authorizer = f
 	if f == nil {

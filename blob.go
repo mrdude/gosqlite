@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package sqlite provides access to the SQLite library, version 3.
+
 package sqlite
 
 /*
@@ -27,6 +28,7 @@ type BlobReadWriter struct {
 
 type ZeroBlobLength int
 
+// Calls http://sqlite.org/c3ref/blob_open.html
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, os.Error) {
 	bl, err := c.blob_open(db, table, column, row, false)
 	if err != nil {
@@ -35,6 +37,7 @@ func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, 
 	return &BlobReader{c, bl}, nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_open.html
 func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobReadWriter, os.Error) {
 	bl, err := c.blob_open(db, table, column, row, true)
 	if err != nil {
@@ -64,6 +67,7 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 	return bl, nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_close.html
 func (r *BlobReader) Close() os.Error {
 	rv := C.sqlite3_blob_close(r.bl)
 	if rv != C.SQLITE_OK {
@@ -73,6 +77,7 @@ func (r *BlobReader) Close() os.Error {
 	return nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_read.html
 func (r *BlobReader) Read(v []byte) (int, os.Error) {
 	var p *byte
 	if len(v) > 0 {
@@ -85,11 +90,13 @@ func (r *BlobReader) Read(v []byte) (int, os.Error) {
 	return len(v), nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_bytes.html
 func (r *BlobReader) Size() (int, os.Error) {
 	s := C.sqlite3_blob_bytes(r.bl)
 	return int(s), nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_write.html
 func (w *BlobReadWriter) Write(v []byte) (int, os.Error) {
 	var p *byte
 	if len(v) > 0 {
@@ -102,6 +109,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, os.Error) {
 	return len(v), nil
 }
 
+// Calls http://sqlite.org/c3ref/blob_reopen.html
 func (r *BlobReader) Reopen(rowid int64) os.Error {
 	rv := C.sqlite3_blob_reopen(r.bl, C.sqlite3_int64(rowid))
 	if rv != C.SQLITE_OK {
