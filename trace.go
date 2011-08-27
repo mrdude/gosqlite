@@ -53,8 +53,14 @@ func (c *Conn) Trace(f SqliteTrace, arg interface{}) {
 	C.goSqlite3Trace(c.db, pArg)
 }
 
-// TODO SQLITE_DENY, SQLITE_IGNORE, SQLITE_OK
-type SqliteAuthorizer func(d interface{}, action int, arg1, arg2, arg3, arg4 string) int
+type Auth int
+const (
+	AUTH_OK Auth = C.SQLITE_OK
+	AUTH_DENY Auth = C.SQLITE_DENY
+	AUTH_IGNORE Auth = C.SQLITE_IGNORE
+)
+
+type SqliteAuthorizer func(d interface{}, action int, arg1, arg2, arg3, arg4 string) Auth
 
 type sqliteAuthorizer struct {
 	f SqliteAuthorizer
@@ -63,13 +69,13 @@ type sqliteAuthorizer struct {
 
 //export goXAuth
 func goXAuth(pUserData unsafe.Pointer, action C.int, arg1, arg2, arg3, arg4 *C.char) C.int {
-	var result int
+	var result Auth
 	if pUserData != nil {
 		arg := (*sqliteAuthorizer)(pUserData)
 		result = arg.f(arg.d, int(action), C.GoString(arg1), C.GoString(arg2), C.GoString(arg3), C.GoString(arg4))
 	} else {
 		fmt.Printf("ERROR - %v\n", pUserData)
-		result = 0
+		result = AUTH_OK
 	}
 	return C.int(result)
 }
