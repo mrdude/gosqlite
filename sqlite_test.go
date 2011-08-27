@@ -25,7 +25,12 @@ func open(t *testing.T) *Conn {
 		t.Fatal("opened database is nil")
 	}
 	//db.Trace(trace, "TRACE")
-	//db.SetAuthorizer(authorizer, "AUTH")
+	/*
+	err = db.SetAuthorizer(authorizer, "AUTH")
+	if err != nil {
+		t.Fatal("couldn't set an authorizer", err)
+	}
+	*/
 	return db
 }
 

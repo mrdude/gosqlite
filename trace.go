@@ -26,6 +26,7 @@ import "C"
 
 import (
 	"fmt"
+	"os"
 	"unsafe"
 )
 
@@ -52,6 +53,7 @@ func (c *Conn) Trace(f SqliteTrace, arg interface{}) {
 	C.goSqlite3Trace(c.db, pArg)
 }
 
+// TODO SQLITE_DENY, SQLITE_IGNORE, SQLITE_OK
 type SqliteAuthorizer func(d interface{}, action int, arg1, arg2, arg3, arg4 string) int
 
 type sqliteAuthorizer struct {
@@ -73,11 +75,10 @@ func goXAuth(pUserData unsafe.Pointer, action C.int, arg1, arg2, arg3, arg4 *C.c
 }
 
 // Calls http://sqlite.org/c3ref/set_authorizer.html
-func (c *Conn) SetAuthorizer(f SqliteAuthorizer, arg interface{}) int {
-	// c.authorizer = f
+func (c *Conn) SetAuthorizer(f SqliteAuthorizer, arg interface{}) os.Error {
 	if f == nil {
-		return int(C.sqlite3_set_authorizer(c.db, nil, nil))
+		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil))
 	}
 	pArg := unsafe.Pointer(&sqliteAuthorizer{f, arg})
-	return int(C.goSqlite3SetAuthorizer(c.db, pArg))
+	return c.error(C.goSqlite3SetAuthorizer(c.db, pArg))
 }
