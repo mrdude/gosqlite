@@ -134,7 +134,8 @@ func (c *Conn) Error() os.Error {
 
 // Connection
 type Conn struct {
-	db *C.sqlite3
+	db         *C.sqlite3
+	authorizer *sqliteAuthorizer
 }
 
 // Calls http://sqlite.org/c3ref/libversion.html

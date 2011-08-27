@@ -11,7 +11,7 @@ func trace(d interface{}, t string) {
 	fmt.Printf("%s: %s\n", d, t)
 }
 
-func authorizer(d interface{}, action int, arg1, arg2, arg3, arg4 string) Auth {
+func authorizer(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Auth {
 	fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, arg3, arg4)
 	return AUTH_OK
 }
