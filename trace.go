@@ -29,10 +29,10 @@ import (
 	"unsafe"
 )
 
-type SqliteTrace func(d interface{}, t string)
+type Tracer func(d interface{}, t string)
 
 type sqliteTrace struct {
-	f SqliteTrace
+	f Tracer
 	d interface{}
 }
 
@@ -43,13 +43,15 @@ func goXTrace(pArg unsafe.Pointer, t *C.char) {
 }
 
 // Calls sqlite3_trace, http://sqlite.org/c3ref/profile.html
-func (c *Conn) Trace(f SqliteTrace, arg interface{}) {
+func (c *Conn) Trace(f Tracer, arg interface{}) {
 	if f == nil {
+		c.trace = nil
 		C.sqlite3_trace(c.db, nil, nil)
 		return
 	}
-	pArg := unsafe.Pointer(&sqliteTrace{f, arg})
-	C.goSqlite3Trace(c.db, pArg)
+	// To make sure it is not gced, keep a reference in the connection.
+	c.trace = &sqliteTrace{f, arg}
+	C.goSqlite3Trace(c.db, unsafe.Pointer(c.trace))
 }
 
 type Auth int
@@ -98,10 +100,10 @@ const (
 	COPY                Action = C.SQLITE_COPY
 )
 
-type SqliteAuthorizer func(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Auth
+type Authorizer func(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Auth
 
 type sqliteAuthorizer struct {
-	f SqliteAuthorizer
+	f Authorizer
 	d interface{}
 }
 
@@ -113,7 +115,7 @@ func goXAuth(pUserData unsafe.Pointer, action C.int, arg1, arg2, arg3, arg4 *C.c
 }
 
 // Calls http://sqlite.org/c3ref/set_authorizer.html
-func (c *Conn) SetAuthorizer(f SqliteAuthorizer, arg interface{}) os.Error {
+func (c *Conn) SetAuthorizer(f Authorizer, arg interface{}) os.Error {
 	if f == nil {
 		c.authorizer = nil
 		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil))

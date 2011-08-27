@@ -26,10 +26,10 @@ func open(t *testing.T) *Conn {
 	}
 	//db.Trace(trace, "TRACE")
 	/*
-	err = db.SetAuthorizer(authorizer, "AUTH")
-	if err != nil {
-		t.Fatal("couldn't set an authorizer", err)
-	}
+		err = db.SetAuthorizer(authorizer, "AUTH")
+		if err != nil {
+			t.Fatal("couldn't set an authorizer", err)
+		}
 	*/
 	return db
 }
