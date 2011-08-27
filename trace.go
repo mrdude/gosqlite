@@ -26,6 +26,12 @@ extern int goXAuth(void *pUserData, int action, const char *arg1, const char *ar
 static int goSqlite3SetAuthorizer(sqlite3 *db, void *pUserData) {
 	return sqlite3_set_authorizer(db, goXAuth, pUserData);
 }
+
+extern int goXBusy(void *pArg, int n);
+
+static int goSqlite3BusyHandler(sqlite3 *db, void *pArg) {
+	return sqlite3_busy_handler(db, goXBusy, pArg);
+}
 */
 import "C"
 
@@ -153,4 +159,30 @@ func (c *Conn) SetAuthorizer(f Authorizer, arg interface{}) os.Error {
 	// To make sure it is not gced, keep a reference in the connection.
 	c.authorizer = &sqliteAuthorizer{f, arg}
 	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)))
+}
+
+type BusyHandler func(d interface{}, n int) int
+
+type sqliteBusyHandler struct {
+	f BusyHandler
+	d interface{}
+}
+
+//export goXBusy
+func goXBusy(pArg unsafe.Pointer, n C.int) C.int {
+	arg := (*sqliteBusyHandler)(pArg)
+	result := arg.f(arg.d, int(n))
+	return C.int(result)
+}
+
+// TODO NOT TESTED
+// Calls http://sqlite.org/c3ref/busy_handler.html
+func (c *Conn) BusyHandler(f BusyHandler, arg interface{}) os.Error {
+	if f == nil {
+		c.busyHandler = nil
+		return c.error(C.sqlite3_busy_handler(c.db, nil, nil))
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.busyHandler = &sqliteBusyHandler{f, arg}
+	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)))
 }
