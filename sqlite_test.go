@@ -16,6 +16,10 @@ func authorizer(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Aut
 	return AUTH_OK
 }
 
+func profile(d interface{}, sql string, nanoseconds uint64) {
+	fmt.Printf("%s: %s = %d\n", d, sql, nanoseconds/1000)
+}
+
 func open(t *testing.T) *Conn {
 	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX, OPEN_URI)
 	if err != nil {
@@ -31,6 +35,7 @@ func open(t *testing.T) *Conn {
 			t.Fatal("couldn't set an authorizer", err)
 		}
 	*/
+	//db.Profile(profile, "PROFILE")
 	return db
 }
 

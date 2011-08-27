@@ -15,6 +15,11 @@ extern void goXTrace(void *pArg, const char *t);
 static void goSqlite3Trace(sqlite3 *db, void *pArg) {
 	sqlite3_trace(db, goXTrace, pArg);
 }
+extern void goXProfile(void *pArg, const char *sql, sqlite3_uint64 nanoseconds);
+
+static void goSqlite3Profile(sqlite3 *db, void *pArg) {
+	sqlite3_profile(db, goXProfile, pArg);
+}
 
 extern int goXAuth(void *pUserData, int action, const char *arg1, const char *arg2, const char *arg3, const char *arg4);
 
@@ -52,6 +57,31 @@ func (c *Conn) Trace(f Tracer, arg interface{}) {
 	// To make sure it is not gced, keep a reference in the connection.
 	c.trace = &sqliteTrace{f, arg}
 	C.goSqlite3Trace(c.db, unsafe.Pointer(c.trace))
+}
+
+type Profiler func(d interface{}, sql string, nanoseconds uint64)
+
+type sqliteProfile struct {
+	f Profiler
+	d interface{}
+}
+
+//export goXProfile
+func goXProfile(pArg unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
+	arg := (*sqliteProfile)(pArg)
+	arg.f(arg.d, C.GoString(sql), uint64(nanoseconds))
+}
+
+// Calls sqlite3_profile, http://sqlite.org/c3ref/profile.html
+func (c *Conn) Profile(f Profiler, arg interface{}) {
+	if f == nil {
+		c.profile = nil
+		C.sqlite3_profile(c.db, nil, nil)
+		return
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.profile = &sqliteProfile{f, arg}
+	C.goSqlite3Profile(c.db, unsafe.Pointer(c.profile))
 }
 
 type Auth int
