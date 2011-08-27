@@ -76,6 +76,26 @@ func TestCreateTable(t *testing.T) {
 	createTable(db, t)
 }
 
+func TestExists(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
+	b, err := db.Exists("SELECT * FROM test")
+	if err != nil {
+		t.Fatalf("Error: %s", err)
+	}
+	if b {
+		t.Error("No row expected")
+	}
+	b, err = db.Exists("SELECT count(1) FROM test")
+	if err != nil {
+		t.Fatalf("Error: %s", err)
+	}
+	if !b {
+		t.Error("One row expected")
+	}
+}
+
 func TestInsert(t *testing.T) {
 	db := open(t)
 	defer db.Close()

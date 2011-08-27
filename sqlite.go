@@ -175,7 +175,7 @@ func Open(filename string, flags ...OpenFlag) (*Conn, os.Error) {
 	var db *C.sqlite3
 	name := C.CString(filename)
 	defer C.free(unsafe.Pointer(name))
-	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags),	nil)
+	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags), nil)
 	if rv != C.SQLITE_OK {
 		if db != nil {
 			C.sqlite3_close(db)
@@ -248,6 +248,15 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 	return nil
 }
 
+// Returns true if the specified query returns at least one row.
+func (c *Conn) Exists(query string, args ...interface{}) (bool, os.Error) {
+	s, err := c.Prepare(query, args...)
+	if err != nil {
+		return false, err
+	}
+	return s.Next()
+}
+
 // Calls http://sqlite.org/c3ref/changes.html
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
@@ -300,7 +309,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 	}
 	s := &Stmt{c: c, stmt: stmt, tail: t}
 	if len(args) > 0 {
-		err := s.Bind(args)
+		err := s.Bind(args...)
 		if err != nil {
 			return s, err
 		}
@@ -344,7 +353,7 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 	}
 
 	n := s.BindParameterCount()
-	if n != len(args) { // TODO What happens when the number of arguments is less than the number of parameters?
+	if n != len(args) { // What happens when the number of arguments is less than the number of parameters?
 		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n))
 	}
 
@@ -470,7 +479,7 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) Scan(args ...interface{}) os.Error {
 	n := s.ColumnCount()
-	if n != len(args) { // TODO What happens when the number of arguments is less than the number of columns?
+	if n != len(args) { // What happens when the number of arguments is less than the number of columns?
 		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n))
 	}
 
