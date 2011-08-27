@@ -143,23 +143,39 @@ func Version() string {
 	return C.GoString(p)
 }
 
-// ':memory:' for memory db
-// '' for temp db
+type OpenFlag int
+
+const (
+	OPEN_READONLY     OpenFlag = C.SQLITE_OPEN_READONLY
+	OPEN_READWRITE    OpenFlag = C.SQLITE_OPEN_READWRITE
+	OPEN_CREATE       OpenFlag = C.SQLITE_OPEN_CREATE
+	OPEN_URI          OpenFlag = C.SQLITE_OPEN_URI
+	OPEN_NOMUTEX      OpenFlag = C.SQLITE_OPEN_NOMUTEX
+	OPEN_FULLMUTEX    OpenFlag = C.SQLITE_OPEN_FULLMUTEX
+	OPEN_SHAREDCACHE  OpenFlag = C.SQLITE_OPEN_SHAREDCACHE
+	OPEN_PRIVATECACHE OpenFlag = C.SQLITE_OPEN_PRIVATECACHE
+)
+
+// ":memory:" for memory db
+// "" for temp file db
 // Calls sqlite3_open_v2: http://sqlite.org/c3ref/open.html
-func Open(filename string) (*Conn, os.Error) { // TODO flags parameter + constants
+func Open(filename string, flags ...OpenFlag) (*Conn, os.Error) {
 	if C.sqlite3_threadsafe() == 0 {
 		return nil, os.NewError("sqlite library was not compiled for thread-safe operation")
+	}
+	var openFlags int
+	if len(flags) > 0 {
+		for _, flag := range flags {
+			openFlags |= int(flag)
+		}
+	} else {
+		openFlags = C.SQLITE_OPEN_FULLMUTEX | C.SQLITE_OPEN_READWRITE | C.SQLITE_OPEN_CREATE
 	}
 
 	var db *C.sqlite3
 	name := C.CString(filename)
 	defer C.free(unsafe.Pointer(name))
-	rv := C.sqlite3_open_v2(name, &db,
-		C.SQLITE_OPEN_FULLMUTEX|
-			C.SQLITE_OPEN_READWRITE|
-			C.SQLITE_OPEN_CREATE|
-			C.SQLITE_OPEN_URI,
-		nil)
+	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags),	nil)
 	if rv != C.SQLITE_OK {
 		if db != nil {
 			C.sqlite3_close(db)

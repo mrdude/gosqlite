@@ -17,7 +17,7 @@ func authorizer(d interface{}, action int, arg1, arg2, arg3, arg4 string) int {
 }
 
 func open(t *testing.T) *Conn {
-	db, err := Open("")
+	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX, OPEN_URI)
 	if err != nil {
 		t.Fatalf("couldn't open database file: %s", err)
 	}
