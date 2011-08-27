@@ -134,11 +134,12 @@ func (c *Conn) Error() os.Error {
 
 // Connection
 type Conn struct {
-	db          *C.sqlite3
-	authorizer  *sqliteAuthorizer
-	busyHandler *sqliteBusyHandler
-	profile     *sqliteProfile
-	trace       *sqliteTrace
+	db              *C.sqlite3
+	authorizer      *sqliteAuthorizer
+	busyHandler     *sqliteBusyHandler
+	profile         *sqliteProfile
+	progressHandler *sqliteProgressHandler
+	trace           *sqliteTrace
 }
 
 // Calls http://sqlite.org/c3ref/libversion.html

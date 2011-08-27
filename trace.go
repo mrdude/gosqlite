@@ -32,6 +32,12 @@ extern int goXBusy(void *pArg, int n);
 static int goSqlite3BusyHandler(sqlite3 *db, void *pArg) {
 	return sqlite3_busy_handler(db, goXBusy, pArg);
 }
+
+extern int goXProgress(void *pArg);
+
+static void goSqlite3ProgressHandler(sqlite3 *db, int freq, void *pArg) {
+	sqlite3_progress_handler(db, freq, goXProgress, pArg);
+}
 */
 import "C"
 
@@ -185,4 +191,31 @@ func (c *Conn) BusyHandler(f BusyHandler, arg interface{}) os.Error {
 	// To make sure it is not gced, keep a reference in the connection.
 	c.busyHandler = &sqliteBusyHandler{f, arg}
 	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)))
+}
+
+// Returns non-zero to interrupt.
+type ProgressHandler func(d interface{}) int
+
+type sqliteProgressHandler struct {
+	f ProgressHandler
+	d interface{}
+}
+
+//export goXProgress
+func goXProgress(pArg unsafe.Pointer) C.int {
+	arg := (*sqliteProgressHandler)(pArg)
+	result := arg.f(arg.d)
+	return C.int(result)
+}
+
+// Calls http://sqlite.org/c3ref/progress_handler.html
+func (c *Conn) ProgressHandler(f ProgressHandler, freq int, arg interface{}) {
+	if f == nil {
+		c.progressHandler = nil
+		C.sqlite3_progress_handler(c.db, 0, nil, nil)
+		return
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.progressHandler = &sqliteProgressHandler{f, arg}
+	C.goSqlite3ProgressHandler(c.db, C.int(freq), unsafe.Pointer(c.progressHandler))
 }

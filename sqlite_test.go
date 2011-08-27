@@ -20,6 +20,11 @@ func profile(d interface{}, sql string, nanoseconds uint64) {
 	fmt.Printf("%s: %s = %d\n", d, sql, nanoseconds/1000)
 }
 
+func progressHandler(d interface{}) int {
+	fmt.Print("+")
+	return 0
+}
+
 func open(t *testing.T) *Conn {
 	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX, OPEN_URI)
 	if err != nil {
@@ -36,6 +41,7 @@ func open(t *testing.T) *Conn {
 		}
 	*/
 	//db.Profile(profile, "PROFILE")
+	//db.ProgressHandler(progressHandler, 20, nil)
 	return db
 }
 
