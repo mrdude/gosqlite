@@ -65,6 +65,9 @@ func TestOpen(t *testing.T) {
 	db := open(t)
 	db.Trace(nil, nil)
 	db.SetAuthorizer(nil, nil)
+	db.Profile(nil, nil)
+	db.ProgressHandler(nil, 0, nil)
+	db.BusyHandler(nil, nil)
 	db.Close()
 }
 
@@ -95,15 +98,14 @@ func TestCreateTable(t *testing.T) {
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	createTable(db, t)
-	b, err := db.Exists("SELECT * FROM test")
+	b, err := db.Exists("SELECT 1 where 1 = 0")
 	if err != nil {
 		t.Fatalf("Error: %s", err)
 	}
 	if b {
 		t.Error("No row expected")
 	}
-	b, err = db.Exists("SELECT count(1) FROM test")
+	b, err = db.Exists("SELECT 1 where 1 = 1")
 	if err != nil {
 		t.Fatalf("Error: %s", err)
 	}
@@ -243,6 +245,15 @@ func TestInsertWithStatement(t *testing.T) {
 		if sstr != "hello" {
 			t.Errorf("Expected 'hello' <> %s\n", sstr)
 		}
+	}
+	if 999 != rs.Status(STMTSTATUS_FULLSCAN_STEP, false) {
+		t.Errorf("Expected full scan")
+	}
+	if 1 != rs.Status(STMTSTATUS_SORT, false) {
+		t.Errorf("Expected one sort")
+	}
+	if 0 != rs.Status(STMTSTATUS_AUTOINDEX, false) {
+		t.Errorf("Expected no auto index")
 	}
 }
 

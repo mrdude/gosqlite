@@ -219,3 +219,16 @@ func (c *Conn) ProgressHandler(f ProgressHandler, freq int, arg interface{}) {
 	c.progressHandler = &sqliteProgressHandler{f, arg}
 	C.goSqlite3ProgressHandler(c.db, C.int(freq), unsafe.Pointer(c.progressHandler))
 }
+
+type StmtStatus int
+
+const (
+	STMTSTATUS_FULLSCAN_STEP  StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
+	STMTSTATUS_SORT StmtStatus = C.SQLITE_STMTSTATUS_SORT
+	STMTSTATUS_AUTOINDEX StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
+)
+
+// Calls http://sqlite.org/c3ref/stmt_status.html
+func (s *Stmt) Status(op StmtStatus, reset bool) int {
+	return int(C.sqlite3_stmt_status(s.stmt, C.int(op), btocint(reset)))
+}
