@@ -233,7 +233,9 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 		} else if s.stmt == nil {
 			// this happens for a comment or white-space
 			cmd = s.tail
-			s.Finalize()
+			if err = s.Finalize(); err != nil {
+				return err
+			}
 			continue
 		}
 		err = s.Exec(args...)
@@ -248,7 +250,9 @@ func (c *Conn) Exec(cmd string, args ...interface{}) os.Error {
 			}
 		}
 		cmd = s.tail
-		s.Finalize()
+		if err = s.Finalize(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
