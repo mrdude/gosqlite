@@ -216,10 +216,10 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Errorf("column name error: %s <> 'int_num'", secondColumnName)
 	}
 
-	var fnum float64
-	var inum int64
-	var sstr string
 	if ok, _ := rs.Next(); ok {
+		var fnum float64
+		var inum int64
+		var sstr string
 		rs.Scan(&fnum, &inum, &sstr)
 		if fnum != 0 {
 			t.Errorf("Expected 0 <> %f\n", fnum)
@@ -374,6 +374,90 @@ func TestBlob(t *testing.T) {
 	}
 	//fmt.Printf("%#v\n", content)
 	br.Close()
+}
+
+func testScanColumn(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("select 1, null, 0")
+	if err != nil {
+		t.Fatalf("prepare error: %s", err)
+	}
+	defer s.Finalize()
+	if ok, err := s.Next(); !ok {
+		if err != nil {
+			t.Fatalf("error preparing count: %s", err)
+		}
+		t.Fatal("no result for count")
+	}
+	var i1, i2, i3 int
+	null, err := s.ScanColumn(0, &i1, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if null {
+		t.Errorf("Expected not null value")
+	} else if i1 != 1 {
+		t.Errorf("Expected 1 <> %d\n", i1)
+	}
+	null, err = s.ScanColumn(1, &i2, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if !null {
+		t.Errorf("Expected null value")
+	} else if i2 != 0 {
+		t.Errorf("Expected 0 <> %d\n", i2)
+	}
+	null, err = s.ScanColumn(2, &i3, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if null {
+		t.Errorf("Expected not null value")
+	} else if i3 != 0 {
+		t.Errorf("Expected 0 <> %d\n", i3)
+	}
+}
+
+func testNamedScanColumn(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("select 1 as i1, null as i2, 0 as i3")
+	if err != nil {
+		t.Fatalf("prepare error: %s", err)
+	}
+	defer s.Finalize()
+	if ok, err := s.Next(); !ok {
+		if err != nil {
+			t.Fatalf("error preparing count: %s", err)
+		}
+		t.Fatal("no result for count")
+	}
+	var i1, i2, i3 int
+	null, err := s.NamedScanColumn("i1", &i1, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if null {
+		t.Errorf("Expected not null value")
+	} else if i1 != 1 {
+		t.Errorf("Expected 1 <> %d\n", i1)
+	}
+	null, err = s.NamedScanColumn("i2", &i2, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if !null {
+		t.Errorf("Expected null value")
+	} else if i2 != 0 {
+		t.Errorf("Expected 0 <> %d\n", i2)
+	}
+	null, err = s.NamedScanColumn("i3", &i3, true)
+	if err != nil {
+		t.Errorf("scan error: %s\n", err)
+	} else if null {
+		t.Errorf("Expected not null value")
+	} else if i3 != 0 {
+		t.Errorf("Expected 0 <> %d\n", i3)
+	}
 }
 
 func BenchmarkScan(b *testing.B) {

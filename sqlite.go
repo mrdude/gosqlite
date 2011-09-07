@@ -469,12 +469,12 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 		if !ok {
 			return os.NewError("non-string field name field")
 		}
-		index, err := s.fieldIndex(name) // How to look up only once for one statement ?
+		index, err := s.ColumnIndex(name) // How to look up only once for one statement ?
 		if err != nil {
 			return err
 		}
 		ptr := args[i+1]
-		_, err = s.scanField(index, ptr, false)
+		_, err = s.ScanColumn(index, ptr, false)
 		if err != nil {
 			return err
 		}
@@ -493,7 +493,7 @@ func (s *Stmt) Scan(args ...interface{}) os.Error {
 	}
 
 	for i, v := range args {
-		_, err := s.scanField(i, v, false)
+		_, err := s.ScanColumn(i, v, false)
 		if err != nil {
 			return err
 		}
@@ -506,7 +506,10 @@ func (s *Stmt) SQL() string {
 	return C.GoString(C.sqlite3_sql(s.stmt))
 }
 
-func (s *Stmt) fieldIndex(name string) (int, os.Error) {
+// Must scan all columns (but result is cached).
+// Calls sqlite3_column_count, sqlite3_column_name
+// http://sqlite.org/c3ref/column_name.html
+func (s *Stmt) ColumnIndex(name string) (int, os.Error) {
 	if s.cols == nil {
 		count := s.ColumnCount()
 		s.cols = make(map[string]int, count)
@@ -523,7 +526,23 @@ func (s *Stmt) fieldIndex(name string) (int, os.Error) {
 
 // Set nullable to false to skip NULL type test.
 // Returns true when nullable is true and field is null.
-func (s *Stmt) scanField(index int, value interface{}, nullable bool) (bool, os.Error) {
+// Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) NamedScanColumn(name string, value interface{}, nullable bool) (bool, os.Error) {
+	index, err := s.ColumnIndex(name)
+	if err != nil {
+		return false, err
+	}
+	return s.ScanColumn(index, value, true)
+}
+
+// The leftmost column is number 0.
+// Index starts at 0.
+// Set nullable to false to skip NULL type test.
+// Returns true when nullable is true and field is null.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) ScanColumn(index int, value interface{}, nullable bool) (bool, os.Error) {
 	var isNull bool
 	switch value := value.(type) {
 	case *string:

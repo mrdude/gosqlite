@@ -223,9 +223,9 @@ func (c *Conn) ProgressHandler(f ProgressHandler, freq int, arg interface{}) {
 type StmtStatus int
 
 const (
-	STMTSTATUS_FULLSCAN_STEP  StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
-	STMTSTATUS_SORT StmtStatus = C.SQLITE_STMTSTATUS_SORT
-	STMTSTATUS_AUTOINDEX StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
+	STMTSTATUS_FULLSCAN_STEP StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
+	STMTSTATUS_SORT          StmtStatus = C.SQLITE_STMTSTATUS_SORT
+	STMTSTATUS_AUTOINDEX     StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
 )
 
 // Calls http://sqlite.org/c3ref/stmt_status.html
