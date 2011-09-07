@@ -376,7 +376,7 @@ func TestBlob(t *testing.T) {
 	br.Close()
 }
 
-func testScanColumn(t *testing.T) {
+func TestScanColumn(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 
@@ -418,7 +418,7 @@ func testScanColumn(t *testing.T) {
 	}
 }
 
-func testNamedScanColumn(t *testing.T) {
+func TestNamedScanColumn(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 
