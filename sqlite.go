@@ -384,6 +384,8 @@ func (s *Stmt) Exec(args ...interface{}) os.Error {
 	return nil
 }
 
+// Don't use it with SELECT or anything that returns data.
+// Like Exec but returns the number of rows that were changed or inserted or deleted.
 func (s *Stmt) ExecUpdate(args ...interface{}) (int, os.Error) {
 	err := s.Exec(args...)
 	if err != nil {

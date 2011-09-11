@@ -13,4 +13,7 @@ CGOFILES=\
 	trace.go\
 	blob.go
 
+GOFILES=\
+	date.go
+
 include $(GOROOT)/src/Make.pkg
