@@ -293,7 +293,7 @@ func (c *Conn) GetAutocommit() bool {
 type TransactionType int
 
 const (
-	DEFERRED TransactionType = 0
+	DEFERRED  TransactionType = 0
 	IMMEDIATE TransactionType = 1
 	EXCLUSIVE TransactionType = 2
 )
@@ -304,11 +304,11 @@ func (c *Conn) Begin() os.Error {
 
 func (c *Conn) BeginTransaction(t TransactionType) os.Error {
 	if t == DEFERRED {
-		return c.Exec("BEGIN")
-	}	else if t == IMMEDIATE {
-		return c.Exec("BEGIN IMMEDIATE")
+		return c.exec("BEGIN")
+	} else if t == IMMEDIATE {
+		return c.exec("BEGIN IMMEDIATE")
 	} else if t == EXCLUSIVE {
-		return c.Exec("BEGIN EXCLUSIVE")
+		return c.exec("BEGIN EXCLUSIVE")
 	}
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
 	return nil
@@ -316,11 +316,21 @@ func (c *Conn) BeginTransaction(t TransactionType) os.Error {
 
 func (c *Conn) Commit() os.Error {
 	// TODO Check autocommit?
-	return c.Exec("COMMIT")
+	return c.exec("COMMIT")
 }
 func (c *Conn) Rollback() os.Error {
 	// TODO Check autocommit?
-	return c.Exec("ROLLBACK")
+	return c.exec("ROLLBACK")
+}
+
+func (c *Conn) exec(cmd string) os.Error {
+	cmdstr := C.CString(cmd)
+	defer C.free(unsafe.Pointer(cmdstr))
+	rv := C.sqlite3_exec(c.db, cmdstr, nil, nil, nil)
+	if rv != C.SQLITE_OK {
+		return c.error(rv)
+	}
+	return nil
 }
 
 // Prepared Statement (sqlite3_stmt)
