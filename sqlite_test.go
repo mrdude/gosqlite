@@ -200,11 +200,10 @@ func TestInsertWithStatement(t *testing.T) {
 
 	db.Begin()
 	for i := 0; i < 1000; i++ {
-		ierr := s.Exec(float64(i)*float64(3.14), i, "hello")
+		c, ierr := s.ExecUpdate(float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
 			t.Fatalf("insert error: %s", ierr)
 		}
-		c := db.Changes()
 		if c != 1 {
 			t.Errorf("insert error: %d <> 1", c)
 		}

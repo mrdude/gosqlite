@@ -384,6 +384,14 @@ func (s *Stmt) Exec(args ...interface{}) os.Error {
 	return nil
 }
 
+func (s *Stmt) ExecUpdate(args ...interface{}) (int, os.Error) {
+	err := s.Exec(args...)
+	if err != nil {
+		return -1, err
+	}
+	return s.c.Changes(), nil
+}
+
 // Calls http://sqlite.org/c3ref/bind_parameter_count.html
 func (s *Stmt) BindParameterCount() int {
 	return int(C.sqlite3_bind_parameter_count(s.stmt))
