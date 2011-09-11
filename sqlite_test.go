@@ -95,6 +95,20 @@ func TestCreateTable(t *testing.T) {
 	createTable(db, t)
 }
 
+func TestTransaction(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	if err := db.Begin(); err != nil {
+		t.Fatalf("Error while beginning transaction: %s", err)
+	}
+	if err := db.Begin(); err == nil {
+		t.Fatalf("Error expected (transaction cannot be nested)")
+	}
+	if err := db.Commit(); err != nil {
+		t.Fatalf("Error while commiting transaction: %s", err)
+	}
+}
+
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer db.Close()
@@ -118,6 +132,7 @@ func TestInsert(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 	createTable(db, t)
+	db.Begin()
 	for i := 0; i < 1000; i++ {
 		ierr := db.Exec("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)", float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
@@ -127,6 +142,9 @@ func TestInsert(t *testing.T) {
 		if c != 1 {
 			t.Errorf("insert error: %d <> 1", c)
 		}
+	}
+	if err := db.Commit(); err != nil {
+		t.Fatalf("Error: %s", err)
 	}
 
 	lastId := db.LastInsertRowid()
@@ -180,6 +198,7 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Errorf("bind parameter count error: %d <> 3", paramCount)
 	}
 
+	db.Begin()
 	for i := 0; i < 1000; i++ {
 		ierr := s.Exec(float64(i)*float64(3.14), i, "hello")
 		if ierr != nil {
@@ -191,6 +210,9 @@ func TestInsertWithStatement(t *testing.T) {
 		}
 	}
 	s.Finalize()
+	if err := db.Commit(); err != nil {
+		t.Fatalf("Error: %s", err)
+	}
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
@@ -466,12 +488,14 @@ func BenchmarkScan(b *testing.B) {
 	defer db.Close()
 	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
+	db.Begin()
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 
 	for i := 0; i < 1000; i++ {
 		s.Exec(float64(i)*float64(3.14), i, "hello")
 	}
 	s.Finalize()
+	db.Commit()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -499,12 +523,14 @@ func BenchmarkNamedScan(b *testing.B) {
 	defer db.Close()
 	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
+	db.Begin()
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 
 	for i := 0; i < 1000; i++ {
 		s.Exec(float64(i)*float64(3.14), i, "hello")
 	}
 	s.Finalize()
+	db.Commit()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -536,7 +562,9 @@ func BenchmarkInsert(b *testing.B) {
 		" VALUES (?, ?, ?)")
 	defer s.Finalize()
 
+	db.Begin()
 	for i := 0; i < b.N; i++ {
 		s.Exec(float64(i)*float64(3.14), i, "hello")
 	}
+	db.Commit()
 }

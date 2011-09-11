@@ -290,6 +290,39 @@ func (c *Conn) GetAutocommit() bool {
 	return C.sqlite3_get_autocommit(c.db) != 0
 }
 
+type TransactionType int
+
+const (
+	DEFERRED TransactionType = 0
+	IMMEDIATE TransactionType = 1
+	EXCLUSIVE TransactionType = 2
+)
+
+func (c *Conn) Begin() os.Error {
+	return c.BeginTransaction(DEFERRED)
+}
+
+func (c *Conn) BeginTransaction(t TransactionType) os.Error {
+	if t == DEFERRED {
+		return c.Exec("BEGIN")
+	}	else if t == IMMEDIATE {
+		return c.Exec("BEGIN IMMEDIATE")
+	} else if t == EXCLUSIVE {
+		return c.Exec("BEGIN EXCLUSIVE")
+	}
+	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
+	return nil
+}
+
+func (c *Conn) Commit() os.Error {
+	// TODO Check autocommit?
+	return c.Exec("COMMIT")
+}
+func (c *Conn) Rollback() os.Error {
+	// TODO Check autocommit?
+	return c.Exec("ROLLBACK")
+}
+
 // Prepared Statement (sqlite3_stmt)
 type Stmt struct {
 	c    *Conn
@@ -525,7 +558,7 @@ func (s *Stmt) ColumnIndex(name string) (int, os.Error) {
 }
 
 // Set nullable to false to skip NULL type test.
-// Returns true when nullable is true and field is null.
+// Returns true when nullable is true and column is null.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) NamedScanColumn(name string, value interface{}, nullable bool) (bool, os.Error) {
@@ -539,7 +572,7 @@ func (s *Stmt) NamedScanColumn(name string, value interface{}, nullable bool) (b
 // The leftmost column is number 0.
 // Index starts at 0.
 // Set nullable to false to skip NULL type test.
-// Returns true when nullable is true and field is null.
+// Returns true when nullable is true and column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) ScanColumn(index int, value interface{}, nullable bool) (bool, os.Error) {
