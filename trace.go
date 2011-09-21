@@ -232,3 +232,28 @@ const (
 func (s *Stmt) Status(op StmtStatus, reset bool) int {
 	return int(C.sqlite3_stmt_status(s.stmt, C.int(op), btocint(reset)))
 }
+
+// Calls sqlite3_memory_used: http://sqlite.org/c3ref/memory_highwater.html
+func MemoryUsed() int64 {
+	return int64(C.sqlite3_memory_used())
+}
+// Calls sqlite3_memory_highwater: http://sqlite.org/c3ref/memory_highwater.html
+func MemoryHighwater(reset bool) int64 {
+	return int64(C.sqlite3_memory_highwater(btocint(reset)))
+}
+
+// Calls http://sqlite.org/c3ref/soft_heap_limit64.html
+func SoftHeapLimit() int64 {
+	return SetSoftHeapLimit(-1)
+}
+// Calls http://sqlite.org/c3ref/soft_heap_limit64.html
+func SetSoftHeapLimit(n int64) int64 {
+	return int64(C.sqlite3_soft_heap_limit64( C.sqlite3_int64(n)))
+}
+
+// Calls http://sqlite.org/c3ref/complete.html
+func Complete(sql string) bool {
+	cs := C.CString(sql)
+	defer C.free(unsafe.Pointer(cs))
+	return C.sqlite3_complete(cs) != 0
+}
