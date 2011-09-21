@@ -38,6 +38,11 @@ extern int goXProgress(void *pArg);
 static void goSqlite3ProgressHandler(sqlite3 *db, int freq, void *pArg) {
 	sqlite3_progress_handler(db, freq, goXProgress, pArg);
 }
+
+// cgo doesn't support varargs
+static void my_log(int iErrCode, char *msg) {
+	sqlite3_log(iErrCode, msg);
+}
 */
 import "C"
 
@@ -248,7 +253,7 @@ func SoftHeapLimit() int64 {
 }
 // Calls http://sqlite.org/c3ref/soft_heap_limit64.html
 func SetSoftHeapLimit(n int64) int64 {
-	return int64(C.sqlite3_soft_heap_limit64( C.sqlite3_int64(n)))
+	return int64(C.sqlite3_soft_heap_limit64(C.sqlite3_int64(n)))
 }
 
 // Calls http://sqlite.org/c3ref/complete.html
@@ -256,4 +261,11 @@ func Complete(sql string) bool {
 	cs := C.CString(sql)
 	defer C.free(unsafe.Pointer(cs))
 	return C.sqlite3_complete(cs) != 0
+}
+
+// Calls http://sqlite.org/c3ref/log.html
+func Log(err /*Errno*/ int, msg string) {
+	cs := C.CString(msg)
+	defer C.free(unsafe.Pointer(cs))
+	C.my_log(C.int(err), cs)
 }
