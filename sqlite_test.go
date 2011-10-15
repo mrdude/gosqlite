@@ -74,15 +74,9 @@ func TestOpen(t *testing.T) {
 func TestEnableFKey(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	b, err := db.IsFKeyEnabled()
-	if err != nil {
-		t.Fatalf("Error while checking if FK are enabled: %s", err)
-	}
+	b := Must(db.IsFKeyEnabled())
 	if !b {
-		b, err = db.EnableFKey(true)
-		if err != nil {
-			t.Fatalf("Error while enabling FK: %s", err)
-		}
+		b = Must(db.EnableFKey(true))
 		if !b {
 			t.Error("cannot enabled FK")
 		}
@@ -112,17 +106,11 @@ func TestTransaction(t *testing.T) {
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	b, err := db.Exists("SELECT 1 where 1 = 0")
-	if err != nil {
-		t.Fatalf("Error: %s", err)
-	}
+	b := Must(db.Exists("SELECT 1 where 1 = 0"))
 	if b {
 		t.Error("No row expected")
 	}
-	b, err = db.Exists("SELECT 1 where 1 = 1")
-	if err != nil {
-		t.Fatalf("Error: %s", err)
-	}
+	b = Must(db.Exists("SELECT 1 where 1 = 1"))
 	if !b {
 		t.Error("One row expected")
 	}
@@ -164,10 +152,7 @@ func TestInsert(t *testing.T) {
 		t.Errorf("column count error: %d <> 1", columnCount)
 	}
 
-	if ok, err := cs.Next(); !ok {
-		if err != nil {
-			t.Fatalf("error preparing count: %s", err)
-		}
+	if ok := Must(cs.Next()); !ok {
 		t.Fatal("no result for count")
 	}
 	var i int
@@ -215,7 +200,7 @@ func TestInsertWithStatement(t *testing.T) {
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
-	if ok, _ := cs.Next(); !ok {
+	if ok := Must(cs.Next()); !ok {
 		t.Fatal("no result for count")
 	}
 	var i int
@@ -237,7 +222,7 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Errorf("column name error: %s <> 'int_num'", secondColumnName)
 	}
 
-	if ok, _ := rs.Next(); ok {
+	if ok := Must(rs.Next()); ok {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -252,7 +237,7 @@ func TestInsertWithStatement(t *testing.T) {
 			t.Errorf("Expected 'hello' <> %s\n", sstr)
 		}
 	}
-	if ok, _ := rs.Next(); ok {
+	if ok := Must(rs.Next()); ok {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -406,33 +391,24 @@ func TestScanColumn(t *testing.T) {
 		t.Fatalf("prepare error: %s", err)
 	}
 	defer s.Finalize()
-	if ok, err := s.Next(); !ok {
-		if err != nil {
-			t.Fatalf("error preparing count: %s", err)
-		}
-		t.Fatal("no result for count")
+	if ok := Must(s.Next()); !ok {
+		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null, err := s.ScanColumn(0, &i1, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if null {
+	null := Must(s.ScanColumn(0, &i1, true))
+	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 <> %d\n", i1)
 	}
-	null, err = s.ScanColumn(1, &i2, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if !null {
+	null = Must(s.ScanColumn(1, &i2, true))
+	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i2)
 	}
-	null, err = s.ScanColumn(2, &i3, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if null {
+	null = Must(s.ScanColumn(2, &i3, true))
+	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i3)
@@ -448,33 +424,24 @@ func TestNamedScanColumn(t *testing.T) {
 		t.Fatalf("prepare error: %s", err)
 	}
 	defer s.Finalize()
-	if ok, err := s.Next(); !ok {
-		if err != nil {
-			t.Fatalf("error preparing count: %s", err)
-		}
-		t.Fatal("no result for count")
+	if ok := Must(s.Next()); !ok {
+		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null, err := s.NamedScanColumn("i1", &i1, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if null {
+	null := Must(s.NamedScanColumn("i1", &i1, true))
+	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 <> %d\n", i1)
 	}
-	null, err = s.NamedScanColumn("i2", &i2, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if !null {
+	null = Must(s.NamedScanColumn("i2", &i2, true))
+	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i2)
 	}
-	null, err = s.NamedScanColumn("i3", &i3, true)
-	if err != nil {
-		t.Errorf("scan error: %s\n", err)
-	} else if null {
+	null = Must(s.NamedScanColumn("i3", &i3, true))
+	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i3)

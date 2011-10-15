@@ -504,6 +504,7 @@ func (s *Stmt) ColumnName(index int) string {
 }
 
 // The leftmost column is number 0.
+// After a type conversion, the value returned by sqlite3_column_type() is undefined.
 // Calls sqlite3_column_type
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) columnType(index int) C.int {
@@ -608,7 +609,6 @@ func (s *Stmt) ScanColumn(index int, value interface{}, nullable bool) (bool, os
 			*value = C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
 		}
 	case *int:
-		// After a type conversion, the value returned by sqlite3_column_type() is undefined.
 		if nullable && s.columnType(index) == C.SQLITE_NULL {
 			*value = 0
 			isNull = true
@@ -680,6 +680,15 @@ func (c *Conn) Close() os.Error {
 	}
 	c.db = nil
 	return nil
+}
+
+// Must is a helper that wraps a call to a function returning (bool, os.Error)
+// and panics if the error is non-nil.
+func Must(b bool, err os.Error) bool {
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 func btocint(b bool) C.int {

@@ -51,8 +51,9 @@ type Column struct {
 }
 
 // Executes pragma 'table_info'
+// TODO How to specify a database-name?
 func (c *Conn) Columns(table string) ([]Column, os.Error) {
-	s, err := c.Prepare(Mprintf("pragma table_info(%Q)", table))
+	s, err := c.Prepare(Mprintf("PRAGMA table_info(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +80,9 @@ type ForeignKey struct {
 }
 
 // Executes pragma 'foreign_key_list'
+// TODO How to specify a database-name?
 func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
-	s, err := c.Prepare(Mprintf("pragma foreign_key_list(%Q)", table))
+	s, err := c.Prepare(Mprintf("PRAGMA foreign_key_list(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
