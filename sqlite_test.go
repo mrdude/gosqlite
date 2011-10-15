@@ -168,7 +168,7 @@ func TestInsertWithStatement(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 	createTable(db, t)
-	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
+	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (:f, :i, :s)")
 	if serr != nil {
 		t.Fatalf("prepare error: %s", serr)
 	}
@@ -180,6 +180,14 @@ func TestInsertWithStatement(t *testing.T) {
 	paramCount := s.BindParameterCount()
 	if paramCount != 3 {
 		t.Errorf("bind parameter count error: %d <> 3", paramCount)
+	}
+	firstParamName := s.BindParameterName(1)
+	if firstParamName != ":f" {
+		t.Errorf("bind parameter name error: %s <> ':f'", firstParamName)
+	}
+	lastParamIndex := s.BindParameterIndex(":s")
+	if lastParamIndex != 3 {
+		t.Errorf("bind parameter name error: %d <> 3", lastParamIndex)
 	}
 
 	db.Begin()

@@ -406,6 +406,13 @@ func (s *Stmt) BindParameterIndex(name string) int {
 	return int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 }
 
+// The first host parameter has an index of 1, not 0.
+// Calls http://sqlite.org/c3ref/bind_parameter_name.html
+func (s *Stmt) BindParameterName(i int) string {
+	return C.GoString(C.sqlite3_bind_parameter_name(s.stmt, C.int(i)))
+}
+
+
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 // http://sqlite.org/c3ref/bind_blob.html
 func (s *Stmt) Bind(args ...interface{}) os.Error {

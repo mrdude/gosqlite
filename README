@@ -21,7 +21,7 @@ Conn#Begin/BeginTransaction(type)/Commit/Rollback
 Conn#GetAutocommit
 
 Stmt#ExecUpdate
-Stmt#BindParameterCount/BindParameterIndex
+Stmt#BindParameterCount/BindParameterIndex/BindParameterName
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)/ColumnType
 
