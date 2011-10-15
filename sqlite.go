@@ -89,7 +89,7 @@ var errText = map[Errno]string{
 	6:   "A table in the database is locked",
 	7:   "A malloc() failed",
 	8:   "Attempt to write a readonly database",
-	9:   "Operation terminated by sqlite3_interrupt()*/",
+	9:   "Operation terminated by sqlite3_interrupt()",
 	10:  "Some kind of disk I/O error occurred",
 	11:  "The database disk image is malformed",
 	12:  "NOT USED. Table or record not found",

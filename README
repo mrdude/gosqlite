@@ -2,9 +2,46 @@ Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
 
+Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
 Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
 Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
-Stmt#Next returns a (bool, os.Error) couple like Reader#Read. But its use in for loop becomes inelegant...
+Stmt#Next returns a (bool, os.Error) couple like Reader#Read.
 Stmt#Scan uses native sqlite3_column_x methods.
 Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/) API but I think its signature should be improved/modified.
+Stmt#ScanColumn/NamedScanColumn are added to test NULL value.
+
+Misc:
+Conn#EnableFkey/IsFKeyEnabled
+Conn#Changes/TotalChanges
+Conn#LastInsertRowid
+Conn#Interrupt
+Conn#Begin/BeginTransaction(type)/Commit/Rollback
+
+Stmt#ExecUpdate
+Stmt#BindParameterCount/BindParameterIndex
+Stmt#ClearBindings
+Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)/ColumnType
+
+Blob:
+ZeroBlobLength
+Conn#NewBlobReader
+Conn#NewBlobReadWriter
+
+Meta:
+Conn#Tables
+Conn#Columns
+Conn#ForeignKeys
+
+Time:
+JulianDay
+JulianDayToUTC
+JulianDayToLocalTime
+
+Trace:
+Conn#BusyHandler
+Conn#Profile
+Conn#ProgressHandler
+Conn#SetAuthorizer
+Conn#Trace
+Stmt#Status
