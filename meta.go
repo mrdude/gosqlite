@@ -28,6 +28,7 @@ func (c *Conn) Tables() ([]string, os.Error) {
 	if err != nil {
 		return nil, err
 	}
+	defer s.Finalize()
 	var tables []string = make([]string, 0, 20)
 	var ok bool
 	var name string
@@ -57,6 +58,7 @@ func (c *Conn) Columns(table string) ([]Column, os.Error) {
 	if err != nil {
 		return nil, err
 	}
+	defer s.Finalize()
 	var columns []Column = make([]Column, 0, 20)
 	var ok bool
 	for ok, err = s.Next(); ok; ok, err = s.Next() {
@@ -86,6 +88,7 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 	if err != nil {
 		return nil, err
 	}
+	defer s.Finalize()
 	var fks = make(map[int]*ForeignKey)
 	var ok bool
 	var id, seq int

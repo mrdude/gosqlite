@@ -5,6 +5,7 @@ Yet another SQLite binding based on:
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
 Conn#Prepare can optionnaly #Bind as well.
+Conn#Close ensures that all dangling statements are finalized.
 Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
 Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
 Stmt#Next returns a (bool, os.Error) couple like Reader#Read.

@@ -200,7 +200,7 @@ func TestInsertWithStatement(t *testing.T) {
 			t.Errorf("insert error: %d <> 1", c)
 		}
 	}
-	s.Finalize()
+
 	if err := db.Commit(); err != nil {
 		t.Fatalf("Error: %s", err)
 	}
@@ -220,6 +220,7 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 
 	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test where a_string like ? ORDER BY int_num LIMIT 2", "hel%")
+	defer rs.Finalize()
 	columnCount := rs.ColumnCount()
 	if columnCount != 3 {
 		t.Errorf("column count error: %d <> 3", columnCount)

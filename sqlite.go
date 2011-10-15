@@ -263,6 +263,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, os.Error) {
 	if err != nil {
 		return false, err
 	}
+	defer s.Finalize()
 	return s.Next()
 }
 
@@ -702,7 +703,14 @@ func (c *Conn) Close() os.Error {
 	if c == nil {
 		return os.NewError("nil sqlite database")
 	}
-	// TODO sqlite3_next_stmt & dangling statements?
+	// Dangling statements
+	stmt := C.sqlite3_next_stmt(c.db, nil)
+	for stmt != nil {
+		//Log(1, "Dangling statement")
+		C.sqlite3_finalize(stmt)
+		stmt = C.sqlite3_next_stmt(c.db, stmt)
+	}
+	
 	rv := C.sqlite3_close(c.db)
 	if rv != C.SQLITE_OK {
 		return c.error(rv)
