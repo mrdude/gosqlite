@@ -459,6 +459,19 @@ func (s *Stmt) Bind(args ...interface{}) os.Error {
 	return nil
 }
 
+// With custom error handling:
+//	var ok bool
+//	var err os.Error
+// 	for ok, err = s.Next(); ok; ok, err = s.Next() {
+//		cs.Scan(&fnum, &inum, &sstr)
+//	}
+//	if err != nil {
+//		...
+//	}
+// With panic on error:
+// 	for Must(s.Next()) {
+//		cs.Scan(&fnum, &inum, &sstr)
+//	}
 // Calls sqlite3_step
 // http://sqlite.org/c3ref/step.html
 func (s *Stmt) Next() (bool, os.Error) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"os"
 )
 
 func trace(d interface{}, t string) {
@@ -471,13 +470,8 @@ func BenchmarkScan(b *testing.B) {
 		var inum int64
 		var sstr string
 
-		var ok bool
-		var err os.Error
-		for ok, err = cs.Next(); ok; ok, err = cs.Next() {
+		for Must(cs.Next()) {
 			cs.Scan(&fnum, &inum, &sstr)
-		}
-		if err != nil {
-			panic(err)
 		}
 		cs.Finalize()
 	}
@@ -506,13 +500,8 @@ func BenchmarkNamedScan(b *testing.B) {
 		var inum int64
 		var sstr string
 
-		var ok bool
-		var err os.Error
-		for ok, err = cs.Next(); ok; ok, err = cs.Next() {
+		for Must(cs.Next()) {
 			cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr)
-		}
-		if err != nil {
-			panic(err)
 		}
 		cs.Finalize()
 	}
