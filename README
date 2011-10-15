@@ -20,11 +20,13 @@ Conn#LastInsertRowid
 Conn#Interrupt
 Conn#Begin/BeginTransaction(type)/Commit/Rollback
 Conn#GetAutocommit
+Conn#EnableLoadExtension/LoadExtension
 
 Stmt#ExecUpdate
 Stmt#BindParameterCount/BindParameterIndex/BindParameterName
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)/ColumnType
+Stmt#ReadOnly
 
 Blob:
 ZeroBlobLength

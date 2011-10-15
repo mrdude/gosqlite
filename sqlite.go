@@ -719,6 +719,11 @@ func (c *Conn) Close() os.Error {
 	return nil
 }
 
+// Calls http://sqlite.org/c3ref/stmt_readonly.html
+func (s *Stmt) ReadOnly() bool {
+	return C.sqlite3_stmt_readonly(s.stmt) == 1;
+}
+
 // Calls http://sqlite.org/c3ref/enable_load_extension.html
 func (c *Conn) EnableLoadExtension(b bool) {
 	C.sqlite3_enable_load_extension(c.db, btocint(b))
