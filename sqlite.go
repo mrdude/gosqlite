@@ -515,6 +515,10 @@ func (s *Stmt) ClearBindings() os.Error {
 func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
 }
+// Calls http://sqlite.org/c3ref/data_count.html
+func (s *Stmt) DataCount() int {
+	return int(C.sqlite3_data_count(s.stmt))
+}
 
 // The leftmost column is number 0.
 // Calls http://sqlite.org/c3ref/column_name.html
@@ -688,6 +692,11 @@ func (s *Stmt) Finalize() os.Error {
 	return nil
 }
 
+// Like http://sqlite.org/c3ref/db_handle.html
+func (s *Stmt) Conn() *Conn {
+	return s.c
+}
+
 // Calls http://sqlite.org/c3ref/close.html
 func (c *Conn) Close() os.Error {
 	if c == nil {
@@ -700,6 +709,33 @@ func (c *Conn) Close() os.Error {
 	}
 	c.db = nil
 	return nil
+}
+
+// Calls http://sqlite.org/c3ref/enable_load_extension.html
+func (c *Conn) EnableLoadExtension(b bool) {
+	C.sqlite3_enable_load_extension(c.db, btocint(b))
+}
+// Calls http://sqlite.org/c3ref/load_extension.html
+func (c *Conn) LoadExtension(file string, proc ...string) os.Error {
+	cfile := C.CString(file)
+	defer C.free(unsafe.Pointer(cfile))
+	var cproc *C.char
+	if len(proc) > 0 {
+		cproc = C.CString(proc[0])
+		defer C.free(unsafe.Pointer(cproc))
+	}
+	var errMsg *C.char
+	rv := C.sqlite3_load_extension(c.db, cfile, cproc, &errMsg)
+	if rv != C.SQLITE_OK {
+		defer C.sqlite3_free(unsafe.Pointer(errMsg))
+		return os.NewError(Errno(rv).String() + ": " + C.GoString(errMsg))
+	}
+	return nil
+}
+
+// Calls http://sqlite.org/c3ref/enable_shared_cache.html
+func EnableSharedCache(b bool) {
+	C.sqlite3_enable_shared_cache(btocint(b))
 }
 
 // Must is a helper that wraps a call to a function returning (bool, os.Error)

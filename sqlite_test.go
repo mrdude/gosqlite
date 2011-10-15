@@ -455,6 +455,19 @@ func TestNamedScanColumn(t *testing.T) {
 	}
 }
 
+/*
+func TestLoadExtension(t *testing.T) {
+	db := open(t)
+
+	db.EnableLoadExtension(true)
+
+	err := db.LoadExtension("/tmp/myext.so")
+	if err != nil {
+		t.Errorf("load extension error: %s", err)
+	}
+}
+*/
+
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
