@@ -203,11 +203,13 @@ func (c *Conn) BusyTimeout(ms int) os.Error {
 }
 
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b)
+// Another way is PRAGMA foreign_keys = boolean; 
 // http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html
 func (c *Conn) EnableFKey(b bool) (bool, os.Error) {
 	return c.queryOrSetEnableFKey(btocint(b))
 }
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
+// Another way is PRAGMA foreign_keys; 
 // http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html
 func (c *Conn) IsFKeyEnabled() (bool, os.Error) {
 	return c.queryOrSetEnableFKey(-1)
@@ -623,6 +625,7 @@ func (s *Stmt) NamedScanColumn(name string, value interface{}, nullable bool) (b
 func (s *Stmt) ScanColumn(index int, value interface{}, nullable bool) (bool, os.Error) {
 	var isNull bool
 	switch value := value.(type) {
+	case nil:
 	case *string:
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
 		if p == nil {

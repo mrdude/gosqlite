@@ -32,9 +32,8 @@ func (c *Conn) Databases() (map[string]string, os.Error) {
 	var databases map[string]string = make(map[string]string)
 	var ok bool
 	var name, file string
-	var seq int
 	for ok, err = s.Next(); ok; ok, err = s.Next() {
-		err = s.Scan(&seq, &name, &file)
+		err = s.Scan(nil, &name, &file)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +135,59 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, os.Error) {
 		return nil, err
 	}
 	return fks, nil
+}
+
+type Index struct {
+	Name   string
+	Unique bool
+}
+
+// Executes pragma 'index_list'
+// TODO How to specify a database-name?
+func (c *Conn) Indexes(table string) ([]Index, os.Error) {
+	s, err := c.Prepare(Mprintf("PRAGMA index_list(%Q)", table))
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var indexes []Index = make([]Index, 0, 5)
+	var ok bool
+	for ok, err = s.Next(); ok; ok, err = s.Next() {
+		i := Index{}
+		err = s.Scan(nil, &i.Name, &i.Unique)
+		if err != nil {
+			return nil, err
+		}
+		indexes = append(indexes, i)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return indexes, nil
+}
+
+// Executes pragma 'index_info'
+// Only Column.Cid and Column.Name are specified. All other fields are unspecifed.
+func (c *Conn) IndexColumns(index string) ([]Column, os.Error) {
+	s, err := c.Prepare(Mprintf("PRAGMA index_info(%Q)", index))
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var columns []Column = make([]Column, 0, 5)
+	var ok bool
+	for ok, err = s.Next(); ok; ok, err = s.Next() {
+		c := Column{}
+		err = s.Scan(nil, &c.Cid, &c.Name)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, c)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return columns, nil
 }
 
 // Calls http://sqlite.org/c3ref/mprintf.html

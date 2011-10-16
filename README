@@ -37,6 +37,7 @@ Meta:
 Conn#Tables
 Conn#Columns
 Conn#ForeignKeys
+Conn#Indexes/IndexColumns
 
 Time:
 JulianDay

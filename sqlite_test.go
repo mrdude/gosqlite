@@ -53,6 +53,14 @@ func createTable(db *Conn, t *testing.T) {
 	}
 }
 
+func createIndex(db *Conn, t *testing.T) {
+	err := db.Exec("DROP INDEX IF EXISTS test_index;" +
+		"CREATE INDEX test_index on test(a_string)")
+	if err != nil {
+		t.Fatalf("error creating index: %s", err)
+	}
+}
+
 func TestVersion(t *testing.T) {
 	v := Version()
 	if !strings.HasPrefix(v, "3") {
@@ -356,6 +364,40 @@ func TestForeignKeys(t *testing.T) {
 	fk := fks[0]
 	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
 		t.Errorf("Unexpected FK data: %#v", fk)
+	}
+}
+
+func TestIndexes(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
+	createIndex(db, t)
+
+	indexes, err := db.Indexes("test")
+	if err != nil {
+		t.Fatalf("error listing indexes: %s", err)
+	}
+	if len(indexes) != 1 {
+		t.Fatalf("Expected one index <> %d", len(indexes))
+	}
+	index := indexes[0]
+	if index.Name != "test_index" {
+		t.Errorf("Wrong index name: 'test_index' <> %s", index.Name)
+	}
+	if index.Unique {
+		t.Errorf("Index 'test_index' is not unique")
+	}
+
+	columns, err := db.IndexColumns("test_index")
+	if err != nil {
+		t.Fatalf("error listing index columns: %s", err)
+	}
+	if len(columns) != 1 {
+		t.Fatalf("Expected one column <> %d", len(columns))
+	}
+	column := columns[0]
+	if column.Name != "a_string" {
+		t.Errorf("Wrong column name: 'a_string' <> %s", column.Name)
 	}
 }
 
