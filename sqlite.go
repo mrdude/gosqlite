@@ -413,7 +413,6 @@ func (s *Stmt) BindParameterName(i int) string {
 	return C.GoString(C.sqlite3_bind_parameter_name(s.stmt, C.int(i)))
 }
 
-
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 // http://sqlite.org/c3ref/bind_blob.html
 func (s *Stmt) Bind(args ...interface{}) os.Error {
@@ -710,7 +709,7 @@ func (c *Conn) Close() os.Error {
 		C.sqlite3_finalize(stmt)
 		stmt = C.sqlite3_next_stmt(c.db, stmt)
 	}
-	
+
 	rv := C.sqlite3_close(c.db)
 	if rv != C.SQLITE_OK {
 		return c.error(rv)
@@ -721,7 +720,7 @@ func (c *Conn) Close() os.Error {
 
 // Calls http://sqlite.org/c3ref/stmt_readonly.html
 func (s *Stmt) ReadOnly() bool {
-	return C.sqlite3_stmt_readonly(s.stmt) == 1;
+	return C.sqlite3_stmt_readonly(s.stmt) == 1
 }
 
 // Calls http://sqlite.org/c3ref/enable_load_extension.html

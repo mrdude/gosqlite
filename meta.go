@@ -22,6 +22,30 @@ import (
 	"unsafe"
 )
 
+// Executes pragma 'database_list'
+func (c *Conn) Databases() (map[string]string, os.Error) {
+	s, err := c.Prepare("PRAGMA database_list")
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var databases map[string]string = make(map[string]string)
+	var ok bool
+	var name, file string
+	var seq int
+	for ok, err = s.Next(); ok; ok, err = s.Next() {
+		err = s.Scan(&seq, &name, &file)
+		if err != nil {
+			return nil, err
+		}
+		databases[name] = file
+	}
+	if err != nil {
+		return nil, err
+	}
+	return databases, nil
+}
+
 // Selects tables (no view) from 'sqlite_master' and filters system tables out.
 func (c *Conn) Tables() ([]string, os.Error) {
 	s, err := c.Prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
@@ -53,6 +77,7 @@ type Column struct {
 
 // Executes pragma 'table_info'
 // TODO How to specify a database-name?
+// TODO sqlite3_table_column_metadata?
 func (c *Conn) Columns(table string) ([]Column, os.Error) {
 	s, err := c.Prepare(Mprintf("PRAGMA table_info(%Q)", table))
 	if err != nil {

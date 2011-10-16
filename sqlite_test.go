@@ -278,6 +278,22 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 }
 
+func TestDatabases(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	databases, err := db.Databases()
+	if err != nil {
+		t.Fatalf("error looking for databases: %s", err)
+	}
+	if len(databases) != 1 {
+		t.Errorf("Expected one database but got %d\n", len(databases))
+	}
+	if _, ok := databases["main"]; !ok {
+		t.Errorf("Expected 'main' database\n")
+	}
+}
+
 func TestTables(t *testing.T) {
 	db := open(t)
 	defer db.Close()
