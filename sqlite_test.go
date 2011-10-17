@@ -1,29 +1,10 @@
 package sqlite_test
 
 import (
-	"fmt"
 	. "github.com/gwenn/gosqlite"
 	"strings"
 	"testing"
 )
-
-func trace(d interface{}, t string) {
-	fmt.Printf("%s: %s\n", d, t)
-}
-
-func authorizer(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Auth {
-	fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, arg3, arg4)
-	return AUTH_OK
-}
-
-func profile(d interface{}, sql string, nanoseconds uint64) {
-	fmt.Printf("%s: %s = %d\n", d, sql, nanoseconds/1000)
-}
-
-func progressHandler(d interface{}) int {
-	fmt.Print("+")
-	return 0
-}
 
 func open(t *testing.T) *Conn {
 	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX, OPEN_URI)
@@ -33,15 +14,6 @@ func open(t *testing.T) *Conn {
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
-	//db.Trace(trace, "TRACE")
-	/*
-		err = db.SetAuthorizer(authorizer, "AUTH")
-		if err != nil {
-			t.Fatal("couldn't set an authorizer", err)
-		}
-	*/
-	//db.Profile(profile, "PROFILE")
-	//db.ProgressHandler(progressHandler, 20, nil)
 	return db
 }
 
@@ -54,14 +26,6 @@ func createTable(db *Conn, t *testing.T) {
 	}
 }
 
-func createIndex(db *Conn, t *testing.T) {
-	err := db.Exec("DROP INDEX IF EXISTS test_index;" +
-		"CREATE INDEX test_index on test(a_string)")
-	if err != nil {
-		t.Fatalf("error creating index: %s", err)
-	}
-}
-
 func TestVersion(t *testing.T) {
 	v := Version()
 	if !strings.HasPrefix(v, "3") {
@@ -71,12 +35,9 @@ func TestVersion(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	db := open(t)
-	db.Trace(nil, nil)
-	db.SetAuthorizer(nil, nil)
-	db.Profile(nil, nil)
-	db.ProgressHandler(nil, 0, nil)
-	db.BusyHandler(nil, nil)
-	db.Close()
+	if err := db.Close(); err != nil {
+		t.Fatalf("Error closing database: %s", err)
+	}
 }
 
 func TestEnableFKey(t *testing.T) {
@@ -287,121 +248,6 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 }
 
-func TestDatabases(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-
-	databases, err := db.Databases()
-	if err != nil {
-		t.Fatalf("error looking for databases: %s", err)
-	}
-	if len(databases) != 1 {
-		t.Errorf("Expected one database but got %d\n", len(databases))
-	}
-	if _, ok := databases["main"]; !ok {
-		t.Errorf("Expected 'main' database\n")
-	}
-}
-
-func TestTables(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-
-	tables, err := db.Tables()
-	if err != nil {
-		t.Fatalf("error looking for tables: %s", err)
-	}
-	if len(tables) != 0 {
-		t.Errorf("Expected no table but got %d\n", len(tables))
-	}
-	createTable(db, t)
-	tables, err = db.Tables()
-	if err != nil {
-		t.Fatalf("error looking for tables: %s", err)
-	}
-	if len(tables) != 1 {
-		t.Errorf("Expected one table but got %d\n", len(tables))
-	}
-	if tables[0] != "test" {
-		t.Errorf("Wrong table name: 'test' <> %s\n", tables[0])
-	}
-}
-
-func TestColumns(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-	createTable(db, t)
-
-	columns, err := db.Columns("test")
-	if err != nil {
-		t.Fatalf("error listing columns: %s", err)
-	}
-	if len(columns) != 4 {
-		t.Fatalf("Expected 4 columns <> %d", len(columns))
-	}
-	column := columns[2]
-	if column.Name != "int_num" {
-		t.Errorf("Wrong column name: 'int_num' <> %s", column.Name)
-	}
-}
-
-func TestForeignKeys(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-
-	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY);" +
-		"CREATE TABLE child (id INTEGER PRIMARY KEY, parentId INTEGER, " +
-		"FOREIGN KEY (parentId) REFERENCES parent(id));")
-	if err != nil {
-		t.Fatalf("error creating tables: %s", err)
-	}
-	fks, err := db.ForeignKeys("child")
-	if err != nil {
-		t.Fatalf("error listing FKs: %s", err)
-	}
-	if len(fks) != 1 {
-		t.Fatalf("Expected 1 FK <> %d", len(fks))
-	}
-	fk := fks[0]
-	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
-		t.Errorf("Unexpected FK data: %#v", fk)
-	}
-}
-
-func TestIndexes(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-	createTable(db, t)
-	createIndex(db, t)
-
-	indexes, err := db.Indexes("test")
-	if err != nil {
-		t.Fatalf("error listing indexes: %s", err)
-	}
-	if len(indexes) != 1 {
-		t.Fatalf("Expected one index <> %d", len(indexes))
-	}
-	index := indexes[0]
-	if index.Name != "test_index" {
-		t.Errorf("Wrong index name: 'test_index' <> %s", index.Name)
-	}
-	if index.Unique {
-		t.Errorf("Index 'test_index' is not unique")
-	}
-
-	columns, err := db.IndexColumns("test_index")
-	if err != nil {
-		t.Fatalf("error listing index columns: %s", err)
-	}
-	if len(columns) != 1 {
-		t.Fatalf("Expected one column <> %d", len(columns))
-	}
-	column := columns[0]
-	if column.Name != "a_string" {
-		t.Errorf("Wrong column name: 'a_string' <> %s", column.Name)
-	}
-}
-
 func TestBlob(t *testing.T) {
 	db := open(t)
 	defer db.Close()
@@ -534,80 +380,3 @@ func TestLoadExtension(t *testing.T) {
 	}
 }
 */
-
-func BenchmarkScan(b *testing.B) {
-	b.StopTimer()
-	db, _ := Open("")
-	defer db.Close()
-	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	db.Begin()
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
-
-	for i := 0; i < 1000; i++ {
-		s.Exec(float64(i)*float64(3.14), i, "hello")
-	}
-	s.Finalize()
-	db.Commit()
-
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
-
-		var fnum float64
-		var inum int64
-		var sstr string
-
-		for Must(cs.Next()) {
-			cs.Scan(&fnum, &inum, &sstr)
-		}
-		cs.Finalize()
-	}
-}
-
-func BenchmarkNamedScan(b *testing.B) {
-	b.StopTimer()
-	db, _ := Open("")
-	defer db.Close()
-	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
-	db.Begin()
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
-
-	for i := 0; i < 1000; i++ {
-		s.Exec(float64(i)*float64(3.14), i, "hello")
-	}
-	s.Finalize()
-	db.Commit()
-
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
-
-		var fnum float64
-		var inum int64
-		var sstr string
-
-		for Must(cs.Next()) {
-			cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr)
-		}
-		cs.Finalize()
-	}
-}
-
-func BenchmarkInsert(b *testing.B) {
-	db, _ := Open("")
-	defer db.Close()
-	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
-		" float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string)" +
-		" VALUES (?, ?, ?)")
-	defer s.Finalize()
-
-	db.Begin()
-	for i := 0; i < b.N; i++ {
-		s.Exec(float64(i)*float64(3.14), i, "hello")
-	}
-	db.Commit()
-}

@@ -581,6 +581,38 @@ func (s *Stmt) Scan(args ...interface{}) os.Error {
 	return nil
 }
 
+// Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on columns type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) ScanNamedValues(values ...NamedValue) os.Error {
+	n := s.ColumnCount()
+	if n != len(values) { // What happens when the number of arguments is less than the number of columns?
+		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.ScanValues: have %d want %d", len(values), n))
+	}
+
+	for _, v := range values {
+		index, err := s.ColumnIndex(v.Name()) // How to look up only once for one statement ?
+		if err != nil {
+			return err
+		}
+		s.ScanValue(index, v)
+	}
+	return nil
+}
+
+// Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on columns type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) ScanValues(values ...Value) os.Error {
+	n := s.ColumnCount()
+	if n != len(values) { // What happens when the number of arguments is less than the number of columns?
+		return os.NewError(fmt.Sprintf("incorrect argument count for Stmt.ScanValues: have %d want %d", len(values), n))
+	}
+
+	for i, v := range values {
+		s.ScanValue(i, v)
+	}
+	return nil
+}
+
 // Calls http://sqlite.org/c3ref/sql.html
 func (s *Stmt) SQL() string {
 	return C.GoString(C.sqlite3_sql(s.stmt))
@@ -616,8 +648,7 @@ func (s *Stmt) NamedScanColumn(name string, value interface{}, nullable bool) (b
 	return s.ScanColumn(index, value, true)
 }
 
-// The leftmost column is number 0.
-// Index starts at 0.
+// The leftmost column/index is number 0.
 // Set nullable to false to skip NULL type test.
 // Returns true when nullable is true and column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
@@ -683,6 +714,43 @@ func (s *Stmt) ScanColumn(index int, value interface{}, nullable bool) (bool, os
 		return false, os.NewError("unsupported type in Scan: " + reflect.TypeOf(value).String())
 	}
 	return isNull, nil
+}
+
+type NamedValue interface {
+	Value
+	Name() string
+}
+
+type Value interface {
+	setNull(bool)
+	setInt(int64) // Versus int?
+	setFloat(float64)
+	setText(string)
+	setBlob([]byte)
+}
+
+// The leftmost column/index is number 0.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) ScanValue(index int, value Value) {
+	switch s.columnType(index) {
+	case C.SQLITE_NULL:
+		value.setNull(true)
+	case C.SQLITE_TEXT:
+		p := C.sqlite3_column_text(s.stmt, C.int(index))
+		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+		value.setText(C.GoStringN((*C.char)(unsafe.Pointer(p)), n))
+	case C.SQLITE_INTEGER:
+		value.setInt(int64(C.sqlite3_column_int64(s.stmt, C.int(index))))
+	case C.SQLITE_FLOAT:
+		value.setFloat(float64(C.sqlite3_column_double(s.stmt, C.int(index))))
+	case C.SQLITE_BLOB:
+		p := C.sqlite3_column_blob(s.stmt, C.int(index))
+		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+		value.setBlob((*[1 << 30]byte)(unsafe.Pointer(p))[0:n])
+	default:
+		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
+	}
 }
 
 // Calls http://sqlite.org/c3ref/finalize.html
