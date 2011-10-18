@@ -25,7 +25,7 @@ Conn#EnableLoadExtension/LoadExtension
 Stmt#ExecUpdate
 Stmt#BindParameterCount/BindParameterIndex/BindParameterName
 Stmt#ClearBindings
-Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)/ColumnType
+Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)
 Stmt#ReadOnly
 
 Blob:
@@ -34,6 +34,7 @@ Conn#NewBlobReader
 Conn#NewBlobReadWriter
 
 Meta:
+Conn#Databases
 Conn#Tables
 Conn#Columns
 Conn#ForeignKeys
