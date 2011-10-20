@@ -342,6 +342,10 @@ type Stmt struct {
 	stmt *C.sqlite3_stmt
 	tail string
 	cols map[string]int // cached columns index by name
+	// Enable NULL value check in Scan methods
+	CheckNull bool
+	// Enable type check in Scan methods
+	CheckTypeMismatch bool
 }
 
 // Calls sqlite3_prepare_v2 and sqlite3_bind_*
@@ -362,7 +366,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, os.Error) {
 	if tail != nil && C.strlen(tail) > 0 {
 		t = C.GoString(tail)
 	}
-	s := &Stmt{c: c, stmt: stmt, tail: t}
+	s := &Stmt{c: c, stmt: stmt, tail: t, CheckNull: true, CheckTypeMismatch: true}
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
@@ -576,7 +580,7 @@ func (s *Stmt) NamedScan(args ...interface{}) os.Error {
 			return err
 		}
 		ptr := args[i+1]
-		_, err = s.ScanColumn(index, ptr /*, false*/ )
+		_, err = s.ScanColumn(index, ptr)
 		if err != nil {
 			return err
 		}
@@ -595,7 +599,7 @@ func (s *Stmt) Scan(args ...interface{}) os.Error {
 	}
 
 	for i, v := range args {
-		_, err := s.ScanColumn(i, v /*, false*/ )
+		_, err := s.ScanColumn(i, v)
 		if err != nil {
 			return err
 		}
@@ -627,7 +631,7 @@ func (s *Stmt) ColumnIndex(name string) (int, os.Error) {
 }
 
 // Set nullable to false to skip NULL type test.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) NamedScanColumn(name string, value interface{}) (bool, os.Error) {
@@ -639,38 +643,64 @@ func (s *Stmt) NamedScanColumn(name string, value interface{}) (bool, os.Error) 
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) ScanColumn(index int, value interface{}) (bool, os.Error) {
 	var isNull bool
+	var err os.Error
 	switch value := value.(type) {
 	case nil:
 	case *string:
-		*value, isNull = s.ScanText(index)
+		*value, isNull, err = s.ScanText(index)
 	case *int:
-		*value, isNull = s.ScanInt(index)
+		*value, isNull, err = s.ScanInt(index)
 	case *int64:
-		*value, isNull = s.ScanInt64(index)
+		*value, isNull, err = s.ScanInt64(index)
 	case *byte:
-		*value, isNull = s.ScanByte(index)
+		*value, isNull, err = s.ScanByte(index)
 	case *bool:
-		*value, isNull = s.ScanBool(index)
+		*value, isNull, err = s.ScanBool(index)
 	case *float64:
-		*value, isNull = s.ScanFloat64(index)
+		*value, isNull, err = s.ScanFloat64(index)
 	case *[]byte:
-		*value, isNull = s.ScanBlob(index)
+		*value, isNull, err = s.ScanBlob(index)
 	default:
 		return false, os.NewError("unsupported type in Scan: " + reflect.TypeOf(value).String())
 	}
-	return isNull, nil
+	return isNull, err
+}
+
+// The leftmost column/index is number 0.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
+// http://sqlite.org/c3ref/column_blob.html
+func (s *Stmt) ScanValue(index int) (value interface{}) {
+	switch s.ColumnType(index) {
+	case Null:
+		value = nil
+	case Text:
+		p := C.sqlite3_column_text(s.stmt, C.int(index))
+		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+		value = C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
+	case Integer:
+		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+	case Float:
+		value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
+	case Blob:
+		p := C.sqlite3_column_blob(s.stmt, C.int(index))
+		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
+	default:
+		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
+	}
+	return
 }
 
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 // Calls sqlite3_column_text.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanText(index int) (value string, isNull bool) {
+func (s *Stmt) ScanText(index int) (value string, isNull bool, err os.Error) {
 	p := C.sqlite3_column_text(s.stmt, C.int(index))
 	if p == nil {
 		isNull = true
@@ -682,65 +712,110 @@ func (s *Stmt) ScanText(index int) (value string, isNull bool) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_int.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanInt(index int) (value int, isNull bool) {
-	if s.ColumnType(index) == Null { // TODO How to avoid this test for not nullable column or when it doesn't care
+func (s *Stmt) ScanInt(index int) (value int, isNull bool, err os.Error) {
+	var ctype Type
+	if s.CheckNull || s.CheckTypeMismatch {
+		ctype = s.ColumnType(index)
+	}
+	if s.CheckNull && ctype == Null {
 		isNull = true
 	} else {
+		if s.CheckTypeMismatch {
+			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
+				return
+			}
+		}
 		value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
 	}
 	return
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_int64.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanInt64(index int) (value int64, isNull bool) {
-	if s.ColumnType(index) == Null { // TODO How to avoid this test ...
+func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err os.Error) {
+	var ctype Type
+	if s.CheckNull || s.CheckTypeMismatch {
+		ctype = s.ColumnType(index)
+	}
+	if s.CheckNull && ctype == Null {
 		isNull = true
 	} else {
+		if s.CheckTypeMismatch {
+			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
+				return
+			}
+		}
 		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
 	}
 	return
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_int.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanByte(index int) (value byte, isNull bool) {
-	if s.ColumnType(index) == Null { // TODO How to avoid this test ...
+func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err os.Error) {
+	var ctype Type
+	if s.CheckNull || s.CheckTypeMismatch {
+		ctype = s.ColumnType(index)
+	}
+	if s.CheckNull && ctype == Null {
 		isNull = true
 	} else {
+		if s.CheckTypeMismatch {
+			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
+				return
+			}
+		}
 		value = byte(C.sqlite3_column_int(s.stmt, C.int(index)))
 	}
 	return
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_int.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanBool(index int) (value bool, isNull bool) {
-	if s.ColumnType(index) == Null { // TODO How to avoid this test ...
+func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err os.Error) {
+	var ctype Type
+	if s.CheckNull || s.CheckTypeMismatch {
+		ctype = s.ColumnType(index)
+	}
+	if s.CheckNull && ctype == Null {
 		isNull = true
 	} else {
+		if s.CheckTypeMismatch {
+			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
+				return
+			}
+		}
 		value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
 	}
 	return
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null.
+// Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_double.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool) {
-	if s.ColumnType(index) == Null { // TODO How to avoid this test ...
+func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err os.Error) {
+	var ctype Type
+	if s.CheckNull || s.CheckTypeMismatch {
+		ctype = s.ColumnType(index)
+	}
+	if s.CheckNull && ctype == Null {
 		isNull = true
 	} else {
+		if s.CheckTypeMismatch {
+			if err = s.checkTypeMismatch(ctype, Float); err != nil {
+				return
+			}
+		}
 		value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
 	}
 	return
@@ -750,7 +825,7 @@ func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool) {
 // Returns true when column is null.
 // Calls sqlite3_column_bytes.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
+func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool, err os.Error) {
 	p := C.sqlite3_column_blob(s.stmt, C.int(index))
 	if p == nil {
 		isNull = true
@@ -759,6 +834,29 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
 	}
 	return
+}
+
+// Only lossy conversion is reported as error.
+func (s *Stmt) checkTypeMismatch(source, target Type) os.Error {
+	switch target {
+	case Integer:
+		switch source {
+		case Float:
+			fallthrough
+		case Text:
+			fallthrough
+		case Blob:
+			return s.c.error(20)
+		}
+	case Float:
+		switch source {
+		case Text:
+			fallthrough
+		case Blob:
+			return s.c.error(20)
+		}
+	}
+	return nil
 }
 
 // Calls http://sqlite.org/c3ref/finalize.html

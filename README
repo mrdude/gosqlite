@@ -23,14 +23,7 @@ Using the native sqlite3_column_x implies:
  - loosy conversion when types mismatch (select cast('M' as int); --> 0),
  - NULL value cannot be returned, default value (0, false, "") is returned instead.
 
-Maybe we should let the caller do the conversion:
- - she gives the Scan method a pointer/context (interface{}) and a callback function with this signature:
-   func (data interface{}, c *Converter) os.Error
- - the Converter gives access to:
-   * the number of columns,
-   * the type of a column (by name or index),
-   * the bool/byte/[]byte/int/int64/float/string value of a column (by name or index).
- - for each row, the callback is invoked.
+Maybe we should let the caller do the conversion.
 
 Misc:
 Conn#EnableFkey/IsFKeyEnabled
