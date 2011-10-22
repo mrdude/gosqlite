@@ -724,9 +724,7 @@ func (s *Stmt) ScanInt(index int) (value int, isNull bool, err os.Error) {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
-			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
-				return
-			}
+			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
 	}
@@ -746,9 +744,7 @@ func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err os.Error) {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
-			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
-				return
-			}
+			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
 	}
@@ -768,9 +764,7 @@ func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err os.Error) {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
-			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
-				return
-			}
+			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = byte(C.sqlite3_column_int(s.stmt, C.int(index)))
 	}
@@ -790,9 +784,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err os.Error) {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
-			if err = s.checkTypeMismatch(ctype, Integer); err != nil {
-				return
-			}
+			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
 	}
@@ -812,9 +804,7 @@ func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err os.Error)
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
-			if err = s.checkTypeMismatch(ctype, Float); err != nil {
-				return
-			}
+			err = s.checkTypeMismatch(ctype, Float)
 		}
 		value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
 	}
