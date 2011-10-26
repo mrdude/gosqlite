@@ -11,7 +11,8 @@ CGOFILES=\
 	backup.go\
 	meta.go\
 	trace.go\
-	blob.go
+	blob.go\
+	hook.go
 
 GOFILES=\
 	date.go

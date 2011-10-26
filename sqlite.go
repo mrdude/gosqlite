@@ -140,6 +140,7 @@ type Conn struct {
 	profile         *sqliteProfile
 	progressHandler *sqliteProgressHandler
 	trace           *sqliteTrace
+	updateHook      *sqliteUpdateHook
 }
 
 // Calls http://sqlite.org/c3ref/libversion.html
