@@ -140,6 +140,8 @@ type Conn struct {
 	profile         *sqliteProfile
 	progressHandler *sqliteProgressHandler
 	trace           *sqliteTrace
+	commitHook      *sqliteCommitHook
+	rollbackHook    *sqliteRollbackHook
 	updateHook      *sqliteUpdateHook
 }
 

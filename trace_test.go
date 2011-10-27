@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-func trace(d interface{}, t string) {
-	//fmt.Printf("%s: %s\n", d, t)
+func trace(d interface{}, sql string) {
+	//fmt.Printf("%s: %s\n", d, sql)
 }
 
-func authorizer(d interface{}, action Action, arg1, arg2, arg3, arg4 string) Auth {
-	//fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, arg3, arg4)
+func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth {
+	//fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
 	return AUTH_OK
 }
 
@@ -24,8 +24,17 @@ func progressHandler(d interface{}) int {
 	return 0
 }
 
-func update_hook(d interface{}, a Action, db, table string, rowId int64) {
-	fmt.Printf("%s: %d, %s.%s.%d\n", d, a, db, table, rowId)
+func commitHook(d interface{}) int {
+	fmt.Printf("%s\n", d)
+	return 0
+}
+
+func rollbackHook(d interface{}) {
+	fmt.Printf("%s\n", d)
+}
+
+func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) {
+	fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowId)
 }
 
 func TestNoTrace(t *testing.T) {
@@ -38,6 +47,8 @@ func TestNoTrace(t *testing.T) {
 	db.Profile(nil, nil)
 	db.ProgressHandler(nil, 0, nil)
 	db.BusyHandler(nil, nil)
+	db.CommitHook(nil, nil)
+	db.RollbackHook(nil, nil)
 	db.UpdateHook(nil, nil)
 	db.Close()
 }
@@ -51,6 +62,8 @@ func TestTrace(t *testing.T) {
 	}
 	db.Profile(profile, "PROFILE")
 	db.ProgressHandler(progressHandler, 1, /*20*/ nil)
-	db.UpdateHook(update_hook, "TEST")
+	db.CommitHook(commitHook, "CMT")
+	db.RollbackHook(rollbackHook, "RBK")
+	db.UpdateHook(updateHook, "UPD")
 	db.Exists("SELECT 1 WHERE 1 = ?", 1)
 }

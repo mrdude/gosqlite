@@ -10,10 +10,22 @@ package sqlite
 #include <sqlite3.h>
 #include <stdlib.h>
 
-extern void goXUpdateHook(void *pArg, int action, char const *db, char const *table, sqlite3_int64 rowId);
+extern int goXCommitHook(void *udp);
 
-static void goSqlite3UpdateHook(sqlite3 *db, void *pArg) {
-	sqlite3_update_hook(db, goXUpdateHook, pArg);
+static void* goSqlite3CommitHook(sqlite3 *db, void *udp) {
+	return sqlite3_commit_hook(db, goXCommitHook, udp);
+}
+
+extern void goXRollbackHook(void *udp);
+
+static void* goSqlite3RollbackHook(sqlite3 *db, void *udp) {
+	return sqlite3_rollback_hook(db, goXRollbackHook, udp);
+}
+
+extern void goXUpdateHook(void *udp, int action, char const *dbName, char const *tableName, sqlite3_int64 rowId);
+
+static void* goSqlite3UpdateHook(sqlite3 *db, void *udp) {
+	return sqlite3_update_hook(db, goXUpdateHook, udp);
 }
 */
 import "C"
@@ -22,26 +34,77 @@ import (
 	"unsafe"
 )
 
-type UpdateHook func(d interface{}, a Action, db, table string, rowId int64)
+type CommitHook func(udp interface{}) int
+
+type sqliteCommitHook struct {
+	f   CommitHook
+	udp interface{}
+}
+
+//export goXCommitHook
+func goXCommitHook(udp unsafe.Pointer) C.int {
+	arg := (*sqliteCommitHook)(udp)
+	return C.int(arg.f(arg.udp))
+}
+
+// Calls http://sqlite.org/c3ref/commit_hook.html
+func (c *Conn) CommitHook(f CommitHook, udp interface{}) {
+	if f == nil {
+		c.commitHook = nil
+		C.sqlite3_commit_hook(c.db, nil, nil)
+		return
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.commitHook = &sqliteCommitHook{f, udp}
+	C.goSqlite3CommitHook(c.db, unsafe.Pointer(c.commitHook))
+}
+
+type RollbackHook func(udp interface{})
+
+type sqliteRollbackHook struct {
+	f   RollbackHook
+	udp interface{}
+}
+
+//export goXRollbackHook
+func goXRollbackHook(udp unsafe.Pointer) {
+	arg := (*sqliteRollbackHook)(udp)
+	arg.f(arg.udp)
+}
+
+// Calls http://sqlite.org/c3ref/commit_hook.html
+func (c *Conn) RollbackHook(f RollbackHook, udp interface{}) {
+	if f == nil {
+		c.rollbackHook = nil
+		C.sqlite3_rollback_hook(c.db, nil, nil)
+		return
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.rollbackHook = &sqliteRollbackHook{f, udp}
+	C.goSqlite3RollbackHook(c.db, unsafe.Pointer(c.rollbackHook))
+}
+
+type UpdateHook func(udp interface{}, a Action, dbName, tableName string, rowId int64)
 
 type sqliteUpdateHook struct {
-	f UpdateHook
-	d interface{}
+	f   UpdateHook
+	udp interface{}
 }
 
 //export goXUpdateHook
-func goXUpdateHook(pArg unsafe.Pointer, action C.int, db, table *C.char, rowId C.sqlite3_int64) {
-	arg := (*sqliteUpdateHook)(pArg)
-	arg.f(arg.d, Action(action), C.GoString(db), C.GoString(table), int64(rowId))
+func goXUpdateHook(udp unsafe.Pointer, action C.int, dbName, tableName *C.char, rowId C.sqlite3_int64) {
+	arg := (*sqliteUpdateHook)(udp)
+	arg.f(arg.udp, Action(action), C.GoString(dbName), C.GoString(tableName), int64(rowId))
 }
 
 // Calls http://sqlite.org/c3ref/update_hook.html
-func (c *Conn) UpdateHook(f UpdateHook, arg interface{}) {
+func (c *Conn) UpdateHook(f UpdateHook, udp interface{}) {
 	if f == nil {
 		c.updateHook = nil
 		C.sqlite3_update_hook(c.db, nil, nil)
+		return
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	c.updateHook = &sqliteUpdateHook{f, arg}
+	c.updateHook = &sqliteUpdateHook{f, udp}
 	C.goSqlite3UpdateHook(c.db, unsafe.Pointer(c.updateHook))
 }
