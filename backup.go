@@ -19,7 +19,7 @@ import (
 )
 
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit
-func NewBackup(dst *Conn, dstTable string, src *Conn, srcTable string) (*Backup, os.Error) {
+func NewBackup(dst *Conn, dstTable string, src *Conn, srcTable string) (*Backup, error) {
 	dname := C.CString(dstTable)
 	sname := C.CString(srcTable)
 	defer C.free(unsafe.Pointer(dname))
@@ -38,7 +38,7 @@ type Backup struct {
 }
 
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep
-func (b *Backup) Step(npage int) os.Error {
+func (b *Backup) Step(npage int) error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
 	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
 		return nil
@@ -57,8 +57,8 @@ func (b *Backup) Status() BackupStatus {
 }
 
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount
-func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) os.Error {
-	var err os.Error
+func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) error {
+	var err error
 	for {
 		err = b.Step(npage)
 		if err != nil {
@@ -73,7 +73,7 @@ func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) os.Error {
 }
 
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish
-func (b *Backup) Close() os.Error {
+func (b *Backup) Close() error {
 	if b.sb == nil {
 		return os.EINVAL
 	}

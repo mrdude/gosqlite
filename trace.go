@@ -46,10 +46,7 @@ static void my_log(int iErrCode, char *msg) {
 */
 import "C"
 
-import (
-	"os"
-	"unsafe"
-)
+import "unsafe"
 
 type Tracer func(udp interface{}, sql string)
 
@@ -162,7 +159,7 @@ func goXAuth(udp unsafe.Pointer, action C.int, arg1, arg2, dbName, triggerName *
 }
 
 // Calls http://sqlite.org/c3ref/set_authorizer.html
-func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) os.Error {
+func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
 		c.authorizer = nil
 		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil))
@@ -188,7 +185,7 @@ func goXBusy(udp unsafe.Pointer, count C.int) C.int {
 
 // TODO NOT TESTED
 // Calls http://sqlite.org/c3ref/busy_handler.html
-func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) os.Error {
+func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
 		c.busyHandler = nil
 		return c.error(C.sqlite3_busy_handler(c.db, nil, nil))
