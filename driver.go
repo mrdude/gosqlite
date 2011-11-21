@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package sqlite provides access to the SQLite library, version 3.
 package sqlite
 
 import (
@@ -16,6 +15,7 @@ func init() {
 }
 
 type Driver struct {
+
 }
 type connImpl struct {
 	c *Conn
@@ -82,7 +82,7 @@ func (s *stmtImpl) Close() error {
 }
 
 func (s *stmtImpl) NumInput() int {
-	return s.s.BindParameterCount();
+	return s.s.BindParameterCount()
 }
 
 func (s *stmtImpl) Exec(args []interface{}) (driver.Result, error) {
