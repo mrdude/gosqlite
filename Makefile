@@ -15,6 +15,7 @@ CGOFILES=\
 	hook.go
 
 GOFILES=\
-	date.go
+	date.go\
+	driver.go
 
 include $(GOROOT)/src/Make.pkg
