@@ -32,7 +32,6 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	return &connImpl{c}, nil
 }
 
-/*
 func (c *connImpl) Exec(query string, args []interface{}) (driver.Result, error) {
 	if err := c.c.Exec(query, args...); err != nil {
 		return nil, err
@@ -49,7 +48,6 @@ func (c *connImpl) LastInsertId() (int64, error) {
 func (c *connImpl) RowsAffected() (int64, error) {
 	return int64(c.c.Changes()), nil
 }
-*/
 
 func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
 	s, err := c.c.Prepare(query)
@@ -60,7 +58,7 @@ func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (c *connImpl) Close() error {
-	return c.c.Close() // TODO c.c = nil ?
+	return c.c.Close()
 }
 
 func (c *connImpl) Begin() (driver.Tx, error) {
@@ -128,5 +126,8 @@ func (s *stmtImpl) Next(dest []interface{}) error {
 	if !ok {
 		return io.EOF
 	}
-	return s.s.Scan(dest...)
+	for i := range dest {
+		dest[i] = s.s.ScanValue(i)
+	}
+	return nil
 }

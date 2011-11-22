@@ -266,3 +266,7 @@ func Log(err /*Errno*/ int, msg string) {
 	defer C.free(unsafe.Pointer(cs))
 	C.my_log(C.int(err), cs)
 }
+
+// TODO sqlite3_config(SQLITE_CONFIG_LOG,...)
+// #define SQLITE_CONFIG_LOG          16  /* xFunc, void* */
+// The SQLITE_CONFIG_LOG option takes two arguments: a pointer to a function with a call signature of void(*)(void*,int,const char*), and a pointer to void.
