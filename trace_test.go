@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+func init() {
+	ConfigLog(log, "LOG")
+}
+
 func trace(d interface{}, sql string) {
 	//fmt.Printf("%s: %s\n", d, sql)
 }
@@ -37,6 +41,10 @@ func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) 
 	fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowId)
 }
 
+func log(d interface{}, err error, msg string) {
+	fmt.Printf("%s: %s, %s\n", d, err, msg)
+}
+
 func TestNoTrace(t *testing.T) {
 	db, err := Open("")
 	if err != nil {
@@ -66,4 +74,8 @@ func TestTrace(t *testing.T) {
 	db.RollbackHook(rollbackHook, "RBK")
 	db.UpdateHook(updateHook, "UPD")
 	db.Exists("SELECT 1 WHERE 1 = ?", 1)
+}
+
+func TestLog(t *testing.T) {
+	Log(0, "One message")
 }

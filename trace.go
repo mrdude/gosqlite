@@ -43,6 +43,16 @@ static void goSqlite3ProgressHandler(sqlite3 *db, int numOps, void *udp) {
 static void my_log(int iErrCode, char *msg) {
 	sqlite3_log(iErrCode, msg);
 }
+
+extern void goXLog(void *udp, int err, const char *msg);
+
+static int goSqlite3ConfigLog(void *udp) {
+	if (udp) {
+		return sqlite3_config(SQLITE_CONFIG_LOG, goXLog, udp);
+	} else {
+		return sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
+	}
+}
 */
 import "C"
 
@@ -267,6 +277,36 @@ func Log(err /*Errno*/ int, msg string) {
 	C.my_log(C.int(err), cs)
 }
 
-// TODO sqlite3_config(SQLITE_CONFIG_LOG,...)
-// #define SQLITE_CONFIG_LOG          16  /* xFunc, void* */
 // The SQLITE_CONFIG_LOG option takes two arguments: a pointer to a function with a call signature of void(*)(void*,int,const char*), and a pointer to void.
+type Logger func(udp interface{}, err error, msg string)
+
+type sqliteLogger struct {
+	f   Logger
+	udp interface{}
+}
+
+//export goXLog
+func goXLog(udp unsafe.Pointer, err C.int, msg *C.char) {
+	arg := (*sqliteLogger)(udp)
+	arg.f(arg.udp, Errno(err), C.GoString(msg))
+	return
+}
+
+var logger *sqliteLogger
+
+// Calls sqlite3_config(SQLITE_CONFIG_LOG,...)
+func ConfigLog(f Logger, udp interface{}) error {
+	var rv C.int
+	if f == nil {
+		logger = nil
+		rv = C.goSqlite3ConfigLog(nil)
+	} else {
+		// To make sure it is not gced, keep a reference.
+		logger = &sqliteLogger{f, udp}
+		rv = C.goSqlite3ConfigLog(unsafe.Pointer(logger))
+	}
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	return Errno(rv)
+}
