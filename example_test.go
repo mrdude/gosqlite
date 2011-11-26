@@ -15,6 +15,7 @@ func ExampleOpen() {
 	fmt.Printf("%d\n", db.TotalChanges())
 }
 
+/*
 // <nil>
 func ExampleExec() {
 	db, _ := sqlite.Open(":memory:")
@@ -22,6 +23,7 @@ func ExampleExec() {
 	err := db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)")
 	fmt.Println(err)
 }
+*/
 
 // true <nil>
 func ExamplePrepare() {

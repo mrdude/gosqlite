@@ -110,12 +110,7 @@ func (s *stmtImpl) Query(args []interface{}) (driver.Rows, error) {
 
 // TODO Cache result?
 func (s *stmtImpl) Columns() []string {
-	count := s.s.ColumnCount()
-	cols := make([]string, count)
-	for i := 0; i < count; i++ {
-		cols[i] = s.s.ColumnName(i)
-	}
-	return cols
+	return s.s.ColumnNames()
 }
 
 func (s *stmtImpl) Next(dest []interface{}) error {

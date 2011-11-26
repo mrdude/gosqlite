@@ -37,7 +37,7 @@ Conn#EnableLoadExtension/LoadExtension
 Stmt#ExecUpdate
 Stmt#BindParameterCount/BindParameterIndex/BindParameterName
 Stmt#ClearBindings
-Stmt#ColumnCount/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
+Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
 Stmt#ReadOnly
 
 Blob:

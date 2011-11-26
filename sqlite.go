@@ -536,6 +536,15 @@ func (s *Stmt) ColumnName(index int) string {
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
+func (s *Stmt) ColumnNames() []string {
+	count := s.ColumnCount()
+	names := make([]string, count)
+	for i := 0; i < count; i++ {
+		names[i] = s.ColumnName(i)
+	}
+	return names
+}
+
 type Type int
 
 func (t Type) String() string {
@@ -668,6 +677,9 @@ func (s *Stmt) ScanColumn(index int, value interface{}) (bool, error) {
 		*value, isNull, err = s.ScanFloat64(index)
 	case *[]byte:
 		*value, isNull, err = s.ScanBlob(index)
+	case *interface{}:
+		*value = s.ScanValue(index)
+		isNull = *value == nil
 	default:
 		return false, errors.New("unsupported type in Scan: " + reflect.TypeOf(value).String())
 	}
@@ -875,7 +887,7 @@ func (c *Conn) Close() error {
 	// Dangling statements
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
-		//Log(1, "Dangling statement")
+		Log(21, "Dangling statement")
 		C.sqlite3_finalize(stmt)
 		stmt = C.sqlite3_next_stmt(c.db, stmt)
 	}
