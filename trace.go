@@ -58,6 +58,7 @@ import "C"
 
 import "unsafe"
 
+// See Conn.Trace
 type Tracer func(udp interface{}, sql string)
 
 type sqliteTrace struct {
@@ -83,6 +84,7 @@ func (c *Conn) Trace(f Tracer, udp interface{}) {
 	C.goSqlite3Trace(c.db, unsafe.Pointer(c.trace))
 }
 
+// See Conn.Profile
 type Profiler func(udp interface{}, sql string, nanoseconds uint64)
 
 type sqliteProfile struct {
@@ -108,6 +110,7 @@ func (c *Conn) Profile(f Profiler, udp interface{}) {
 	C.goSqlite3Profile(c.db, unsafe.Pointer(c.profile))
 }
 
+// See Authorizer
 type Auth int
 
 const (
@@ -116,6 +119,7 @@ const (
 	AUTH_IGNORE Auth = C.SQLITE_IGNORE
 )
 
+// See Authorizer
 type Action int
 
 const (
@@ -154,6 +158,7 @@ const (
 	COPY                Action = C.SQLITE_COPY
 )
 
+// See Conn.SetAuthorizer
 type Authorizer func(udp interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth
 
 type sqliteAuthorizer struct {
@@ -179,6 +184,7 @@ func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)))
 }
 
+// See Conn.BusyHandler
 type BusyHandler func(udp interface{}, count int) int
 
 type sqliteBusyHandler struct {
@@ -206,6 +212,7 @@ func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 }
 
 // Returns non-zero to interrupt.
+// See Conn.ProgressHandler
 type ProgressHandler func(udp interface{}) int
 
 type sqliteProgressHandler struct {
@@ -232,6 +239,7 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
 	C.goSqlite3ProgressHandler(c.db, C.int(numOps), unsafe.Pointer(c.progressHandler))
 }
 
+// See Stmt.Status
 type StmtStatus int
 
 const (
@@ -277,7 +285,7 @@ func Log(err /*Errno*/ int, msg string) {
 	C.my_log(C.int(err), cs)
 }
 
-// The SQLITE_CONFIG_LOG option takes two arguments: a pointer to a function with a call signature of void(*)(void*,int,const char*), and a pointer to void.
+// See ConfigLog
 type Logger func(udp interface{}, err error, msg string)
 
 type sqliteLogger struct {

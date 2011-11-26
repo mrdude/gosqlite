@@ -62,6 +62,7 @@ func (c *Conn) Tables() ([]string, error) {
 	return tables, nil
 }
 
+// See Conn.Columns/IndexColumns
 type Column struct {
 	Cid       int
 	Name      string
@@ -96,6 +97,7 @@ func (c *Conn) Columns(table string) ([]Column, error) {
 	return columns, nil
 }
 
+// See Conn.ForeignKeys
 type ForeignKey struct {
 	Table string
 	From  []string
@@ -134,6 +136,7 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
 	return fks, nil
 }
 
+// See Conn.Indexes
 type Index struct {
 	Name   string
 	Unique bool

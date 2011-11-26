@@ -151,6 +151,7 @@ func Version() string {
 	return C.GoString(p)
 }
 
+// See Open
 type OpenFlag int
 
 const (
@@ -166,6 +167,14 @@ const (
 
 // ":memory:" for memory db
 // "" for temp file db
+// 
+// Example:
+//	db, err := sqlite.Open(":memory:")
+//	if err != nil {
+//		...
+//	}
+//	defer db.Close()
+//
 // Calls sqlite3_open_v2: http://sqlite.org/c3ref/open.html
 func Open(filename string, flags ...OpenFlag) (*Conn, error) {
 	if C.sqlite3_threadsafe() == 0 {
@@ -206,13 +215,15 @@ func (c *Conn) BusyTimeout(ms int) error {
 }
 
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b)
-// Another way is PRAGMA foreign_keys = boolean; 
+// Another way is PRAGMA foreign_keys = boolean;
+//
 // http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html
 func (c *Conn) EnableFKey(b bool) (bool, error) {
 	return c.queryOrSetEnableFKey(btocint(b))
 }
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
 // Another way is PRAGMA foreign_keys; 
+// 
 // http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html
 func (c *Conn) IsFKeyEnabled() (bool, error) {
 	return c.queryOrSetEnableFKey(-1)
@@ -227,6 +238,10 @@ func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, error) {
 }
 
 // Don't use it with SELECT or anything that returns data.
+//
+// Example:
+//	err := db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)")
+//
 // Calls sqlite3_prepare_v2, sqlite3_bind_*, sqlite3_step and sqlite3_finalize
 // http://sqlite.org/c3ref/prepare.html, http://sqlite.org/c3ref/bind_blob.html,
 // http://sqlite.org/c3ref/step.html and http://sqlite.org/c3ref/finalize.html
@@ -296,6 +311,7 @@ func (c *Conn) GetAutocommit() bool {
 	return C.sqlite3_get_autocommit(c.db) != 0
 }
 
+// See Conn.BeginTransaction
 type TransactionType int
 
 const (
@@ -351,6 +367,13 @@ type Stmt struct {
 	CheckTypeMismatch bool
 }
 
+// Example:
+//	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
+//	if err != nil {
+//		...
+//	}
+//	defer stmt.Finalize()
+//
 // Calls sqlite3_prepare_v2 and sqlite3_bind_*
 // http://sqlite.org/c3ref/prepare.html, http://sqlite.org/c3ref/bind_blob.html,
 func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
@@ -479,15 +502,16 @@ func (s *Stmt) Bind(args ...interface{}) error {
 //	var ok bool
 //	var err os.Error
 // 	for ok, err = s.Next(); ok; ok, err = s.Next() {
-//		cs.Scan(&fnum, &inum, &sstr)
+//		err = s.Scan(&fnum, &inum, &sstr)
 //	}
 //	if err != nil {
 //		...
 //	}
 // With panic on error:
 // 	for Must(s.Next()) {
-//		cs.Scan(&fnum, &inum, &sstr)
+//		err := s.Scan(&fnum, &inum, &sstr)
 //	}
+//
 // Calls sqlite3_step
 // http://sqlite.org/c3ref/step.html
 func (s *Stmt) Next() (bool, error) {
@@ -545,6 +569,7 @@ func (s *Stmt) ColumnNames() []string {
 	return names
 }
 
+// See Stmt.ColumnType
 type Type int
 
 func (t Type) String() string {
@@ -575,6 +600,17 @@ func (s *Stmt) ColumnType(index int) Type {
 	return Type(C.sqlite3_column_type(s.stmt, C.int(index)))
 }
 
+// Example:
+//	stmt, err := db.Prepare("SELECT 1 as id, 'test' as name")
+//	defer stmt.Finalize()
+//	var id int
+//	var name string
+//	for sqlite.Must(stmt.Next()) {
+//		stmt.NamedScan("name", &name, "id", &id)
+//		// TODO error handling
+//		fmt.Println(id, name)
+//	}
+//
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
@@ -600,6 +636,17 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 	return nil
 }
 
+// Example:
+//	stmt, err := db.Prepare("SELECT 1, 'test'")
+//	defer stmt.Finalize()
+//	var id int
+//	var name string
+//	for sqlite.Must(stmt.Next()) {
+//		err = stmt.Scan(&id, &name)
+//		// TODO error handling
+//		fmt.Println(id, name)
+//	}
+//
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // TODO How to avoid NULL conversion?
 // Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on args type.
@@ -644,7 +691,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 
 // Set nullable to false to skip NULL type test.
 // Returns true when column is null and Stmt.CheckNull is activated.
-// Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
+// Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) NamedScanColumn(name string, value interface{}) (bool, error) {
 	index, err := s.ColumnIndex(name)
@@ -656,7 +703,7 @@ func (s *Stmt) NamedScanColumn(name string, value interface{}) (bool, error) {
 
 // The leftmost column/index is number 0.
 // Returns true when column is null and Stmt.CheckNull is activated.
-// Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) ScanColumn(index int, value interface{}) (bool, error) {
 	var isNull bool
