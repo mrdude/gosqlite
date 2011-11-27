@@ -357,10 +357,11 @@ func (c *Conn) exec(cmd string) error {
 
 // Prepared Statement (sqlite3_stmt)
 type Stmt struct {
-	c    *Conn
-	stmt *C.sqlite3_stmt
-	tail string
-	cols map[string]int // cached columns index by name
+	c      *Conn
+	stmt   *C.sqlite3_stmt
+	tail   string
+	cols   map[string]int // cached columns index by name
+	params map[string]int // cached parameter index by name
 	// Enable NULL value check in Scan methods
 	CheckNull bool
 	// Enable type check in Scan methods
@@ -433,16 +434,58 @@ func (s *Stmt) BindParameterCount() int {
 }
 
 // Calls http://sqlite.org/c3ref/bind_parameter_index.html
-func (s *Stmt) BindParameterIndex(name string) int {
+func (s *Stmt) BindParameterIndex(name string) (int, error) {
+	if s.params == nil {
+		count := s.BindParameterCount()
+		s.params = make(map[string]int, count)
+	}
+	index, ok := s.params[name]
+	if ok {
+		return index, nil
+	}
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	return int(C.sqlite3_bind_parameter_index(s.stmt, cname))
+	index = int(C.sqlite3_bind_parameter_index(s.stmt, cname))
+	if index == 0 {
+		return -1, errors.New("invalid parameter name: " + name)
+	}
+	s.params[name] = index
+	return index, nil
 }
 
 // The first host parameter has an index of 1, not 0.
 // Calls http://sqlite.org/c3ref/bind_parameter_name.html
-func (s *Stmt) BindParameterName(i int) string {
-	return C.GoString(C.sqlite3_bind_parameter_name(s.stmt, C.int(i)))
+func (s *Stmt) BindParameterName(i int) (string, error) {
+	name := C.sqlite3_bind_parameter_name(s.stmt, C.int(i))
+	if name == nil {
+		return "", errors.New(fmt.Sprintf("invalid parameter index: %d", i))
+	}
+	return C.GoString(name), nil
+}
+
+func (s *Stmt) NamedBind(args ...interface{}) error {
+	err := s.Reset() // TODO sqlite3_clear_bindings?
+	if err != nil {
+		return err
+	}
+	if len(args)%2 != 0 {
+		return errors.New("Expected an even number of arguments")
+	}
+	for i := 0; i < len(args); i += 2 {
+		name, ok := args[i].(string)
+		if !ok {
+			return errors.New("non-string param name")
+		}
+		index, err := s.BindParameterIndex(name) // How to look up only once for one statement ?
+		if err != nil {
+			return err
+		}
+		err = s.BindByIndex(index, args[i+1])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
@@ -459,41 +502,50 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	}
 
 	for i, v := range args {
-		var rv C.int
-		index := C.int(i + 1)
-		switch v := v.(type) {
-		case nil:
-			rv = C.sqlite3_bind_null(s.stmt, index)
-		case string:
-			cstr := C.CString(v)
-			rv = C.my_bind_text(s.stmt, index, cstr, C.int(len(v)))
-			C.free(unsafe.Pointer(cstr))
-		case int:
-			rv = C.sqlite3_bind_int(s.stmt, index, C.int(v))
-		case int64:
-			rv = C.sqlite3_bind_int64(s.stmt, index, C.sqlite3_int64(v))
-		case byte:
-			rv = C.sqlite3_bind_int(s.stmt, index, C.int(v))
-		case bool:
-			rv = C.sqlite3_bind_int(s.stmt, index, btocint(v))
-		case float32:
-			rv = C.sqlite3_bind_double(s.stmt, index, C.double(v))
-		case float64:
-			rv = C.sqlite3_bind_double(s.stmt, index, C.double(v))
-		case []byte:
-			var p *byte
-			if len(v) > 0 {
-				p = &v[0]
-			}
-			rv = C.my_bind_blob(s.stmt, index, unsafe.Pointer(p), C.int(len(v)))
-		case ZeroBlobLength:
-			rv = C.sqlite3_bind_zeroblob(s.stmt, index, C.int(v))
-		default:
-			return errors.New("unsupported type in Bind: " + reflect.TypeOf(v).String())
+		err = s.BindByIndex(i+1, v)
+		if err != nil {
+			return err
 		}
-		if rv != C.SQLITE_OK {
-			return s.c.error(rv)
+	}
+	return nil
+}
+
+// The leftmost SQL parameter has an index of 1.
+func (s *Stmt) BindByIndex(index int, value interface{}) error {
+	i := C.int(index)
+	var rv C.int
+	switch value := value.(type) {
+	case nil:
+		rv = C.sqlite3_bind_null(s.stmt, i)
+	case string:
+		cstr := C.CString(value)
+		rv = C.my_bind_text(s.stmt, i, cstr, C.int(len(value)))
+		C.free(unsafe.Pointer(cstr))
+	case int:
+		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
+	case int64:
+		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value))
+	case byte:
+		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
+	case bool:
+		rv = C.sqlite3_bind_int(s.stmt, i, btocint(value))
+	case float32:
+		rv = C.sqlite3_bind_double(s.stmt, i, C.double(value))
+	case float64:
+		rv = C.sqlite3_bind_double(s.stmt, i, C.double(value))
+	case []byte:
+		var p *byte
+		if len(value) > 0 {
+			p = &value[0]
 		}
+		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
+	case ZeroBlobLength:
+		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
+	default:
+		return errors.New("unsupported type in Bind: " + reflect.TypeOf(value).String())
+	}
+	if rv != C.SQLITE_OK {
+		return s.c.error(rv)
 	}
 	return nil
 }
@@ -621,14 +673,14 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 	for i := 0; i < len(args); i += 2 {
 		name, ok := args[i].(string)
 		if !ok {
-			return errors.New("non-string field name field")
+			return errors.New("non-string field name")
 		}
 		index, err := s.ColumnIndex(name) // How to look up only once for one statement ?
 		if err != nil {
 			return err
 		}
 		ptr := args[i+1]
-		_, err = s.ScanColumn(index, ptr)
+		_, err = s.ScanByIndex(index, ptr)
 		if err != nil {
 			return err
 		}
@@ -658,7 +710,7 @@ func (s *Stmt) Scan(args ...interface{}) error {
 	}
 
 	for i, v := range args {
-		_, err := s.ScanColumn(i, v)
+		_, err := s.ScanByIndex(i, v)
 		if err != nil {
 			return err
 		}
@@ -689,23 +741,31 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	return 0, errors.New("invalid column name: " + name)
 }
 
-// Set nullable to false to skip NULL type test.
 // Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) NamedScanColumn(name string, value interface{}) (bool, error) {
+func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 	index, err := s.ColumnIndex(name)
 	if err != nil {
 		return false, err
 	}
-	return s.ScanColumn(index, value)
+	return s.ScanByIndex(index, value)
 }
 
 // The leftmost column/index is number 0.
+//
+// The value must be of one of the following types:
+//    *string
+//    *int, *int64, *byte,
+//    *bool
+//    *float64
+//    *[]byte
+//    *interface{}
+//
 // Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanColumn(index int, value interface{}) (bool, error) {
+func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	var isNull bool
 	var err error
 	switch value := value.(type) {
@@ -734,6 +794,14 @@ func (s *Stmt) ScanColumn(index int, value interface{}) (bool, error) {
 }
 
 // The leftmost column/index is number 0.
+// 
+// The returned value will be of one of the following types:
+//    nil
+//    string
+//    int64
+//    float64
+//    []byte
+//
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) ScanValue(index int) (value interface{}) {

@@ -11,7 +11,7 @@ Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
 Stmt#Next returns a (bool, os.Error) couple like Reader#Read.
 Stmt#Scan uses native sqlite3_column_x methods.
 Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/) API but I think its signature should be improved/modified.
-Stmt#ScanColumn/NamedScanColumn are added to test NULL value.
+Stmt#ScanByIndex/ScanByName are added to test NULL value.
 
 Currently, the weak point of the binding is the *Scan methods:
 The original implementation is using this strategy:

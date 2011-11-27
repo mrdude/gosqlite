@@ -155,13 +155,13 @@ func TestInsertWithStatement(t *testing.T) {
 	if paramCount != 3 {
 		t.Errorf("bind parameter count error: %d <> 3", paramCount)
 	}
-	firstParamName := s.BindParameterName(1)
+	firstParamName, berr := s.BindParameterName(1)
 	if firstParamName != ":f" {
-		t.Errorf("bind parameter name error: %s <> ':f'", firstParamName)
+		t.Errorf("bind parameter name error: %s <> ':f' (%s)", firstParamName, berr)
 	}
-	lastParamIndex := s.BindParameterIndex(":s")
+	lastParamIndex, berr := s.BindParameterIndex(":s")
 	if lastParamIndex != 3 {
-		t.Errorf("bind parameter name error: %d <> 3", lastParamIndex)
+		t.Errorf("bind parameter name error: %d <> 3 (%s)", lastParamIndex, berr)
 	}
 
 	db.Begin()
@@ -315,19 +315,19 @@ func TestScanColumn(t *testing.T) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null := Must(s.ScanColumn(0, &i1 /*, true*/ ))
+	null := Must(s.ScanByIndex(0, &i1 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 <> %d\n", i1)
 	}
-	null = Must(s.ScanColumn(1, &i2 /*, true*/ ))
+	null = Must(s.ScanByIndex(1, &i2 /*, true*/ ))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i2)
 	}
-	null = Must(s.ScanColumn(2, &i3 /*, true*/ ))
+	null = Must(s.ScanByIndex(2, &i3 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
@@ -348,19 +348,19 @@ func TestNamedScanColumn(t *testing.T) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null := Must(s.NamedScanColumn("i1", &i1 /*, true*/ ))
+	null := Must(s.ScanByName("i1", &i1 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 <> %d\n", i1)
 	}
-	null = Must(s.NamedScanColumn("i2", &i2 /*, true*/ ))
+	null = Must(s.ScanByName("i2", &i2 /*, true*/ ))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 <> %d\n", i2)
 	}
-	null = Must(s.NamedScanColumn("i3", &i3 /*, true*/ ))
+	null = Must(s.ScanByName("i3", &i3 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
