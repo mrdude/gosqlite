@@ -41,6 +41,7 @@ import (
 	"unsafe"
 )
 
+// Result codes
 type Errno int
 
 func (e Errno) Error() string {
@@ -124,6 +125,7 @@ func (c *Conn) error(rv C.int) error {
 	return errors.New(Errno(rv).Error() + ": " + C.GoString(C.sqlite3_errmsg(c.db)))
 }
 
+// Return error code or message
 // Calls http://sqlite.org/c3ref/errcode.html
 func (c *Conn) Error() error {
 	if c == nil || c.db == nil {
@@ -132,7 +134,7 @@ func (c *Conn) Error() error {
 	return c.error(C.sqlite3_errcode(c.db))
 }
 
-// Connection
+// Database connection handle
 type Conn struct {
 	db              *C.sqlite3
 	authorizer      *sqliteAuthorizer
@@ -145,13 +147,14 @@ type Conn struct {
 	updateHook      *sqliteUpdateHook
 }
 
+// Run-time library version number
 // Calls http://sqlite.org/c3ref/libversion.html
 func Version() string {
 	p := C.sqlite3_libversion()
 	return C.GoString(p)
 }
 
-// See Open
+// Flags for file open operations
 type OpenFlag int
 
 const (
@@ -165,6 +168,7 @@ const (
 	OPEN_PRIVATECACHE OpenFlag = C.SQLITE_OPEN_PRIVATECACHE
 )
 
+// Open a new database connection.
 // ":memory:" for memory db
 // "" for temp file db
 // 
@@ -205,6 +209,7 @@ func Open(filename string, flags ...OpenFlag) (*Conn, error) {
 	return &Conn{db: db}, nil
 }
 
+// Set a busy timeout
 // Calls http://sqlite.org/c3ref/busy_timeout.html
 func (c *Conn) BusyTimeout(ms int) error {
 	rv := C.sqlite3_busy_timeout(c.db, C.int(ms))
@@ -214,6 +219,7 @@ func (c *Conn) BusyTimeout(ms int) error {
 	return Errno(rv)
 }
 
+// Enable or disable the enforcement of foreign key constraints
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b)
 // Another way is PRAGMA foreign_keys = boolean;
 //
@@ -237,6 +243,7 @@ func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, error) {
 	return false, Errno(rv)
 }
 
+// Prepare and execute one parameterized statement or many statements (separated by semi-colon).
 // Don't use it with SELECT or anything that returns data.
 //
 // Example:
@@ -277,7 +284,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	return nil
 }
 
-// Returns true if the specified query returns at least one row.
+// Return true if the specified query returns at least one row.
 func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	s, err := c.Prepare(query, args...)
 	if err != nil {
@@ -287,25 +294,30 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	return s.Next()
 }
 
+// Count the number of rows modified
 // Calls http://sqlite.org/c3ref/changes.html
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
 }
+// Total number of rows Modified
 // Calls http://sqlite.org/c3ref/total_changes.html
 func (c *Conn) TotalChanges() int {
 	return int(C.sqlite3_total_changes(c.db))
 }
 
+// Return the rowid of the most recent successful INSERT into the database.
 // Calls http://sqlite.org/c3ref/last_insert_rowid.html
 func (c *Conn) LastInsertRowid() int64 {
 	return int64(C.sqlite3_last_insert_rowid(c.db))
 }
 
+// Interrupt a long-running query
 // Calls http://sqlite.org/c3ref/interrupt.html
 func (c *Conn) Interrupt() {
 	C.sqlite3_interrupt(c.db)
 }
 
+// Test for auto-commit mode
 // Calls http://sqlite.org/c3ref/get_autocommit.html
 func (c *Conn) GetAutocommit() bool {
 	return C.sqlite3_get_autocommit(c.db) != 0
@@ -320,6 +332,7 @@ const (
 	EXCLUSIVE TransactionType = 2
 )
 
+// Begin transaction in deferred mode
 func (c *Conn) Begin() error {
 	return c.BeginTransaction(DEFERRED)
 }
@@ -336,10 +349,12 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 	return nil
 }
 
+// Commit transaction
 func (c *Conn) Commit() error {
 	// TODO Check autocommit?
 	return c.exec("COMMIT")
 }
+// Rollback transaction
 func (c *Conn) Rollback() error {
 	// TODO Check autocommit?
 	return c.exec("ROLLBACK")
@@ -355,7 +370,7 @@ func (c *Conn) exec(cmd string) error {
 	return nil
 }
 
-// Prepared Statement (sqlite3_stmt)
+// SQL statement
 type Stmt struct {
 	c      *Conn
 	stmt   *C.sqlite3_stmt
@@ -368,6 +383,7 @@ type Stmt struct {
 	CheckTypeMismatch bool
 }
 
+// Compile an SQL statement and optionally bind values
 // Example:
 //	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
 //	if err != nil {
@@ -403,6 +419,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	return s, nil
 }
 
+// One-step statement execution
 // Don't use it with SELECT or anything that returns data.
 // Calls sqlite3_bind_* and sqlite3_step
 // http://sqlite.org/c3ref/bind_blob.html, http://sqlite.org/c3ref/step.html
@@ -418,8 +435,8 @@ func (s *Stmt) Exec(args ...interface{}) error {
 	return nil
 }
 
-// Don't use it with SELECT or anything that returns data.
 // Like Exec but returns the number of rows that were changed or inserted or deleted.
+// Don't use it with SELECT or anything that returns data.
 func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
 	err := s.Exec(args...)
 	if err != nil {
@@ -428,11 +445,13 @@ func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
 	return s.c.Changes(), nil
 }
 
+// Number of SQL parameters
 // Calls http://sqlite.org/c3ref/bind_parameter_count.html
 func (s *Stmt) BindParameterCount() int {
 	return int(C.sqlite3_bind_parameter_count(s.stmt))
 }
 
+// Index of a parameter with a given name
 // Calls http://sqlite.org/c3ref/bind_parameter_index.html
 func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	if s.params == nil {
@@ -453,6 +472,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	return index, nil
 }
 
+// Name of a host parameter
 // The first host parameter has an index of 1, not 0.
 // Calls http://sqlite.org/c3ref/bind_parameter_name.html
 func (s *Stmt) BindParameterName(i int) (string, error) {
@@ -463,6 +483,7 @@ func (s *Stmt) BindParameterName(i int) (string, error) {
 	return C.GoString(name), nil
 }
 
+// Bind parameters by their name (name1, value1, ...)
 func (s *Stmt) NamedBind(args ...interface{}) error {
 	err := s.Reset() // TODO sqlite3_clear_bindings?
 	if err != nil {
@@ -488,6 +509,7 @@ func (s *Stmt) NamedBind(args ...interface{}) error {
 	return nil
 }
 
+// Bind parameters by their index.
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 // http://sqlite.org/c3ref/bind_blob.html
 func (s *Stmt) Bind(args ...interface{}) error {
@@ -510,6 +532,7 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	return nil
 }
 
+// Bind value to the specified host parameter of the prepared statement
 // The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	i := C.int(index)
@@ -550,6 +573,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	return nil
 }
 
+// Evaluate an SQL statement
 // With custom error handling:
 //	var ok bool
 //	var err os.Error
@@ -578,6 +602,7 @@ func (s *Stmt) Next() (bool, error) {
 	return false, nil
 }
 
+// Reset a prepared statement
 // Calls http://sqlite.org/c3ref/reset.html
 func (s *Stmt) Reset() error {
 	rv := C.sqlite3_reset(s.stmt)
@@ -587,6 +612,7 @@ func (s *Stmt) Reset() error {
 	return nil
 }
 
+// Reset all bindings on a prepared statement
 // Calls http://sqlite.org/c3ref/clear_bindings.html
 func (s *Stmt) ClearBindings() error {
 	rv := C.sqlite3_clear_bindings(s.stmt)
@@ -596,15 +622,18 @@ func (s *Stmt) ClearBindings() error {
 	return nil
 }
 
+// Number of columns in a result set
 // Calls http://sqlite.org/c3ref/column_count.html
 func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
 }
+// Number of columns in a result set
 // Calls http://sqlite.org/c3ref/data_count.html
 func (s *Stmt) DataCount() int {
 	return int(C.sqlite3_data_count(s.stmt))
 }
 
+// Column name in a result set
 // The leftmost column is number 0.
 // Calls http://sqlite.org/c3ref/column_name.html
 func (s *Stmt) ColumnName(index int) string {
@@ -612,6 +641,7 @@ func (s *Stmt) ColumnName(index int) string {
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
+// Column names in a result set
 func (s *Stmt) ColumnNames() []string {
 	count := s.ColumnCount()
 	names := make([]string, count)
@@ -621,7 +651,7 @@ func (s *Stmt) ColumnNames() []string {
 	return names
 }
 
-// See Stmt.ColumnType
+// SQLite fundamental datatypes
 type Type int
 
 func (t Type) String() string {
@@ -644,6 +674,7 @@ var typeText = map[Type]string{
 	Text:    "Text",
 }
 
+// Return the datatype code for the initial data type of the result column.
 // The leftmost column is number 0.
 // After a type conversion, the value returned by sqlite3_column_type() is undefined.
 // Calls sqlite3_column_type
@@ -652,6 +683,7 @@ func (s *Stmt) ColumnType(index int) Type {
 	return Type(C.sqlite3_column_type(s.stmt, C.int(index)))
 }
 
+// Scan result values from a query by name (name1, value1, ...)
 // Example:
 //	stmt, err := db.Prepare("SELECT 1 as id, 'test' as name")
 //	defer stmt.Finalize()
@@ -688,6 +720,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 	return nil
 }
 
+// Scan result values from a query
 // Example:
 //	stmt, err := db.Prepare("SELECT 1, 'test'")
 //	defer stmt.Finalize()
@@ -718,11 +751,13 @@ func (s *Stmt) Scan(args ...interface{}) error {
 	return nil
 }
 
+// Retrieve statement SQL
 // Calls http://sqlite.org/c3ref/sql.html
 func (s *Stmt) SQL() string {
 	return C.GoString(C.sqlite3_sql(s.stmt))
 }
 
+// Column index in a result set for a given column name
 // Must scan all columns (but result is cached).
 // Calls sqlite3_column_count, sqlite3_column_name
 // http://sqlite.org/c3ref/column_name.html
@@ -979,6 +1014,7 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 	return nil
 }
 
+// Destroy a prepared statement
 // Calls http://sqlite.org/c3ref/finalize.html
 func (s *Stmt) Finalize() error {
 	rv := C.sqlite3_finalize(s.stmt)
@@ -989,11 +1025,13 @@ func (s *Stmt) Finalize() error {
 	return nil
 }
 
+// Find the database handle of a prepared statement
 // Like http://sqlite.org/c3ref/db_handle.html
 func (s *Stmt) Conn() *Conn {
 	return s.c
 }
 
+// Close a database connection and any dangling statements.
 // Calls http://sqlite.org/c3ref/close.html
 func (c *Conn) Close() error {
 	if c == nil {
@@ -1015,15 +1053,18 @@ func (c *Conn) Close() error {
 	return nil
 }
 
+// Determine if an SQL statement writes the Database
 // Calls http://sqlite.org/c3ref/stmt_readonly.html
 func (s *Stmt) ReadOnly() bool {
 	return C.sqlite3_stmt_readonly(s.stmt) == 1
 }
 
+// Enable or disable extension loading
 // Calls http://sqlite.org/c3ref/enable_load_extension.html
 func (c *Conn) EnableLoadExtension(b bool) {
 	C.sqlite3_enable_load_extension(c.db, btocint(b))
 }
+// Load an xxtension
 // Calls http://sqlite.org/c3ref/load_extension.html
 func (c *Conn) LoadExtension(file string, proc ...string) error {
 	cfile := C.CString(file)
@@ -1042,6 +1083,7 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 	return nil
 }
 
+// Enable or disable shared pager cache
 // Calls http://sqlite.org/c3ref/enable_shared_cache.html
 func EnableSharedCache(b bool) {
 	C.sqlite3_enable_shared_cache(btocint(b))

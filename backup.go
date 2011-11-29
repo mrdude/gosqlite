@@ -45,12 +45,13 @@ func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backu
 	return &Backup{sb, dst, src}, nil
 }
 
-// Encapsulates backup API
+// Online backup
 type Backup struct {
 	sb       *C.sqlite3_backup
 	dst, src *Conn
 }
 
+// Copy up to N pages between the source and destination databases
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep
 func (b *Backup) Step(npage int) error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
@@ -66,6 +67,7 @@ type BackupStatus struct {
 	PageCount int
 }
 
+// Return the number of pages still to be backed up and the total number of pages in the source database file.
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining
 func (b *Backup) Status() BackupStatus {
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
@@ -89,6 +91,7 @@ func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) error {
 	return b.dst.error(C.sqlite3_errcode(b.dst.db))
 }
 
+// Finish/stop the backup
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish
 func (b *Backup) Close() error {
 	if b.sb == nil {
