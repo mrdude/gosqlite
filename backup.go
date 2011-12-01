@@ -74,7 +74,7 @@ func (b *Backup) Status() BackupStatus {
 }
 
 // Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount
-func (b *Backup) Run(npage int, sleepNs int64, c chan<- BackupStatus) error {
+func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) error {
 	var err error
 	for {
 		err = b.Step(npage)
