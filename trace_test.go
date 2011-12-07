@@ -23,9 +23,9 @@ func profile(d interface{}, sql string, nanoseconds uint64) {
 	//fmt.Printf("%s: %s = %d\n", d, sql, nanoseconds/1000)
 }
 
-func progressHandler(d interface{}) int {
+func progressHandler(d interface{}) bool {
 	//fmt.Print("+")
-	return 0
+	return false
 }
 
 func commitHook(d interface{}) int {

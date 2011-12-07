@@ -187,8 +187,9 @@ func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)))
 }
 
+// Returns true to try again.
 // See Conn.BusyHandler
-type BusyHandler func(udp interface{}, count int) int
+type BusyHandler func(udp interface{}, count int) bool
 
 type sqliteBusyHandler struct {
 	f   BusyHandler
@@ -199,7 +200,7 @@ type sqliteBusyHandler struct {
 func goXBusy(udp unsafe.Pointer, count C.int) C.int {
 	arg := (*sqliteBusyHandler)(udp)
 	result := arg.f(arg.udp, int(count))
-	return C.int(result)
+	return btocint(result)
 }
 
 // Register a callback to handle SQLITE_BUSY errors
@@ -215,9 +216,9 @@ func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)))
 }
 
-// Returns non-zero to interrupt.
+// Returns true to interrupt.
 // See Conn.ProgressHandler
-type ProgressHandler func(udp interface{}) int
+type ProgressHandler func(udp interface{}) bool
 
 type sqliteProgressHandler struct {
 	f   ProgressHandler
@@ -228,7 +229,7 @@ type sqliteProgressHandler struct {
 func goXProgress(udp unsafe.Pointer) C.int {
 	arg := (*sqliteProgressHandler)(udp)
 	result := arg.f(arg.udp)
-	return C.int(result)
+	return btocint(result)
 }
 
 // Query progress callbacks
