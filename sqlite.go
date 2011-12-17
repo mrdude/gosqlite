@@ -181,6 +181,11 @@ const (
 //
 // Calls sqlite3_open_v2: http://sqlite.org/c3ref/open.html
 func Open(filename string, flags ...OpenFlag) (*Conn, error) {
+	return OpenVfs(filename, "", flags...)
+}
+
+// Open a new database with a specified virtual file system.
+func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) {
 	if C.sqlite3_threadsafe() == 0 {
 		return nil, errors.New("sqlite library was not compiled for thread-safe operation")
 	}
@@ -196,7 +201,12 @@ func Open(filename string, flags ...OpenFlag) (*Conn, error) {
 	var db *C.sqlite3
 	name := C.CString(filename)
 	defer C.free(unsafe.Pointer(name))
-	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags), nil)
+	var vfs *C.char
+	if len(vfsname) > 0 {
+		vfs = C.CString(vfsname)
+		defer C.free(unsafe.Pointer(vfs))
+	}
+	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags), vfs)
 	if rv != C.SQLITE_OK {
 		if db != nil {
 			C.sqlite3_close(db)
@@ -443,6 +453,16 @@ func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
 		return -1, err
 	}
 	return s.c.Changes(), nil
+}
+
+// Like Exec but returns the autoincremented rowid.
+// Don't use it with SELECT or anything that returns data.
+func (s *Stmt) ExecInsert(args ...interface{}) (int64, error) {
+	err := s.Exec(args...)
+	if err != nil {
+		return -1, err
+	}
+	return s.c.LastInsertRowid(), nil
 }
 
 // Number of SQL parameters
@@ -1037,6 +1057,9 @@ func (c *Conn) Close() error {
 	if c == nil {
 		return errors.New("nil sqlite database")
 	}
+	if c.db == nil {
+		return nil
+	}
 	// Dangling statements
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
@@ -1053,7 +1076,7 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-// Determine if an SQL statement writes the Database
+// Determine if an SQL statement writes the database
 // Calls http://sqlite.org/c3ref/stmt_readonly.html
 func (s *Stmt) ReadOnly() bool {
 	return C.sqlite3_stmt_readonly(s.stmt) == 1
