@@ -52,6 +52,14 @@ func TestEnableFKey(t *testing.T) {
 	}
 }
 
+func TestIntegrityCheck(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	if err := db.IntegrityCheck(1, true); err != nil {
+		t.Fatalf("Error checking integrity of database: %s", err)
+	}
+}
+
 func TestCreateTable(t *testing.T) {
 	db := open(t)
 	defer db.Close()

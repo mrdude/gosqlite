@@ -112,7 +112,7 @@ var errText = map[Errno]string{
 	101: "sqlite3_step() has finished executing",
 }
 
-func (c *Conn) error(rv C.int) error {
+func (c *Conn) error(rv C.int, detail ...string) error {
 	if c == nil || c.db == nil {
 		return errors.New("nil sqlite database")
 	}
@@ -121,6 +121,9 @@ func (c *Conn) error(rv C.int) error {
 	}
 	if rv == 21 { // misuse
 		return Errno(rv)
+	}
+	if len(detail) > 0 {
+		return errors.New(Errno(rv).Error() + ": " + C.GoString(C.sqlite3_errmsg(c.db)) + " @ " + detail[0])
 	}
 	return errors.New(Errno(rv).Error() + ": " + C.GoString(C.sqlite3_errmsg(c.db)))
 }
@@ -413,7 +416,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	var tail *C.char
 	rv := C.sqlite3_prepare_v2(c.db, cmdstr, -1, &stmt, &tail)
 	if rv != C.SQLITE_OK {
-		return nil, c.error(rv)
+		return nil, c.error(rv, cmd)
 	}
 	var t string
 	if tail != nil && C.strlen(tail) > 0 {
@@ -1110,6 +1113,39 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 // Calls http://sqlite.org/c3ref/enable_shared_cache.html
 func EnableSharedCache(b bool) {
 	C.sqlite3_enable_shared_cache(btocint(b))
+}
+
+// Check database integrity
+// Calls http://www.sqlite.org/pragma.html#pragma_integrity_check
+// Or http://www.sqlite.org/pragma.html#pragma_quick_check
+func (c *Conn) IntegrityCheck(max int, quick bool) error {
+	var pragma string
+	if quick {
+		pragma = "quick"
+	} else {
+		pragma = "integrity"
+	}
+	s, err := c.Prepare(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max))
+	if err != nil {
+		return err
+	}
+	defer s.Finalize()
+	ok, err := s.Next()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("Integrity check failed (no result)")
+	}
+	var msg string
+	err = s.Scan(&msg)
+	if err != nil {
+		return err
+	}
+	if msg != "ok" {
+		return errors.New(msg)
+	}
+	return nil
 }
 
 // Must is a helper that wraps a call to a function returning (bool, os.Error)
