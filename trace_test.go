@@ -20,7 +20,7 @@ func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName st
 }
 
 func profile(d interface{}, sql string, nanoseconds uint64) {
-	//fmt.Printf("%s: %s = %d\n", d, sql, nanoseconds/1000)
+	//fmt.Printf("%s: %s = %d µs\n", d, sql, nanoseconds/10e3)
 }
 
 func progressHandler(d interface{}) bool {

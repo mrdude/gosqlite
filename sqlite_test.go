@@ -14,6 +14,7 @@ func open(t *testing.T) *Conn {
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
+	//db.Profile(profile, "PROFILE")
 	return db
 }
 

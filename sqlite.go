@@ -461,9 +461,12 @@ func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
 // Like Exec but returns the autoincremented rowid.
 // Don't use it with SELECT or anything that returns data.
 func (s *Stmt) ExecInsert(args ...interface{}) (int64, error) {
-	err := s.Exec(args...)
+	n, err := s.ExecUpdate(args...)
 	if err != nil {
 		return -1, err
+	}
+	if n == 0 { // No change => no insert...
+		return -1, nil
 	}
 	return s.c.LastInsertRowid(), nil
 }
