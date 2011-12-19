@@ -1146,7 +1146,7 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 		return errors.New("Integrity check failed (null result)")
 	}
 	if msg != "ok" {
-		return errors.New(msg)
+		return fmt.Errorf("Integrity check failed (%s)", msg)
 	}
 	return nil
 }
