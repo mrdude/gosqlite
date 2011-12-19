@@ -123,9 +123,9 @@ func (c *Conn) error(rv C.int, detail ...string) error {
 		return Errno(rv)
 	}
 	if len(detail) > 0 {
-		return errors.New(Errno(rv).Error() + ": " + C.GoString(C.sqlite3_errmsg(c.db)) + " @ " + detail[0])
+		return fmt.Errorf("%s: %s @ %s", Errno(rv).Error(), C.GoString(C.sqlite3_errmsg(c.db)), detail[0])
 	}
-	return errors.New(Errno(rv).Error() + ": " + C.GoString(C.sqlite3_errmsg(c.db)))
+	return fmt.Errorf("%s: %s", Errno(rv).Error(), C.GoString(C.sqlite3_errmsg(c.db)))
 }
 
 // Return error code or message
@@ -492,7 +492,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	defer C.free(unsafe.Pointer(cname))
 	index = int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 	if index == 0 {
-		return -1, errors.New("invalid parameter name: " + name)
+		return -1, fmt.Errorf("invalid parameter name: %s", name)
 	}
 	s.params[name] = index
 	return index, nil
@@ -504,7 +504,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 func (s *Stmt) BindParameterName(i int) (string, error) {
 	name := C.sqlite3_bind_parameter_name(s.stmt, C.int(i))
 	if name == nil {
-		return "", errors.New(fmt.Sprintf("invalid parameter index: %d", i))
+		return "", fmt.Errorf("invalid parameter index: %d", i)
 	}
 	return C.GoString(name), nil
 }
@@ -546,7 +546,7 @@ func (s *Stmt) Bind(args ...interface{}) error {
 
 	n := s.BindParameterCount()
 	if n != len(args) { // What happens when the number of arguments is less than the number of parameters?
-		return errors.New(fmt.Sprintf("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n))
+		return fmt.Errorf("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n)
 	}
 
 	for i, v := range args {
@@ -591,7 +591,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
-		return errors.New("unsupported type in Bind: " + reflect.TypeOf(value).String())
+		return fmt.Errorf("unsupported type in Bind: %s", reflect.TypeOf(value))
 	}
 	if rv != C.SQLITE_OK {
 		return s.c.error(rv)
@@ -765,7 +765,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 func (s *Stmt) Scan(args ...interface{}) error {
 	n := s.ColumnCount()
 	if n != len(args) { // What happens when the number of arguments is less than the number of columns?
-		return errors.New(fmt.Sprintf("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n))
+		return fmt.Errorf("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n)
 	}
 
 	for i, v := range args {
@@ -799,7 +799,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	if ok {
 		return index, nil
 	}
-	return 0, errors.New("invalid column name: " + name)
+	return 0, fmt.Errorf("invalid column name: %s", name)
 }
 
 // Returns true when column is null and Stmt.CheckNull is activated.
@@ -849,7 +849,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 		*value = s.ScanValue(index)
 		isNull = *value == nil
 	default:
-		return false, errors.New("unsupported type in Scan: " + reflect.TypeOf(value).String())
+		return false, fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(value))
 	}
 	return isNull, err
 }
@@ -1107,7 +1107,7 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 	rv := C.sqlite3_load_extension(c.db, cfile, cproc, &errMsg)
 	if rv != C.SQLITE_OK {
 		defer C.sqlite3_free(unsafe.Pointer(errMsg))
-		return errors.New(Errno(rv).Error() + ": " + C.GoString(errMsg))
+		return fmt.Errorf("%s: %s", Errno(rv).Error(), C.GoString(errMsg))
 	}
 	return nil
 }
