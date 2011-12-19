@@ -27,17 +27,18 @@ func (c *Conn) Databases() (map[string]string, error) {
 	}
 	defer s.Finalize()
 	var databases map[string]string = make(map[string]string)
-	var ok bool
 	var name, file string
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
 		err = s.Scan(nil, &name, &file)
 		if err != nil {
 			return nil, err
 		}
 		databases[name] = file
-	}
-	if err != nil {
-		return nil, err
 	}
 	return databases, nil
 }
@@ -50,14 +51,18 @@ func (c *Conn) Tables() ([]string, error) {
 	}
 	defer s.Finalize()
 	var tables []string = make([]string, 0, 20)
-	var ok bool
 	var name string
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
-		s.Scan(&name)
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
+		err = s.Scan(&name)
+		if err != nil {
+			return nil, err
+		}
 		tables = append(tables, name)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return tables, nil
 }
@@ -82,17 +87,18 @@ func (c *Conn) Columns(table string) ([]Column, error) {
 	}
 	defer s.Finalize()
 	var columns []Column = make([]Column, 0, 20)
-	var ok bool
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
 		c := Column{}
 		err = s.Scan(&c.Cid, &c.Name, &c.DataType, &c.NotNull, &c.DfltValue, &c.Pk)
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, c)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return columns, nil
 }
@@ -113,10 +119,14 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
 	}
 	defer s.Finalize()
 	var fks = make(map[int]*ForeignKey)
-	var ok bool
 	var id, seq int
 	var ref, from, to string
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
 		err = s.NamedScan("id", &id, "seq", &seq, "table", &ref, "from", &from, "to", &to)
 		if err != nil {
 			return nil, err
@@ -129,9 +139,6 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
 		// TODO Ensure columns are appended in the correct order...
 		fk.From = append(fk.From, from)
 		fk.To = append(fk.To, to)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return fks, nil
 }
@@ -151,17 +158,18 @@ func (c *Conn) Indexes(table string) ([]Index, error) {
 	}
 	defer s.Finalize()
 	var indexes []Index = make([]Index, 0, 5)
-	var ok bool
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
 		i := Index{}
 		err = s.Scan(nil, &i.Name, &i.Unique)
 		if err != nil {
 			return nil, err
 		}
 		indexes = append(indexes, i)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return indexes, nil
 }
@@ -175,17 +183,18 @@ func (c *Conn) IndexColumns(index string) ([]Column, error) {
 	}
 	defer s.Finalize()
 	var columns []Column = make([]Column, 0, 5)
-	var ok bool
-	for ok, err = s.Next(); ok; ok, err = s.Next() {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
 		c := Column{}
 		err = s.Scan(nil, &c.Cid, &c.Name)
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, c)
-	}
-	if err != nil {
-		return nil, err
 	}
 	return columns, nil
 }

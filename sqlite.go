@@ -600,14 +600,15 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 }
 
 // Evaluate an SQL statement
+//
 // With custom error handling:
-//	var ok bool
-//	var err os.Error
-// 	for ok, err = s.Next(); ok; ok, err = s.Next() {
+//	for {
+//		if ok, err := s.Next(); err != nil {
+//			return nil, err
+//		} else if !ok {
+//			break
+//		}
 //		err = s.Scan(&fnum, &inum, &sstr)
-//	}
-//	if err != nil {
-//		...
 //	}
 // With panic on error:
 // 	for Must(s.Next()) {
@@ -712,6 +713,7 @@ func (s *Stmt) ColumnType(index int) Type {
 // Scan result values from a query by name (name1, value1, ...)
 // Example:
 //	stmt, err := db.Prepare("SELECT 1 as id, 'test' as name")
+//	// TODO error handling
 //	defer stmt.Finalize()
 //	var id int
 //	var name string
@@ -749,6 +751,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 // Scan result values from a query
 // Example:
 //	stmt, err := db.Prepare("SELECT 1, 'test'")
+//	// TODO error handling
 //	defer stmt.Finalize()
 //	var id int
 //	var name string
@@ -1093,7 +1096,7 @@ func (s *Stmt) ReadOnly() bool {
 func (c *Conn) EnableLoadExtension(b bool) {
 	C.sqlite3_enable_load_extension(c.db, btocint(b))
 }
-// Load an xxtension
+// Load an extension
 // Calls http://sqlite.org/c3ref/load_extension.html
 func (c *Conn) LoadExtension(file string, proc ...string) error {
 	cfile := C.CString(file)
@@ -1133,11 +1136,9 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 		return err
 	}
 	defer s.Finalize()
-	ok, err := s.Next()
-	if err != nil {
+	if ok, err := s.Next(); err != nil {
 		return err
-	}
-	if !ok {
+	} else if !ok {
 		return errors.New("Integrity check failed (no result)")
 	}
 	msg, null := s.ScanText(0)

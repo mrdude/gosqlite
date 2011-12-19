@@ -52,6 +52,7 @@ type ZeroBlobLength int
 //  // check err
 //
 // Calls http://sqlite.org/c3ref/blob_open.html
+// TODO A real 'incremental' example...
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
 	bl, err := c.blob_open(db, table, column, row, false)
 	if err != nil {

@@ -130,7 +130,7 @@ func TestInsert(t *testing.T) {
 		t.Errorf("column count error: %d <> 1", columnCount)
 	}
 
-	if ok := Must(cs.Next()); !ok {
+	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
 	var i int
@@ -193,7 +193,7 @@ func TestInsertWithStatement(t *testing.T) {
 	if !cs.ReadOnly() {
 		t.Errorf("update statement is not readonly")
 	}
-	if ok := Must(cs.Next()); !ok {
+	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
 	var i int
@@ -216,7 +216,7 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Errorf("column name error: %s <> 'int_num'", secondColumnName)
 	}
 
-	if ok := Must(rs.Next()); ok {
+	if Must(rs.Next()) {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -231,7 +231,7 @@ func TestInsertWithStatement(t *testing.T) {
 			t.Errorf("Expected 'hello' <> %s\n", sstr)
 		}
 	}
-	if ok := Must(rs.Next()); ok {
+	if Must(rs.Next()) {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -320,7 +320,7 @@ func TestScanColumn(t *testing.T) {
 		t.Fatalf("prepare error: %s", err)
 	}
 	defer s.Finalize()
-	if ok := Must(s.Next()); !ok {
+	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
@@ -353,7 +353,7 @@ func TestNamedScanColumn(t *testing.T) {
 		t.Fatalf("prepare error: %s", err)
 	}
 	defer s.Finalize()
-	if ok := Must(s.Next()); !ok {
+	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
