@@ -832,7 +832,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	switch value := value.(type) {
 	case nil:
 	case *string:
-		*value, isNull, err = s.ScanText(index)
+		*value, isNull = s.ScanText(index)
 	case *int:
 		*value, isNull, err = s.ScanInt(index)
 	case *int64:
@@ -844,7 +844,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *float64:
 		*value, isNull, err = s.ScanFloat64(index)
 	case *[]byte:
-		*value, isNull, err = s.ScanBlob(index)
+		*value, isNull = s.ScanBlob(index)
 	case *interface{}:
 		*value = s.ScanValue(index)
 		isNull = *value == nil
@@ -891,7 +891,7 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 // Returns true when column is null.
 // Calls sqlite3_column_text.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanText(index int) (value string, isNull bool, err error) {
+func (s *Stmt) ScanText(index int) (value string, isNull bool) {
 	p := C.sqlite3_column_text(s.stmt, C.int(index))
 	if p == nil {
 		isNull = true
@@ -1006,7 +1006,7 @@ func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err error) {
 // Returns true when column is null.
 // Calls sqlite3_column_bytes.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool, err error) {
+func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 	p := C.sqlite3_column_blob(s.stmt, C.int(index))
 	if p == nil {
 		isNull = true
@@ -1140,10 +1140,9 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 	if !ok {
 		return errors.New("Integrity check failed (no result)")
 	}
-	var msg string
-	err = s.Scan(&msg)
-	if err != nil {
-		return err
+	msg, null := s.ScanText(0)
+	if null {
+		return errors.New("Integrity check failed (null result)")
 	}
 	if msg != "ok" {
 		return errors.New(msg)
