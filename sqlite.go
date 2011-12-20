@@ -477,7 +477,7 @@ func (s *Stmt) BindParameterCount() int {
 	return int(C.sqlite3_bind_parameter_count(s.stmt))
 }
 
-// Index of a parameter with a given name
+// Index of a parameter with a given name (cached)
 // Calls http://sqlite.org/c3ref/bind_parameter_index.html
 func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	if s.params == nil {
@@ -511,7 +511,7 @@ func (s *Stmt) BindParameterName(i int) (string, error) {
 
 // Bind parameters by their name (name1, value1, ...)
 func (s *Stmt) NamedBind(args ...interface{}) error {
-	err := s.Reset() // TODO sqlite3_clear_bindings?
+	err := s.Reset()
 	if err != nil {
 		return err
 	}
@@ -539,7 +539,7 @@ func (s *Stmt) NamedBind(args ...interface{}) error {
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 // http://sqlite.org/c3ref/bind_blob.html
 func (s *Stmt) Bind(args ...interface{}) error {
-	err := s.Reset() // TODO sqlite3_clear_bindings?
+	err := s.Reset()
 	if err != nil {
 		return err
 	}
@@ -888,6 +888,13 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
 	}
 	return
+}
+
+// Like ScanValue on several columns
+func (s *Stmt) ScanValues(values []interface{}) {
+	for i := 0; i < len(values); i++ {
+		values[i] = s.ScanValue(i)
+	}
 }
 
 // The leftmost column/index is number 0.

@@ -121,8 +121,6 @@ func (s *stmtImpl) Next(dest []interface{}) error {
 	if !ok {
 		return io.EOF
 	}
-	for i := range dest {
-		dest[i] = s.s.ScanValue(i)
-	}
+	s.s.ScanValues(dest)
 	return nil
 }
