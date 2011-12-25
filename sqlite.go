@@ -169,6 +169,20 @@ func (c *Conn) error(rv C.int, details ...string) error {
 	return err
 }
 
+func (s *Stmt) error(rv C.int, details ...string) error {
+	if s == nil {
+		return errors.New("nil sqlite statement")
+	}
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	err := ConnError{c: s.c, code: Errno(rv), msg: C.GoString(C.sqlite3_errmsg(s.c.db))}
+	if len(details) > 0 {
+		err.details = details[0]
+	}
+	return &StmtError{err, s}
+}
+
 func (c *Conn) specificError(msg string, a ...interface{}) error {
 	return &ConnError{c: c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}
 }
@@ -492,7 +506,7 @@ func (s *Stmt) Exec(args ...interface{}) error {
 	}
 	rv := C.sqlite3_step(s.stmt)
 	if Errno(rv) != Done {
-		return s.c.error(rv)
+		return s.error(rv)
 	}
 	return nil
 }
@@ -642,7 +656,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	default:
 		return s.specificError("unsupported type in Bind: %s", reflect.TypeOf(value))
 	}
-	return s.c.error(rv)
+	return s.error(rv)
 }
 
 // Evaluate an SQL statement
@@ -670,7 +684,7 @@ func (s *Stmt) Next() (bool, error) {
 		return true, nil
 	}
 	if err != Done {
-		return false, s.c.error(rv)
+		return false, s.error(rv)
 	}
 	return false, nil
 }
@@ -678,13 +692,13 @@ func (s *Stmt) Next() (bool, error) {
 // Reset a prepared statement
 // Calls http://sqlite.org/c3ref/reset.html
 func (s *Stmt) Reset() error {
-	return s.c.error(C.sqlite3_reset(s.stmt))
+	return s.error(C.sqlite3_reset(s.stmt))
 }
 
 // Reset all bindings on a prepared statement
 // Calls http://sqlite.org/c3ref/clear_bindings.html
 func (s *Stmt) ClearBindings() error {
-	return s.c.error(C.sqlite3_clear_bindings(s.stmt))
+	return s.error(C.sqlite3_clear_bindings(s.stmt))
 }
 
 // Number of columns in a result set
@@ -1094,7 +1108,7 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 func (s *Stmt) Finalize() error {
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
-		return s.c.error(rv)
+		return s.error(rv)
 	}
 	s.stmt = nil
 	return nil
