@@ -41,6 +41,45 @@ import (
 	"unsafe"
 )
 
+type ConnError struct {
+	c       *Conn
+	code    Errno
+	msg     string
+	details string
+}
+
+func (e *ConnError) Code() Errno {
+	return e.code
+}
+
+// FIXME  it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method. 
+func (e *ConnError) ExtendedCode() int {
+	return int(C.sqlite3_extended_errcode(e.c.db))
+}
+
+// Return Database file name from which the error comes from.
+func (e *ConnError) Filename() string {
+	return e.c.Filename
+}
+
+func (e *ConnError) Error() string {
+	if len(e.details) > 0 {
+		return fmt.Sprintf("%s: %s (%s)", e.code.Error(), e.msg, e.details)
+	} else if len(e.msg) > 0 {
+		return fmt.Sprintf("%s: %s", e.code.Error(), e.msg)
+	}
+	return e.code.Error()
+}
+
+type StmtError struct {
+	ConnError
+	s *Stmt
+}
+
+func (e *StmtError) SQL() string {
+	return e.s.SQL()
+}
+
 // Result codes
 type Errno int
 
@@ -53,93 +92,102 @@ func (e Errno) Error() string {
 }
 
 var (
-	ErrError      error = Errno(1)   //    /* SQL error or missing database */
-	ErrInternal   error = Errno(2)   //    /* Internal logic error in SQLite */
-	ErrPerm       error = Errno(3)   //    /* Access permission denied */
-	ErrAbort      error = Errno(4)   //    /* Callback routine requested an abort */
-	ErrBusy       error = Errno(5)   //    /* The database file is locked */
-	ErrLocked     error = Errno(6)   //    /* A table in the database is locked */
-	ErrNoMem      error = Errno(7)   //    /* A malloc() failed */
-	ErrReadOnly   error = Errno(8)   //    /* Attempt to write a readonly database */
-	ErrInterrupt  error = Errno(9)   //    /* Operation terminated by sqlite3_interrupt()*/
-	ErrIOErr      error = Errno(10)  //    /* Some kind of disk I/O error occurred */
-	ErrCorrupt    error = Errno(11)  //    /* The database disk image is malformed */
-	ErrFull       error = Errno(13)  //    /* Insertion failed because database is full */
-	ErrCantOpen   error = Errno(14)  //    /* Unable to open the database file */
-	ErrEmpty      error = Errno(16)  //    /* Database is empty */
-	ErrSchema     error = Errno(17)  //    /* The database schema changed */
-	ErrTooBig     error = Errno(18)  //    /* String or BLOB exceeds size limit */
-	ErrConstraint error = Errno(19)  //    /* Abort due to constraint violation */
-	ErrMismatch   error = Errno(20)  //    /* Data type mismatch */
-	ErrMisuse     error = Errno(21)  //    /* Library used incorrectly */
-	ErrNolfs      error = Errno(22)  //    /* Uses OS features not supported on host */
-	ErrAuth       error = Errno(23)  //    /* Authorization denied */
-	ErrFormat     error = Errno(24)  //    /* Auxiliary database format error */
-	ErrRange      error = Errno(25)  //    /* 2nd parameter to sqlite3_bind out of range */
-	ErrNotDB      error = Errno(26)  //    /* File opened that is not a database file */
-	Row                 = Errno(100) //   /* sqlite3_step() has another row ready */
-	Done                = Errno(101) //   /* sqlite3_step() has finished executing */
+	ErrError      error = Errno(C.SQLITE_ERROR)      /* SQL error or missing database */
+	ErrInternal   error = Errno(C.SQLITE_INTERNAL)   /* Internal logic error in SQLite */
+	ErrPerm       error = Errno(C.SQLITE_PERM)       /* Access permission denied */
+	ErrAbort      error = Errno(C.SQLITE_ABORT)      /* Callback routine requested an abort */
+	ErrBusy       error = Errno(C.SQLITE_BUSY)       /* The database file is locked */
+	ErrLocked     error = Errno(C.SQLITE_LOCKED)     /* A table in the database is locked */
+	ErrNoMem      error = Errno(C.SQLITE_NOMEM)      /* A malloc() failed */
+	ErrReadOnly   error = Errno(C.SQLITE_READONLY)   /* Attempt to write a readonly database */
+	ErrInterrupt  error = Errno(C.SQLITE_INTERRUPT)  /* Operation terminated by sqlite3_interrupt()*/
+	ErrIOErr      error = Errno(C.SQLITE_IOERR)      /* Some kind of disk I/O error occurred */
+	ErrCorrupt    error = Errno(C.SQLITE_CORRUPT)    /* The database disk image is malformed */
+	ErrNotFound   error = Errno(C.SQLITE_NOTFOUND)   /* Unknown opcode in sqlite3_file_control() */
+	ErrFull       error = Errno(C.SQLITE_FULL)       /* Insertion failed because database is full */
+	ErrCantOpen   error = Errno(C.SQLITE_CANTOPEN)   /* Unable to open the database file */
+	ErrProtocol   error = Errno(C.SQLITE_PROTOCOL)   /* Database lock protocol error */
+	ErrEmpty      error = Errno(C.SQLITE_EMPTY)      /* Database is empty */
+	ErrSchema     error = Errno(C.SQLITE_SCHEMA)     /* The database schema changed */
+	ErrTooBig     error = Errno(C.SQLITE_TOOBIG)     /* String or BLOB exceeds size limit */
+	ErrConstraint error = Errno(C.SQLITE_CONSTRAINT) /* Abort due to constraint violation */
+	ErrMismatch   error = Errno(C.SQLITE_MISMATCH)   /* Data type mismatch */
+	ErrMisuse     error = Errno(C.SQLITE_MISUSE)     /* Library used incorrectly */
+	ErrNolfs      error = Errno(C.SQLITE_NOLFS)      /* Uses OS features not supported on host */
+	ErrAuth       error = Errno(C.SQLITE_AUTH)       /* Authorization denied */
+	ErrFormat     error = Errno(C.SQLITE_FORMAT)     /* Auxiliary database format error */
+	ErrRange      error = Errno(C.SQLITE_RANGE)      /* 2nd parameter to sqlite3_bind out of range */
+	ErrNotDB      error = Errno(C.SQLITE_NOTADB)     /* File opened that is not a database file */
+	Row                 = Errno(C.SQLITE_ROW)        /* sqlite3_step() has another row ready */
+	Done                = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
+	ErrSpecific         = Errno(-1)                  /* Gosqlite specific error */
 )
 
 var errText = map[Errno]string{
-	1:   "SQL error or missing database",
-	2:   "Internal logic error in SQLite",
-	3:   "Access permission denied",
-	4:   "Callback routine requested an abort",
-	5:   "The database file is locked",
-	6:   "A table in the database is locked",
-	7:   "A malloc() failed",
-	8:   "Attempt to write a readonly database",
-	9:   "Operation terminated by sqlite3_interrupt()",
-	10:  "Some kind of disk I/O error occurred",
-	11:  "The database disk image is malformed",
-	12:  "NOT USED. Table or record not found",
-	13:  "Insertion failed because database is full",
-	14:  "Unable to open the database file",
-	15:  "NOT USED. Database lock protocol error",
-	16:  "Database is empty",
-	17:  "The database schema changed",
-	18:  "String or BLOB exceeds size limit",
-	19:  "Abort due to constraint violation",
-	20:  "Data type mismatch",
-	21:  "Library used incorrectly",
-	22:  "Uses OS features not supported on host",
-	23:  "Authorization denied",
-	24:  "Auxiliary database format error",
-	25:  "2nd parameter to sqlite3_bind out of range",
-	26:  "File opened that is not a database file",
-	100: "sqlite3_step() has another row ready",
-	101: "sqlite3_step() has finished executing",
+	C.SQLITE_ERROR:      "SQL error or missing database",
+	C.SQLITE_INTERNAL:   "Internal logic error in SQLite",
+	C.SQLITE_PERM:       "Access permission denied",
+	C.SQLITE_ABORT:      "Callback routine requested an abort",
+	C.SQLITE_BUSY:       "The database file is locked",
+	C.SQLITE_LOCKED:     "A table in the database is locked",
+	C.SQLITE_NOMEM:      "A malloc() failed",
+	C.SQLITE_READONLY:   "Attempt to write a readonly database",
+	C.SQLITE_INTERRUPT:  "Operation terminated by sqlite3_interrupt()",
+	C.SQLITE_IOERR:      "Some kind of disk I/O error occurred",
+	C.SQLITE_CORRUPT:    "The database disk image is malformed",
+	C.SQLITE_NOTFOUND:   "Unknown opcode in sqlite3_file_control()",
+	C.SQLITE_FULL:       "Insertion failed because database is full",
+	C.SQLITE_CANTOPEN:   "Unable to open the database file",
+	C.SQLITE_PROTOCOL:   "Database lock protocol error",
+	C.SQLITE_EMPTY:      "Database is empty",
+	C.SQLITE_SCHEMA:     "The database schema changed",
+	C.SQLITE_TOOBIG:     "String or BLOB exceeds size limit",
+	C.SQLITE_CONSTRAINT: "Abort due to constraint violation",
+	C.SQLITE_MISMATCH:   "Data type mismatch",
+	C.SQLITE_MISUSE:     "Library used incorrectly",
+	C.SQLITE_NOLFS:      "Uses OS features not supported on host",
+	C.SQLITE_AUTH:       "Authorization denied",
+	C.SQLITE_FORMAT:     "Auxiliary database format error",
+	C.SQLITE_RANGE:      "2nd parameter to sqlite3_bind out of range",
+	C.SQLITE_NOTADB:     "File opened that is not a database file",
+	Row:                 "sqlite3_step() has another row ready",
+	Done:                "sqlite3_step() has finished executing",
+	ErrSpecific:         "Gosqlite specific error",
 }
 
-func (c *Conn) error(rv C.int, detail ...string) error {
-	if c == nil || c.db == nil {
+func (c *Conn) error(rv C.int, details ...string) error {
+	if c == nil {
 		return errors.New("nil sqlite database")
 	}
 	if rv == C.SQLITE_OK {
 		return nil
 	}
-	if rv == 21 { // misuse
-		return Errno(rv)
+	err := &ConnError{c: c, code: Errno(rv), msg: C.GoString(C.sqlite3_errmsg(c.db))}
+	if len(details) > 0 {
+		err.details = details[0]
 	}
-	if len(detail) > 0 {
-		return fmt.Errorf("%s: %s @ %s", Errno(rv).Error(), C.GoString(C.sqlite3_errmsg(c.db)), detail[0])
-	}
-	return fmt.Errorf("%s: %s", Errno(rv).Error(), C.GoString(C.sqlite3_errmsg(c.db)))
+	return err
 }
 
-// Return error code or message
-// Calls http://sqlite.org/c3ref/errcode.html
-func (c *Conn) Error() error {
-	if c == nil || c.db == nil {
+func (c *Conn) specificError(msg string, a ...interface{}) error {
+	return &ConnError{c: c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}
+}
+
+func (s *Stmt) specificError(msg string, a ...interface{}) error {
+	return &StmtError{ConnError{c: s.c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}, s}
+}
+
+func (c *Conn) LastError() error {
+	if c == nil {
 		return errors.New("nil sqlite database")
 	}
-	return c.error(C.sqlite3_errcode(c.db))
+	return &ConnError{c: c, code: Errno(C.sqlite3_errcode(c.db)), msg: C.GoString(C.sqlite3_errmsg(c.db))}
 }
 
 // Database connection handle
 type Conn struct {
 	db              *C.sqlite3
+	Filename        string
 	authorizer      *sqliteAuthorizer
 	busyHandler     *sqliteBusyHandler
 	profile         *sqliteProfile
@@ -219,17 +267,13 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
 	}
-	return &Conn{db: db}, nil
+	return &Conn{db: db, Filename: filename}, nil
 }
 
 // Set a busy timeout
 // Calls http://sqlite.org/c3ref/busy_timeout.html
 func (c *Conn) BusyTimeout(ms int) error {
-	rv := C.sqlite3_busy_timeout(c.db, C.int(ms))
-	if rv == C.SQLITE_OK {
-		return nil
-	}
-	return Errno(rv)
+	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)))
 }
 
 // Enable or disable the enforcement of foreign key constraints
@@ -240,6 +284,7 @@ func (c *Conn) BusyTimeout(ms int) error {
 func (c *Conn) EnableFKey(b bool) (bool, error) {
 	return c.queryOrSetEnableFKey(btocint(b))
 }
+
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
 // Another way is PRAGMA foreign_keys; 
 // 
@@ -253,7 +298,13 @@ func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, error) {
 	if rv == C.SQLITE_OK {
 		return (ok == 1), nil
 	}
-	return false, Errno(rv)
+	return false, c.error(rv)
+}
+
+// Enable or disable the extended result codes feature of SQLite.
+// Calls http://sqlite.org/c3ref/extended_result_codes.html
+func (c *Conn) EnableExtendedResultCodes(b bool) error {
+	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)))
 }
 
 // Prepare and execute one parameterized statement or many statements (separated by semi-colon).
@@ -286,7 +337,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 		if len(s.tail) > 0 {
 			if len(args) > 0 {
 				s.Finalize()
-				return errors.New("Cannot execute multiple statements when args are specified")
+				return c.specificError("Cannot execute multiple statements when args are specified")
 			}
 		}
 		cmd = s.tail
@@ -312,6 +363,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
 }
+
 // Total number of rows Modified
 // Calls http://sqlite.org/c3ref/total_changes.html
 func (c *Conn) TotalChanges() int {
@@ -367,6 +419,7 @@ func (c *Conn) Commit() error {
 	// TODO Check autocommit?
 	return c.exec("COMMIT")
 }
+
 // Rollback transaction
 func (c *Conn) Rollback() error {
 	// TODO Check autocommit?
@@ -376,11 +429,7 @@ func (c *Conn) Rollback() error {
 func (c *Conn) exec(cmd string) error {
 	cmdstr := C.CString(cmd)
 	defer C.free(unsafe.Pointer(cmdstr))
-	rv := C.sqlite3_exec(c.db, cmdstr, nil, nil, nil)
-	if rv != C.SQLITE_OK {
-		return c.error(rv)
-	}
-	return nil
+	return c.error(C.sqlite3_exec(c.db, cmdstr, nil, nil, nil))
 }
 
 // SQL statement
@@ -407,7 +456,7 @@ type Stmt struct {
 // Calls sqlite3_prepare_v2 and sqlite3_bind_*
 // http://sqlite.org/c3ref/prepare.html, http://sqlite.org/c3ref/bind_blob.html,
 func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
-	if c == nil || c.db == nil {
+	if c == nil {
 		return nil, errors.New("nil sqlite database")
 	}
 	cmdstr := C.CString(cmd)
@@ -492,7 +541,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	defer C.free(unsafe.Pointer(cname))
 	index = int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 	if index == 0 {
-		return -1, fmt.Errorf("invalid parameter name: %s", name)
+		return -1, s.specificError("invalid parameter name: %s", name)
 	}
 	s.params[name] = index
 	return index, nil
@@ -504,7 +553,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 func (s *Stmt) BindParameterName(i int) (string, error) {
 	name := C.sqlite3_bind_parameter_name(s.stmt, C.int(i))
 	if name == nil {
-		return "", fmt.Errorf("invalid parameter index: %d", i)
+		return "", s.specificError("invalid parameter index: %d", i)
 	}
 	return C.GoString(name), nil
 }
@@ -516,12 +565,12 @@ func (s *Stmt) NamedBind(args ...interface{}) error {
 		return err
 	}
 	if len(args)%2 != 0 {
-		return errors.New("Expected an even number of arguments")
+		return s.specificError("Expected an even number of arguments")
 	}
 	for i := 0; i < len(args); i += 2 {
 		name, ok := args[i].(string)
 		if !ok {
-			return errors.New("non-string param name")
+			return s.specificError("non-string param name")
 		}
 		index, err := s.BindParameterIndex(name) // How to look up only once for one statement ?
 		if err != nil {
@@ -545,8 +594,8 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	}
 
 	n := s.BindParameterCount()
-	if n != len(args) { // What happens when the number of arguments is less than the number of parameters?
-		return fmt.Errorf("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n)
+	if n != len(args) {
+		return s.specificError("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n)
 	}
 
 	for i, v := range args {
@@ -591,12 +640,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
-		return fmt.Errorf("unsupported type in Bind: %s", reflect.TypeOf(value))
+		return s.specificError("unsupported type in Bind: %s", reflect.TypeOf(value))
 	}
-	if rv != C.SQLITE_OK {
-		return s.c.error(rv)
-	}
-	return nil
+	return s.c.error(rv)
 }
 
 // Evaluate an SQL statement
@@ -632,21 +678,13 @@ func (s *Stmt) Next() (bool, error) {
 // Reset a prepared statement
 // Calls http://sqlite.org/c3ref/reset.html
 func (s *Stmt) Reset() error {
-	rv := C.sqlite3_reset(s.stmt)
-	if rv != C.SQLITE_OK {
-		return s.c.error(rv)
-	}
-	return nil
+	return s.c.error(C.sqlite3_reset(s.stmt))
 }
 
 // Reset all bindings on a prepared statement
 // Calls http://sqlite.org/c3ref/clear_bindings.html
 func (s *Stmt) ClearBindings() error {
-	rv := C.sqlite3_clear_bindings(s.stmt)
-	if rv != C.SQLITE_OK {
-		return s.c.error(rv)
-	}
-	return nil
+	return s.c.error(C.sqlite3_clear_bindings(s.stmt))
 }
 
 // Number of columns in a result set
@@ -654,6 +692,7 @@ func (s *Stmt) ClearBindings() error {
 func (s *Stmt) ColumnCount() int {
 	return int(C.sqlite3_column_count(s.stmt))
 }
+
 // Number of columns in a result set
 // Calls http://sqlite.org/c3ref/data_count.html
 func (s *Stmt) DataCount() int {
@@ -728,12 +767,12 @@ func (s *Stmt) ColumnType(index int) Type {
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) NamedScan(args ...interface{}) error {
 	if len(args)%2 != 0 {
-		return errors.New("Expected an even number of arguments")
+		return s.specificError("Expected an even number of arguments")
 	}
 	for i := 0; i < len(args); i += 2 {
 		name, ok := args[i].(string)
 		if !ok {
-			return errors.New("non-string field name")
+			return s.specificError("non-string field name")
 		}
 		index, err := s.ColumnIndex(name) // How to look up only once for one statement ?
 		if err != nil {
@@ -768,7 +807,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 func (s *Stmt) Scan(args ...interface{}) error {
 	n := s.ColumnCount()
 	if n != len(args) { // What happens when the number of arguments is less than the number of columns?
-		return fmt.Errorf("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n)
+		return s.specificError("incorrect argument count for Stmt.Scan: have %d want %d", len(args), n)
 	}
 
 	for i, v := range args {
@@ -802,7 +841,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	if ok {
 		return index, nil
 	}
-	return 0, fmt.Errorf("invalid column name: %s", name)
+	return 0, s.specificError("invalid column name: %s", name)
 }
 
 // Returns true when column is null and Stmt.CheckNull is activated.
@@ -852,7 +891,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 		*value = s.ScanValue(index)
 		isNull = *value == nil
 	default:
-		return false, fmt.Errorf("unsupported type in Scan: %s", reflect.TypeOf(value))
+		return false, s.specificError("unsupported type in Scan: %s", reflect.TypeOf(value))
 	}
 	return isNull, err
 }
@@ -1037,14 +1076,14 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.c.error(20)
+			return s.specificError("Type mismatch, source %s vs target %s", source, target)
 		}
 	case Float:
 		switch source {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.c.error(20)
+			return s.specificError("Type mismatch, source %s vs target %s", source, target)
 		}
 	}
 	return nil
@@ -1079,7 +1118,7 @@ func (c *Conn) Close() error {
 	// Dangling statements
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
-		Log(21, "Dangling statement")
+		Log(C.SQLITE_MISUSE, "Dangling statement")
 		C.sqlite3_finalize(stmt)
 		stmt = C.sqlite3_next_stmt(c.db, stmt)
 	}
@@ -1103,6 +1142,7 @@ func (s *Stmt) ReadOnly() bool {
 func (c *Conn) EnableLoadExtension(b bool) {
 	C.sqlite3_enable_load_extension(c.db, btocint(b))
 }
+
 // Load an extension
 // Calls http://sqlite.org/c3ref/load_extension.html
 func (c *Conn) LoadExtension(file string, proc ...string) error {
@@ -1117,7 +1157,7 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 	rv := C.sqlite3_load_extension(c.db, cfile, cproc, &errMsg)
 	if rv != C.SQLITE_OK {
 		defer C.sqlite3_free(unsafe.Pointer(errMsg))
-		return fmt.Errorf("%s: %s", Errno(rv).Error(), C.GoString(errMsg))
+		return c.error(rv, C.GoString(errMsg))
 	}
 	return nil
 }
@@ -1146,14 +1186,14 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 	if ok, err := s.Next(); err != nil {
 		return err
 	} else if !ok {
-		return errors.New("Integrity check failed (no result)")
+		return c.specificError("Integrity check failed (no result)")
 	}
 	msg, null := s.ScanText(0)
 	if null {
-		return errors.New("Integrity check failed (null result)")
+		return c.specificError("Integrity check failed (null result)")
 	}
 	if msg != "ok" {
-		return fmt.Errorf("Integrity check failed (%s)", msg)
+		return c.specificError("Integrity check failed (%s)", msg)
 	}
 	return nil
 }

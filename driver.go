@@ -15,7 +15,6 @@ func init() {
 }
 
 type Driver struct {
-
 }
 type connImpl struct {
 	c *Conn

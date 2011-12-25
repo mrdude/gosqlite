@@ -2,6 +2,7 @@ package sqlite_test
 
 import (
 	. "github.com/gwenn/gosqlite"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -50,6 +51,14 @@ func TestEnableFKey(t *testing.T) {
 		if !b {
 			t.Error("cannot enabled FK")
 		}
+	}
+}
+
+func TestEnableExtendedResultCodes(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	if err := db.EnableExtendedResultCodes(true); err != nil {
+		t.Fatalf("cannot enabled extended result codes: %s", err)
 	}
 }
 
@@ -106,7 +115,7 @@ func TestInsert(t *testing.T) {
 		}
 		c := db.Changes()
 		if c != 1 {
-			t.Errorf("insert error: %d <> 1", c)
+			t.Errorf("insert error: %d but got 1", c)
 		}
 	}
 	if err := db.Commit(); err != nil {
@@ -115,7 +124,7 @@ func TestInsert(t *testing.T) {
 
 	lastId := db.LastInsertRowid()
 	if lastId != 1000 {
-		t.Errorf("last insert row id error: %d <> 1000", lastId)
+		t.Errorf("last insert row id error: %d but got 1000", lastId)
 	}
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
@@ -123,11 +132,11 @@ func TestInsert(t *testing.T) {
 
 	paramCount := cs.BindParameterCount()
 	if paramCount != 0 {
-		t.Errorf("bind parameter count error: %d <> 0", paramCount)
+		t.Errorf("bind parameter count error: %d but got 0", paramCount)
 	}
 	columnCount := cs.ColumnCount()
 	if columnCount != 1 {
-		t.Errorf("column count error: %d <> 1", columnCount)
+		t.Errorf("column count error: %d but got 1", columnCount)
 	}
 
 	if !Must(cs.Next()) {
@@ -162,15 +171,15 @@ func TestInsertWithStatement(t *testing.T) {
 
 	paramCount := s.BindParameterCount()
 	if paramCount != 3 {
-		t.Errorf("bind parameter count error: %d <> 3", paramCount)
+		t.Errorf("bind parameter count error: %d but got 3", paramCount)
 	}
 	firstParamName, berr := s.BindParameterName(1)
 	if firstParamName != ":f" {
-		t.Errorf("bind parameter name error: %s <> ':f' (%s)", firstParamName, berr)
+		t.Errorf("bind parameter name error: %s but got ':f' (%s)", firstParamName, berr)
 	}
 	lastParamIndex, berr := s.BindParameterIndex(":s")
 	if lastParamIndex != 3 {
-		t.Errorf("bind parameter name error: %d <> 3 (%s)", lastParamIndex, berr)
+		t.Errorf("bind parameter name error: %d but got 3 (%s)", lastParamIndex, berr)
 	}
 
 	db.Begin()
@@ -180,7 +189,7 @@ func TestInsertWithStatement(t *testing.T) {
 			t.Fatalf("insert error: %s", ierr)
 		}
 		if c != 1 {
-			t.Errorf("insert error: %d <> 1", c)
+			t.Errorf("insert error: %d but got 1", c)
 		}
 	}
 
@@ -209,11 +218,11 @@ func TestInsertWithStatement(t *testing.T) {
 	defer rs.Finalize()
 	columnCount := rs.ColumnCount()
 	if columnCount != 3 {
-		t.Errorf("column count error: %d <> 3", columnCount)
+		t.Errorf("column count error: %d but got 3", columnCount)
 	}
 	secondColumnName := rs.ColumnName(1)
 	if secondColumnName != "int_num" {
-		t.Errorf("column name error: %s <> 'int_num'", secondColumnName)
+		t.Errorf("column name error: %s but got 'int_num'", secondColumnName)
 	}
 
 	if Must(rs.Next()) {
@@ -222,13 +231,13 @@ func TestInsertWithStatement(t *testing.T) {
 		var sstr string
 		rs.Scan(&fnum, &inum, &sstr)
 		if fnum != 0 {
-			t.Errorf("Expected 0 <> %f\n", fnum)
+			t.Errorf("Expected 0 but got %f\n", fnum)
 		}
 		if inum != 0 {
-			t.Errorf("Expected 0 <> %d\n", inum)
+			t.Errorf("Expected 0 but got %d\n", inum)
 		}
 		if sstr != "hello" {
-			t.Errorf("Expected 'hello' <> %s\n", sstr)
+			t.Errorf("Expected 'hello' but got %s\n", sstr)
 		}
 	}
 	if Must(rs.Next()) {
@@ -237,13 +246,13 @@ func TestInsertWithStatement(t *testing.T) {
 		var sstr string
 		rs.NamedScan("a_string", &sstr, "float_num", &fnum, "int_num", &inum)
 		if fnum != 3.14 {
-			t.Errorf("Expected 3.14 <> %f\n", fnum)
+			t.Errorf("Expected 3.14 but got %f\n", fnum)
 		}
 		if inum != 1 {
-			t.Errorf("Expected 1 <> %d\n", inum)
+			t.Errorf("Expected 1 but got %d\n", inum)
 		}
 		if sstr != "hello" {
-			t.Errorf("Expected 'hello' <> %s\n", sstr)
+			t.Errorf("Expected 'hello' but got %s\n", sstr)
 		}
 	}
 	if 999 != rs.Status(STMTSTATUS_FULLSCAN_STEP, false) {
@@ -305,7 +314,7 @@ func TestBlob(t *testing.T) {
 		t.Fatalf("blob read error: %s", err)
 	}
 	if n != 10 {
-		t.Fatalf("Expected 10 bytes <> %d", n)
+		t.Fatalf("Expected 10 bytes but got %d", n)
 	}
 	//fmt.Printf("%#v\n", content)
 	br.Close()
@@ -328,19 +337,19 @@ func TestScanColumn(t *testing.T) {
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
-		t.Errorf("Expected 1 <> %d\n", i1)
+		t.Errorf("Expected 1 but got %d\n", i1)
 	}
 	null = Must(s.ScanByIndex(1, &i2 /*, true*/ ))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
-		t.Errorf("Expected 0 <> %d\n", i2)
+		t.Errorf("Expected 0 but got %d\n", i2)
 	}
 	null = Must(s.ScanByIndex(2, &i3 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
-		t.Errorf("Expected 0 <> %d\n", i3)
+		t.Errorf("Expected 0 but got %d\n", i3)
 	}
 }
 
@@ -361,19 +370,48 @@ func TestNamedScanColumn(t *testing.T) {
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
-		t.Errorf("Expected 1 <> %d\n", i1)
+		t.Errorf("Expected 1 but got %d\n", i1)
 	}
 	null = Must(s.ScanByName("i2", &i2 /*, true*/ ))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
-		t.Errorf("Expected 0 <> %d\n", i2)
+		t.Errorf("Expected 0 but got %d\n", i2)
 	}
 	null = Must(s.ScanByName("i3", &i3 /*, true*/ ))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
-		t.Errorf("Expected 0 <> %d\n", i3)
+		t.Errorf("Expected 0 but got %d\n", i3)
+	}
+}
+
+func TestScanCheck(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("select 'hello'")
+	if err != nil {
+		t.Fatalf("prepare error: %s", err)
+	}
+	defer s.Finalize()
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+	var i int
+	_, err = s.ScanByIndex(0, &i)
+	if serr, ok := err.(*StmtError); ok {
+		if serr.Filename() != "" {
+			t.Errorf("Expected '' but got '%s'", serr.Filename())
+		}
+		if serr.Code() != ErrSpecific {
+			t.Errorf("Expected %s but got %s", ErrSpecific, serr.Code())
+		}
+		if serr.SQL() != s.SQL() {
+			t.Errorf("Expected %s but got %s", s.SQL(), serr.SQL())
+		}
+	} else {
+		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
 	}
 }
 

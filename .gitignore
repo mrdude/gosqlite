@@ -4,3 +4,4 @@ _testmain.go
 _obj
 _test
 *.swp
+_cgo_*

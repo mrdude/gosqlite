@@ -265,6 +265,7 @@ func (s *Stmt) Status(op StmtStatus, reset bool) int {
 func MemoryUsed() int64 {
 	return int64(C.sqlite3_memory_used())
 }
+
 // Memory allocator statistics
 // Calls sqlite3_memory_highwater: http://sqlite.org/c3ref/memory_highwater.html
 func MemoryHighwater(reset bool) int64 {
@@ -276,6 +277,7 @@ func MemoryHighwater(reset bool) int64 {
 func SoftHeapLimit() int64 {
 	return SetSoftHeapLimit(-1)
 }
+
 // Impose a limit on heap size
 // Calls http://sqlite.org/c3ref/soft_heap_limit64.html
 func SetSoftHeapLimit(n int64) int64 {
