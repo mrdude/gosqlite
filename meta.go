@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package sqlite provides access to the SQLite library, version 3.
-
 package sqlite
 
 /*
@@ -44,6 +42,7 @@ func (c *Conn) Databases() (map[string]string, error) {
 }
 
 // Selects tables (no view) from 'sqlite_master' and filters system tables out.
+// TODO Make possible to specified the database name (main.sqlite_master)
 func (c *Conn) Tables() ([]string, error) {
 	s, err := c.Prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
 	if err != nil {
@@ -78,7 +77,7 @@ type Column struct {
 }
 
 // Executes pragma 'table_info'
-// TODO How to specify a database-name?
+// TODO Make possible to specify the database-name (PRAGMA %Q.table_info(%Q))
 // TODO sqlite3_table_column_metadata?
 func (c *Conn) Columns(table string) ([]Column, error) {
 	s, err := c.Prepare(Mprintf("PRAGMA table_info(%Q)", table))

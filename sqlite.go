@@ -20,7 +20,7 @@ package sqlite
 // #define SQLITE_STATIC      ((sqlite3_destructor_type)0)
 // #define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
 
-static int my_bind_text(sqlite3_stmt *stmt, int n, char *p, int np) {
+static int my_bind_text(sqlite3_stmt *stmt, int n, const char *p, int np) {
 	return sqlite3_bind_text(stmt, n, p, np, SQLITE_TRANSIENT);
 }
 static int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
@@ -210,6 +210,7 @@ type Conn struct {
 	commitHook      *sqliteCommitHook
 	rollbackHook    *sqliteRollbackHook
 	updateHook      *sqliteUpdateHook
+	udfs            map[string]*sqliteScalarFunction
 }
 
 // Run-time library version number
@@ -1049,7 +1050,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 // Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_double.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err error) {
+func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err error) { // TODO Rename in ScanDouble
 	var ctype Type
 	if s.CheckNull || s.CheckTypeMismatch {
 		ctype = s.ColumnType(index)

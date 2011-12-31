@@ -12,7 +12,8 @@ CGOFILES=\
 	meta.go\
 	trace.go\
 	blob.go\
-	hook.go
+	hook.go\
+	function.go
 
 GOFILES=\
 	date.go\
