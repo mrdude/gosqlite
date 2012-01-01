@@ -24,22 +24,12 @@ func TestScalarFunction(t *testing.T) {
 	if err = db.CreateScalarFunction("half", 1, nil, half, nil); err != nil {
 		t.Fatalf("couldn't create function: %s", err)
 	}
-	s, err := db.Prepare("select half(6)")
+	d, err := db.OneValue("select half(6)")
 	if err != nil {
-		t.Fatalf("couldn't prepare statement: %s", err)
+		t.Fatalf("couldn't retrieve result: %s", err)
 	}
-	if b := Must(s.Next()); !b {
-		t.Fatalf("No result")
-	}
-	d, _, err := s.ScanDouble(0)
-	if err != nil {
-		t.Fatalf("couldn't scan result: %s", err)
-	}
-	if d != 3 {
-		t.Errorf("Expected %f but got %f", 3, d)
-	}
-	if err = s.Finalize(); err != nil {
-		t.Fatalf("couldn't finalize statement: %s", err)
+	if d != 3.0 {
+		t.Errorf("Expected %f but got %f", 3.0, d)
 	}
 	if err = db.CreateScalarFunction("half", 1, nil, nil, nil); err != nil {
 		t.Errorf("couldn't destroy function: %s", err)

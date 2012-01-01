@@ -1,6 +1,7 @@
 Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
+This binding implements the "exp/sql/driver" interface but leaves dangling statements (see drivert_test).
 
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
@@ -8,9 +9,10 @@ Conn#Prepare can optionnaly #Bind as well.
 Conn#Close ensures that all dangling statements are finalized.
 Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
 Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
+Stmt#NamedBind can be used to bind by name.
 Stmt#Next returns a (bool, os.Error) couple like Reader#Read.
 Stmt#Scan uses native sqlite3_column_x methods.
-Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/) API but I think its signature should be improved/modified.
+Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).
 Stmt#ScanByIndex/ScanByName are added to test NULL value.
 
 Currently, the weak point of the binding is the *Scan methods:
@@ -26,6 +28,10 @@ Using the native sqlite3_column_x implies:
 Maybe we should let the caller do the conversion.
 
 Misc:
+Conn#Exists
+Conn#OneValue
+
+Conn#OpenVfs
 Conn#EnableFkey/IsFKeyEnabled
 Conn#Changes/TotalChanges
 Conn#LastInsertRowid
@@ -33,8 +39,9 @@ Conn#Interrupt
 Conn#Begin/BeginTransaction(type)/Commit/Rollback
 Conn#GetAutocommit
 Conn#EnableLoadExtension/LoadExtension
+Conn#IntegrityCheck
 
-Stmt#ExecUpdate
+Stmt#ExecInsert/ExecUpdate
 Stmt#BindParameterCount/BindParameterIndex/BindParameterName
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
@@ -64,3 +71,8 @@ Conn#ProgressHandler
 Conn#SetAuthorizer
 Conn#Trace
 Stmt#Status
+
+Hook:
+Conn#CommitHook
+Conn#RollbackHook
+Conn#UpdateHook

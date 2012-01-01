@@ -166,7 +166,7 @@ func TestInsertWithStatement(t *testing.T) {
 	defer s.Finalize()
 
 	if s.ReadOnly() {
-		t.Errorf("update statement is not readonly")
+		t.Errorf("update statement should not be readonly")
 	}
 
 	paramCount := s.BindParameterCount()
@@ -200,7 +200,7 @@ func TestInsertWithStatement(t *testing.T) {
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
 	if !cs.ReadOnly() {
-		t.Errorf("update statement is not readonly")
+		t.Errorf("select statement should be readonly")
 	}
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")

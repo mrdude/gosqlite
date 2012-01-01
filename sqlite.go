@@ -37,6 +37,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"unsafe"
 )
@@ -371,6 +372,23 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	}
 	defer s.Finalize()
 	return s.Next()
+}
+
+// Use it with SELECT that returns only one row with only one column.
+// Returns io.EOF when there is no row.
+func (c *Conn) OneValue(query string, args ...interface{}) (interface{}, error) {
+	s, err := c.Prepare(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	b, err := s.Next()
+	if err != nil {
+		return nil, err
+	} else if !b {
+		return nil, io.EOF
+	}
+	return s.ScanValue(0), nil
 }
 
 // Count the number of rows modified
@@ -872,6 +890,7 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 
 // The leftmost column/index is number 0.
 //
+// Destination type is specified by the caller.
 // The value must be of one of the following types:
 //    *string
 //    *int, *int64, *byte,
@@ -912,7 +931,8 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 }
 
 // The leftmost column/index is number 0.
-// 
+//
+// Destination type is decided by SQLite.
 // The returned value will be of one of the following types:
 //    nil
 //    string
@@ -1193,19 +1213,9 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 	} else {
 		pragma = "integrity"
 	}
-	s, err := c.Prepare(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max))
+	msg, err := c.OneValue(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max))
 	if err != nil {
 		return err
-	}
-	defer s.Finalize()
-	if ok, err := s.Next(); err != nil {
-		return err
-	} else if !ok {
-		return c.specificError("Integrity check failed (no result)")
-	}
-	msg, null := s.ScanText(0)
-	if null {
-		return c.specificError("Integrity check failed (null result)")
 	}
 	if msg != "ok" {
 		return c.specificError("Integrity check failed (%s)", msg)
