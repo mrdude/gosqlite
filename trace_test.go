@@ -50,6 +50,7 @@ func TestNoTrace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("couldn't open database file: %s", err)
 	}
+	defer db.Close()
 	db.Trace(nil, nil)
 	db.SetAuthorizer(nil, nil)
 	db.Profile(nil, nil)
@@ -58,11 +59,14 @@ func TestNoTrace(t *testing.T) {
 	db.CommitHook(nil, nil)
 	db.RollbackHook(nil, nil)
 	db.UpdateHook(nil, nil)
-	db.Close()
 }
 
 func TestTrace(t *testing.T) {
 	db, err := Open("")
+	if err != nil {
+		t.Fatalf("couldn't open database file: %s", err)
+	}
+	defer db.Close()
 	db.Trace(trace, "TRACE")
 	err = db.SetAuthorizer(authorizer, "AUTH")
 	if err != nil {

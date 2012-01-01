@@ -899,7 +899,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *bool:
 		*value, isNull, err = s.ScanBool(index)
 	case *float64:
-		*value, isNull, err = s.ScanFloat64(index)
+		*value, isNull, err = s.ScanDouble(index)
 	case *[]byte:
 		*value, isNull = s.ScanBlob(index)
 	case *interface{}:
@@ -1050,7 +1050,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 // Returns true when column is null and Stmt.CheckNull is activated.
 // Calls sqlite3_column_double.
 // http://sqlite.org/c3ref/column_blob.html
-func (s *Stmt) ScanFloat64(index int) (value float64, isNull bool, err error) { // TODO Rename in ScanDouble
+func (s *Stmt) ScanDouble(index int) (value float64, isNull bool, err error) {
 	var ctype Type
 	if s.CheckNull || s.CheckTypeMismatch {
 		ctype = s.ColumnType(index)
