@@ -62,6 +62,8 @@ static int goSqlite3CreateFunctionV2(sqlite3 *db, const char *zFunctionName, int
 import "C"
 
 import (
+	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -75,6 +77,37 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 type Context struct {
 	context *C.sqlite3_context
 	argv    **C.sqlite3_value
+}
+
+func (c *Context) Result(r interface{}) {
+	switch r := r.(type) {
+	case nil:
+		c.ResultNull()
+	case string:
+		c.ResultText(r)
+	case int:
+		c.ResultInt(r)
+	case int64:
+		c.ResultInt64(r)
+	case byte:
+		c.ResultInt(int(r))
+	case bool:
+		c.ResultBool(r)
+	case float32:
+		c.ResultDouble(float64(r))
+	case float64:
+		c.ResultDouble(r)
+	case []byte:
+		c.ResultBlob(r)
+	case ZeroBlobLength:
+		c.ResultZeroblob(r)
+	case error:
+		c.ResultError(r.Error())
+	case Errno:
+		c.ResultErrorCode(r)
+	default:
+		panic(fmt.Sprintf("unsupported type in Result: %s", reflect.TypeOf(r)))
+	}
 }
 
 // Set the result of an SQL function
