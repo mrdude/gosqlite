@@ -21,19 +21,14 @@ func TestScalarFunction(t *testing.T) {
 		t.Fatalf("couldn't open database file: %s", err)
 	}
 	defer db.Close()
-	err = db.CreateScalarFunction("half", 1, nil, half, nil)
-	if err != nil {
+	if err = db.CreateScalarFunction("half", 1, nil, half, nil); err != nil {
 		t.Fatalf("couldn't create function: %s", err)
 	}
 	s, err := db.Prepare("select half(6)")
 	if err != nil {
 		t.Fatalf("couldn't prepare statement: %s", err)
 	}
-	b, err := s.Next()
-	if err != nil {
-		t.Fatalf("couldn't step statement: %s", err)
-	}
-	if !b {
+	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	d, _, err := s.ScanDouble(0)
@@ -43,12 +38,10 @@ func TestScalarFunction(t *testing.T) {
 	if d != 3 {
 		t.Errorf("Expected %f but got %f", 3, d)
 	}
-	err = s.Finalize()
-	if err != nil {
+	if err = s.Finalize(); err != nil {
 		t.Fatalf("couldn't finalize statement: %s", err)
 	}
-	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
-	if err != nil {
+	if err = db.CreateScalarFunction("half", 1, nil, nil, nil); err != nil {
 		t.Errorf("couldn't destroy function: %s", err)
 	}
 }
@@ -77,25 +70,25 @@ func re(ctx *Context, nArg int) {
 	ctx.ResultBool(m)
 }
 
+// Useless (just for test)
+func reDestroy(ad interface{}) {
+	//println("reDestroy")
+}
+
 func TestRegexpFunction(t *testing.T) {
 	db, err := Open("")
 	if err != nil {
 		t.Fatalf("couldn't open database file: %s", err)
 	}
 	defer db.Close()
-	err = db.CreateScalarFunction("regexp", 2, nil, re, nil)
-	if err != nil {
+	if err = db.CreateScalarFunction("regexp", 2, nil, re, reDestroy); err != nil {
 		t.Fatalf("couldn't create function: %s", err)
 	}
 	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart' as name)")
 	if err != nil {
 		t.Fatalf("couldn't prepare statement: %s", err)
 	}
-	b, err := s.Next()
-	if err != nil {
-		t.Fatalf("couldn't step statement: %s", err)
-	}
-	if !b {
+	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	i, _, err := s.ScanInt(0)
@@ -105,11 +98,7 @@ func TestRegexpFunction(t *testing.T) {
 	if i != 1 {
 		t.Errorf("Expected %d but got %d", 1, i)
 	}
-	b, err = s.Next()
-	if err != nil {
-		t.Fatalf("couldn't step statement: %s", err)
-	}
-	if !b {
+	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	i, _, err = s.ScanInt(0)
@@ -119,8 +108,7 @@ func TestRegexpFunction(t *testing.T) {
 	if i != 0 {
 		t.Errorf("Expected %d but got %d", 0, i)
 	}
-	err = s.Finalize()
-	if err != nil {
+	if err = s.Finalize(); err != nil {
 		t.Fatalf("couldn't finalize statement: %s", err)
 	}
 }
