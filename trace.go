@@ -167,7 +167,7 @@ type sqliteAuthorizer struct {
 }
 
 //export goXAuth
-func goXAuth(udp unsafe.Pointer, action C.int, arg1, arg2, dbName, triggerName *C.char) C.int {
+func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.char) C.int {
 	arg := (*sqliteAuthorizer)(udp)
 	result := arg.f(arg.udp, Action(action), C.GoString(arg1), C.GoString(arg2), C.GoString(dbName), C.GoString(triggerName))
 	return C.int(result)
@@ -195,9 +195,9 @@ type sqliteBusyHandler struct {
 }
 
 //export goXBusy
-func goXBusy(udp unsafe.Pointer, count C.int) C.int {
+func goXBusy(udp unsafe.Pointer, count int) C.int {
 	arg := (*sqliteBusyHandler)(udp)
-	result := arg.f(arg.udp, int(count))
+	result := arg.f(arg.udp, count)
 	return btocint(result)
 }
 
@@ -307,7 +307,7 @@ type sqliteLogger struct {
 }
 
 //export goXLog
-func goXLog(udp unsafe.Pointer, err C.int, msg *C.char) {
+func goXLog(udp unsafe.Pointer, err int, msg *C.char) {
 	arg := (*sqliteLogger)(udp)
 	arg.f(arg.udp, Errno(err), C.GoString(msg))
 	return

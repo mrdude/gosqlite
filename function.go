@@ -17,6 +17,35 @@ static void my_result_blob(sqlite3_context *ctx, void *p, int np) {
 	sqlite3_result_blob(ctx, p, np, SQLITE_TRANSIENT);
 }
 
+static void my_result_value(sqlite3_context* ctx, sqlite3_value** argv, int i) {
+	sqlite3_result_value(ctx, argv[i]);
+}
+
+static const void *my_value_blob(sqlite3_value** argv, int i) {
+	return sqlite3_value_blob(argv[i]);
+}
+static int my_value_bytes(sqlite3_value** argv, int i) {
+	return sqlite3_value_bytes(argv[i]);
+}
+static double my_value_double(sqlite3_value** argv, int i) {
+	return sqlite3_value_double(argv[i]);
+}
+static int my_value_int(sqlite3_value** argv, int i) {
+	return sqlite3_value_int(argv[i]);
+}
+static sqlite3_int64 my_value_int64(sqlite3_value** argv, int i) {
+	return sqlite3_value_int64(argv[i]);
+}
+static const unsigned char *my_value_text(sqlite3_value** argv, int i) {
+	return sqlite3_value_text(argv[i]);
+}
+static int my_value_type(sqlite3_value** argv, int i) {
+	return sqlite3_value_type(argv[i]);
+}
+static int my_value_numeric_type(sqlite3_value** argv, int i) {
+	return sqlite3_value_numeric_type(argv[i]);
+}
+
 extern void goXFunc(sqlite3_context* ctx, int argc, sqlite3_value** argv);
 extern void goXDestroy(void *pApp);
 
@@ -39,7 +68,7 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 
 type Context struct {
 	context *C.sqlite3_context
-	pApp    interface{}
+	argv    **C.sqlite3_value
 }
 
 // Set the result of an SQL function
@@ -111,9 +140,10 @@ func (c *Context) ResultText(s string) {
 }
 
 // Set the result of an SQL function
+// The leftmost value is number 0.
 // Calls sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html
-func (c *Context) ResultValue(v *Value) {
-	C.sqlite3_result_value(c.context, v.value)
+func (c *Context) ResultValue(i int) {
+	C.my_result_value(c.context, c.argv, C.int(i))
 }
 
 // Set the result of an SQL function
@@ -125,7 +155,8 @@ func (c *Context) ResultZeroblob(n ZeroBlobLength) {
 // User data for functions
 // Calls http://sqlite.org/c3ref/user_data.html
 func (c *Context) UserData() interface{} {
-	return c.pApp
+	udp := (*sqliteScalarFunction)(C.sqlite3_user_data(c.context))
+	return udp.pApp
 }
 
 // Function auxiliary data
@@ -142,59 +173,61 @@ func (c *Context) SetAuxData(n int, ad interface{}, f AuxDataDestructor) {
 	// FIXME C.sqlite3_set_auxdata(c.context, C.int(n), unsafe.Pointer(ad), nil /*void (*)(void*)*/ )
 }
 
-// SQL function parameter value
-type Value struct {
-	value *C.sqlite3_value
-}
-
+// The leftmost value is number 0.
 // Calls sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Blob() (value []byte) {
-	p := C.sqlite3_value_blob(v.value)
+func (c *Context) Blob(i int) (value []byte) {
+	p := C.my_value_blob(c.argv, C.int(i))
 	if p != nil {
-		n := C.sqlite3_value_bytes(v.value)
+		n := C.my_value_bytes(c.argv, C.int(i))
 		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
 	}
 	return
 }
 
+// The leftmost value is number 0.
 // Calls sqlite3_value_double, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Double() float64 {
-	return float64(C.sqlite3_value_double(v.value))
+func (c *Context) Double(i int) float64 {
+	return float64(C.my_value_double(c.argv, C.int(i)))
 }
 
+// The leftmost value is number 0.
 // Calls sqlite3_value_int, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Int() int {
-	return int(C.sqlite3_value_int(v.value))
+func (c *Context) Int(i int) int {
+	return int(C.my_value_int(c.argv, C.int(i)))
 }
 
+// The leftmost value is number 0.
 // Calls sqlite3_value_int64, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Int64() int64 {
-	return int64(C.sqlite3_value_int64(v.value))
+func (c *Context) Int64(i int) int64 {
+	return int64(C.my_value_int64(c.argv, C.int(i)))
 }
 
+// The leftmost value is number 0.
 // Calls sqlite3_value_text, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Text() string {
-	p := C.sqlite3_value_text(v.value)
+func (c *Context) Text(i int) string {
+	p := C.my_value_text(c.argv, C.int(i))
 	if p == nil {
 		return ""
 	}
-	n := C.sqlite3_value_bytes(v.value)
+	n := C.my_value_bytes(c.argv, C.int(i))
 	return C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
 }
 
+// The leftmost value is number 0.
 // SQL function parameter value type
 // Calls sqlite3_value_type, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) Type() Type {
-	return Type(C.sqlite3_value_type(v.value))
+func (c *Context) Type(i int) Type {
+	return Type(C.my_value_type(c.argv, C.int(i)))
 }
 
+// The leftmost value is number 0.
 // SQL function parameter value numeric type (with possible conversion)
 // Calls sqlite3_value_numeric_type, http://sqlite.org/c3ref/value_blob.html
-func (v *Value) NumericType() Type {
-	return Type(C.sqlite3_value_numeric_type(v.value))
+func (c *Context) NumericType(i int) Type {
+	return Type(C.my_value_numeric_type(c.argv, C.int(i)))
 }
 
-type ScalarFunction func(ctx *Context, values []Value)
+type ScalarFunction func(ctx *Context, nArg int)
 type DestroyFunctionData func(pApp interface{})
 
 type sqliteScalarFunction struct {
@@ -204,13 +237,12 @@ type sqliteScalarFunction struct {
 }
 
 //export goXFunc
-func goXFunc(ctxp unsafe.Pointer, argc C.int, argvp unsafe.Pointer) {
+func goXFunc(ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 	ctx := (*C.sqlite3_context)(ctxp)
-	argv := (**C.sqlite3_value)(argvp)
-	pApp := (*sqliteScalarFunction)(C.sqlite3_user_data(ctx))
+	udp := (*sqliteScalarFunction)(C.sqlite3_user_data(ctx))
 	// TODO How to avoid to create a Context at each call?
-	// TODO How to avoid to create Values at each call?
-	println(ctx, pApp, argc, argv)
+	context := &Context{ctx, (**C.sqlite3_value)(argv)}
+	udp.f(context, argc)
 }
 
 //export goXDestroy

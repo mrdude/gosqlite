@@ -92,7 +92,7 @@ type sqliteUpdateHook struct {
 }
 
 //export goXUpdateHook
-func goXUpdateHook(udp unsafe.Pointer, action C.int, dbName, tableName *C.char, rowId C.sqlite3_int64) {
+func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, rowId C.sqlite3_int64) {
 	arg := (*sqliteUpdateHook)(udp)
 	arg.f(arg.udp, Action(action), C.GoString(dbName), C.GoString(tableName), int64(rowId))
 }
