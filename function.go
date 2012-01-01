@@ -46,6 +46,12 @@ static int my_value_numeric_type(sqlite3_value** argv, int i) {
 	return sqlite3_value_numeric_type(argv[i]);
 }
 
+extern void goXAuxDataDestroy(void *ad);
+
+static void goSqlite3SetAuxdata(sqlite3_context* ctx, int N, void* ad) {
+	sqlite3_set_auxdata(ctx, N, ad, goXAuxDataDestroy);
+}
+
 extern void goXFunc(sqlite3_context* ctx, int argc, sqlite3_value** argv);
 extern void goXDestroy(void *pApp);
 
@@ -69,6 +75,14 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 type Context struct {
 	context *C.sqlite3_context
 	argv    **C.sqlite3_value
+}
+
+func (c *Context) ResultBool(b bool) {
+	if b {
+		c.ResultInt(1)
+	} else {
+		c.ResultInt(0)
+	}
 }
 
 // Set the result of an SQL function
@@ -162,15 +176,33 @@ func (c *Context) UserData() interface{} {
 // Function auxiliary data
 // Calls sqlite3_get_auxdata, http://sqlite.org/c3ref/get_auxdata.html
 func (c *Context) GetAuxData(n int) interface{} {
-	return C.sqlite3_get_auxdata(c.context, C.int(n))
+	adp := (*sqliteAuxData)(C.sqlite3_get_auxdata(c.context, C.int(n)))
+	if adp == nil {
+		return nil
+	}
+	return adp.ad
 }
 
 type AuxDataDestructor func(ad interface{})
+type sqliteAuxData struct {
+	ad interface{}
+	d  AuxDataDestructor
+}
+
+//export goXAuxDataDestroy
+func goXAuxDataDestroy(ad unsafe.Pointer) {
+	adp := (*sqliteAuxData)(ad)
+	if adp != nil && adp.d != nil {
+		adp.d(adp.ad)
+	}
+}
 
 // Function auxiliary data
 // Calls sqlite3_set_auxdata, http://sqlite.org/c3ref/get_auxdata.html
-func (c *Context) SetAuxData(n int, ad interface{}, f AuxDataDestructor) {
-	// FIXME C.sqlite3_set_auxdata(c.context, C.int(n), unsafe.Pointer(ad), nil /*void (*)(void*)*/ )
+func (c *Context) SetAuxData(n int, ad interface{}, d AuxDataDestructor) {
+	// How to make sure it is not gced?
+	adp := &sqliteAuxData{ad, d}
+	C.goSqlite3SetAuxdata(c.context, C.int(n), unsafe.Pointer(adp))
 }
 
 // The leftmost value is number 0.
