@@ -77,6 +77,7 @@ type Context struct {
 	argv    **C.sqlite3_value
 }
 
+// Set the result of an SQL function
 func (c *Context) ResultBool(b bool) {
 	if b {
 		c.ResultInt(1)
@@ -206,6 +207,11 @@ func (c *Context) SetAuxData(n int, ad interface{}, d AuxDataDestructor) {
 }
 
 // The leftmost value is number 0.
+func (c *Context) Bool(i int) bool {
+	return c.Int(i) == 1
+}
+
+// The leftmost value is number 0.
 // Calls sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html
 func (c *Context) Blob(i int) (value []byte) {
 	p := C.my_value_blob(c.argv, C.int(i))
@@ -257,6 +263,24 @@ func (c *Context) Type(i int) Type {
 // Calls sqlite3_value_numeric_type, http://sqlite.org/c3ref/value_blob.html
 func (c *Context) NumericType(i int) Type {
 	return Type(C.my_value_numeric_type(c.argv, C.int(i)))
+}
+
+func (c *Context) Value(i int) (value interface{}) {
+	switch c.Type(i) {
+	case Null:
+		value = nil
+	case Text:
+		value = c.Text(i)
+	case Integer:
+		value = c.Int64(i)
+	case Float:
+		value = c.Double(i)
+	case Blob:
+		value = c.Blob(i)
+	default:
+		panic("The value type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
+	}
+	return
 }
 
 type ScalarFunction func(ctx *Context, nArg int)

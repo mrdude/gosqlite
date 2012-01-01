@@ -315,7 +315,7 @@ func goXLog(udp unsafe.Pointer, err int, msg *C.char) {
 
 var logger *sqliteLogger
 
-// Configuring the logger of the SQLite library
+// Configure the logger of the SQLite library
 // Calls sqlite3_config(SQLITE_CONFIG_LOG,...)
 func ConfigLog(f Logger, udp interface{}) error {
 	var rv C.int
