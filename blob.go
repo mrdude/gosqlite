@@ -29,7 +29,7 @@ type BlobReadWriter struct {
 }
 
 // Zeroblobs are used to reserve space for a BLOB that is later written.
-// 
+//
 // Example:
 //	s, err := db.Prepare("INSERT INTO test VALUES (?)")
 //	// check err

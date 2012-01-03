@@ -2,6 +2,7 @@ package sqlite_test
 
 import (
 	. "github.com/gwenn/gosqlite"
+	"math/rand"
 	"regexp"
 	"testing"
 )
@@ -47,12 +48,13 @@ func re(ctx *Context, nArg int) {
 			ctx.ResultError(err.Error())
 			return
 		}
-		ctx.SetAuxData(0, re, nil)
+		ctx.SetAuxData(0, re)
 	} else {
 		//println("Reuse")
 		var ok bool
 		if re, ok = ad.(*regexp.Regexp); !ok {
-			ctx.ResultError("AuxData not a regexp ")
+			println(ad)
+			ctx.ResultError("AuxData not a regexp")
 			return
 		}
 	}
@@ -100,5 +102,64 @@ func TestRegexpFunction(t *testing.T) {
 	}
 	if err = s.Finalize(); err != nil {
 		t.Fatalf("couldn't finalize statement: %s", err)
+	}
+}
+
+func randomFill(db *Conn, n int) {
+	db.Exec("DROP TABLE IF EXISTS test")
+	db.Exec("CREATE TABLE test (name TEXT, rank int)")
+	s, _ := db.Prepare("INSERT INTO test (name, rank) VALUES (?, ?)")
+
+	names := []string{"Bart", "Homer", "Lisa", "Maggie", "Marge"}
+
+	db.Begin()
+	for i := 0; i < n; i++ {
+		s.Exec(names[rand.Intn(len(names))], rand.Intn(100))
+	}
+	s.Finalize()
+	db.Commit()
+}
+
+func BenchmarkLike(b *testing.B) {
+	b.StopTimer()
+	db, _ := Open("")
+	defer db.Close()
+	randomFill(db, 1000)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
+		Must(cs.Next())
+		cs.Finalize()
+	}
+}
+
+func BenchmarkHalf(b *testing.B) {
+	b.StopTimer()
+	db, _ := Open("")
+	defer db.Close()
+	randomFill(db, 1000)
+	db.CreateScalarFunction("half", 1, nil, half, nil)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
+		Must(cs.Next())
+		cs.Finalize()
+	}
+}
+
+func BenchmarkRegexp(b *testing.B) {
+	b.StopTimer()
+	db, _ := Open("")
+	defer db.Close()
+	randomFill(db, 1000)
+	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp  '(?i)\\blisa\\b'")
+		Must(cs.Next())
+		cs.Finalize()
 	}
 }

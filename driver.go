@@ -31,6 +31,8 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	return &connImpl{c}, nil
 }
 
+// PRAGMA schema_version may be used to detect when the database schema is altered
+
 func (c *connImpl) Exec(query string, args []interface{}) (driver.Result, error) {
 	if err := c.c.Exec(query, args...); err != nil {
 		return nil, err

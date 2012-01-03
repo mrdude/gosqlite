@@ -17,46 +17,52 @@ static void my_result_blob(sqlite3_context *ctx, void *p, int np) {
 	sqlite3_result_blob(ctx, p, np, SQLITE_TRANSIENT);
 }
 
-static void my_result_value(sqlite3_context* ctx, sqlite3_value** argv, int i) {
+static void my_result_value(sqlite3_context *ctx, sqlite3_value **argv, int i) {
 	sqlite3_result_value(ctx, argv[i]);
 }
 
-static const void *my_value_blob(sqlite3_value** argv, int i) {
+static const void *my_value_blob(sqlite3_value **argv, int i) {
 	return sqlite3_value_blob(argv[i]);
 }
-static int my_value_bytes(sqlite3_value** argv, int i) {
+static int my_value_bytes(sqlite3_value **argv, int i) {
 	return sqlite3_value_bytes(argv[i]);
 }
-static double my_value_double(sqlite3_value** argv, int i) {
+static double my_value_double(sqlite3_value **argv, int i) {
 	return sqlite3_value_double(argv[i]);
 }
-static int my_value_int(sqlite3_value** argv, int i) {
+static int my_value_int(sqlite3_value **argv, int i) {
 	return sqlite3_value_int(argv[i]);
 }
-static sqlite3_int64 my_value_int64(sqlite3_value** argv, int i) {
+static sqlite3_int64 my_value_int64(sqlite3_value **argv, int i) {
 	return sqlite3_value_int64(argv[i]);
 }
-static const unsigned char *my_value_text(sqlite3_value** argv, int i) {
+static const unsigned char *my_value_text(sqlite3_value **argv, int i) {
 	return sqlite3_value_text(argv[i]);
 }
-static int my_value_type(sqlite3_value** argv, int i) {
+static int my_value_type(sqlite3_value **argv, int i) {
 	return sqlite3_value_type(argv[i]);
 }
-static int my_value_numeric_type(sqlite3_value** argv, int i) {
+static int my_value_numeric_type(sqlite3_value **argv, int i) {
 	return sqlite3_value_numeric_type(argv[i]);
 }
 
 extern void goXAuxDataDestroy(void *ad);
 
-static void goSqlite3SetAuxdata(sqlite3_context* ctx, int N, void* ad) {
+static void goSqlite3SetAuxdata(sqlite3_context *ctx, int N, void *ad) {
 	sqlite3_set_auxdata(ctx, N, ad, goXAuxDataDestroy);
 }
 
-extern void goXFunc(sqlite3_context* ctx, int argc, sqlite3_value** argv);
+extern void goXFunc(sqlite3_context *ctx, void *udf, void *goctx, int argc, sqlite3_value **argv);
 extern void goXDestroy(void *pApp);
 
-static int goSqlite3CreateFunctionV2(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
-	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, goXFunc, NULL, NULL, goXDestroy);
+static void cXFunc(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+	void *udf = sqlite3_user_data(ctx);
+	void *goctx = sqlite3_get_auxdata(ctx, 0);
+	goXFunc(ctx, udf, goctx, argc, argv);
+}
+
+static int goSqlite3CreateScalarFunction(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
+	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, cXFunc, NULL, NULL, goXDestroy);
 }
 */
 import "C"
@@ -75,8 +81,9 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 */
 
 type Context struct {
-	context *C.sqlite3_context
-	argv    **C.sqlite3_value
+	sc   *C.sqlite3_context
+	argv **C.sqlite3_value
+	ad   map[int]interface{} // Function Auxiliary Data
 }
 
 func (c *Context) Result(r interface{}) {
@@ -126,13 +133,13 @@ func (c *Context) ResultBlob(b []byte) {
 	if len(b) > 0 {
 		p = &b[0]
 	}
-	C.my_result_blob(c.context, unsafe.Pointer(p), C.int(len(b)))
+	C.my_result_blob(c.sc, unsafe.Pointer(p), C.int(len(b)))
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_double, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultDouble(d float64) {
-	C.sqlite3_result_double(c.context, C.double(d))
+	C.sqlite3_result_double(c.sc, C.double(d))
 }
 
 // Set the result of an SQL function
@@ -140,43 +147,43 @@ func (c *Context) ResultDouble(d float64) {
 func (c *Context) ResultError(msg string) {
 	cs := C.CString(msg)
 	defer C.free(unsafe.Pointer(cs))
-	C.sqlite3_result_error(c.context, cs, -1)
+	C.sqlite3_result_error(c.sc, cs, -1)
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_error_toobig, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultErrorTooBig() {
-	C.sqlite3_result_error_toobig(c.context)
+	C.sqlite3_result_error_toobig(c.sc)
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_error_nomem, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultErrorNoMem() {
-	C.sqlite3_result_error_nomem(c.context)
+	C.sqlite3_result_error_nomem(c.sc)
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_error_code, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultErrorCode(e Errno) {
-	C.sqlite3_result_error_code(c.context, C.int(e))
+	C.sqlite3_result_error_code(c.sc, C.int(e))
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultInt(i int) {
-	C.sqlite3_result_int(c.context, C.int(i))
+	C.sqlite3_result_int(c.sc, C.int(i))
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_int64, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultInt64(i int64) {
-	C.sqlite3_result_int64(c.context, C.sqlite3_int64(i))
+	C.sqlite3_result_int64(c.sc, C.sqlite3_int64(i))
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_null, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultNull() {
-	C.sqlite3_result_null(c.context)
+	C.sqlite3_result_null(c.sc)
 }
 
 // Set the result of an SQL function
@@ -184,59 +191,46 @@ func (c *Context) ResultNull() {
 func (c *Context) ResultText(s string) {
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
-	C.my_result_text(c.context, cs, -1)
+	C.my_result_text(c.sc, cs, -1)
 }
 
 // Set the result of an SQL function
 // The leftmost value is number 0.
 // Calls sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultValue(i int) {
-	C.my_result_value(c.context, c.argv, C.int(i))
+	C.my_result_value(c.sc, c.argv, C.int(i))
 }
 
 // Set the result of an SQL function
 // Calls sqlite3_result_zeroblob, http://sqlite.org/c3ref/result_blob.html
 func (c *Context) ResultZeroblob(n ZeroBlobLength) {
-	C.sqlite3_result_zeroblob(c.context, C.int(n))
+	C.sqlite3_result_zeroblob(c.sc, C.int(n))
 }
 
 // User data for functions
 // Calls http://sqlite.org/c3ref/user_data.html
 func (c *Context) UserData() interface{} {
-	udp := (*sqliteScalarFunction)(C.sqlite3_user_data(c.context))
-	return udp.pApp
+	udf := (*sqliteFunction)(C.sqlite3_user_data(c.sc))
+	return udf.pApp
 }
 
 // Function auxiliary data
 // Calls sqlite3_get_auxdata, http://sqlite.org/c3ref/get_auxdata.html
 func (c *Context) GetAuxData(n int) interface{} {
-	adp := (*sqliteAuxData)(C.sqlite3_get_auxdata(c.context, C.int(n)))
-	if adp == nil {
+	if len(c.ad) == 0 {
 		return nil
 	}
-	return adp.ad
-}
-
-type AuxDataDestructor func(ad interface{})
-type sqliteAuxData struct {
-	ad interface{}
-	d  AuxDataDestructor
-}
-
-//export goXAuxDataDestroy
-func goXAuxDataDestroy(ad unsafe.Pointer) {
-	adp := (*sqliteAuxData)(ad)
-	if adp != nil && adp.d != nil {
-		adp.d(adp.ad)
-	}
+	return c.ad[n]
 }
 
 // Function auxiliary data
+// No destructor is needed a priori
 // Calls sqlite3_set_auxdata, http://sqlite.org/c3ref/get_auxdata.html
-func (c *Context) SetAuxData(n int, ad interface{}, d AuxDataDestructor) {
-	// How to make sure it is not gced?
-	adp := &sqliteAuxData{ad, d}
-	C.goSqlite3SetAuxdata(c.context, C.int(n), unsafe.Pointer(adp))
+func (c *Context) SetAuxData(n int, ad interface{}) {
+	if len(c.ad) == 0 {
+		c.ad = make(map[int]interface{})
+	}
+	c.ad[n] = ad
 }
 
 // The leftmost value is number 0.
@@ -317,28 +311,54 @@ func (c *Context) Value(i int) (value interface{}) {
 }
 
 type ScalarFunction func(ctx *Context, nArg int)
+type FinalFunction func(ctx *Context)
 type DestroyFunctionData func(pApp interface{})
 
-type sqliteScalarFunction struct {
+/*
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+*/
+
+type sqliteFunction struct {
 	f    ScalarFunction
 	d    DestroyFunctionData
 	pApp interface{}
 }
 
+// To prevent Context from being gced
+// TODO Retry to put this in the sqliteFunction
+var contexts map[*C.sqlite3_context]*Context = make(map[*C.sqlite3_context]*Context)
+
+//export goXAuxDataDestroy
+func goXAuxDataDestroy(ad unsafe.Pointer) {
+	c := (*Context)(ad)
+	if c != nil {
+		delete(contexts, c.sc)
+	}
+	//fmt.Printf("%v\n", contexts)
+}
+
 //export goXFunc
-func goXFunc(ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
-	ctx := (*C.sqlite3_context)(ctxp)
-	udp := (*sqliteScalarFunction)(C.sqlite3_user_data(ctx))
-	// TODO How to avoid to create a Context at each call?
-	context := &Context{ctx, (**C.sqlite3_value)(argv)}
-	udp.f(context, argc)
+func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
+	udf := (*sqliteFunction)(udfp)
+	// To avoid the creation of a Context at each call, just put it in auxdata
+	c := (*Context)(ctxp)
+	if c == nil {
+		c = new(Context)
+		c.sc = (*C.sqlite3_context)(scp)
+		C.goSqlite3SetAuxdata(c.sc, 0, unsafe.Pointer(c))
+		// To make sure it is not cged
+		contexts[c.sc] = c
+	}
+	c.argv = (**C.sqlite3_value)(argv)
+	udf.f(c, argc)
 }
 
 //export goXDestroy
 func goXDestroy(pApp unsafe.Pointer) {
-	arg := (*sqliteScalarFunction)(pApp)
-	if arg.d != nil {
-		arg.d(arg.pApp)
+	udf := (*sqliteFunction)(pApp)
+	if udf.d != nil {
+		udf.d(udf.pApp)
 	}
 }
 
@@ -355,10 +375,37 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	xFunc := &sqliteScalarFunction{f, d, pApp}
+	udf := &sqliteFunction{f, d, pApp}
 	if len(c.udfs) == 0 {
-		c.udfs = make(map[string]*sqliteScalarFunction)
+		c.udfs = make(map[string]*sqliteFunction)
 	}
-	c.udfs[functionName] = xFunc // FIXME same function name with different args is not supported
-	return c.error(C.goSqlite3CreateFunctionV2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(xFunc)))
+	c.udfs[functionName] = udf // FIXME same function name with different args is not supported
+	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
+}
+
+// Obtain Aggregate Function Context
+// Calls http://sqlite.org/c3ref/aggregate_context.html
+func (c *Context) AggregateContext(nBytes int) interface{} {
+	return C.sqlite3_aggregate_context(c.sc, C.int(nBytes))
+}
+
+// Create or redefine SQL functions
+// TODO Make possible to specify the preferred encoding
+// Calls http://sqlite.org/c3ref/create_function.html
+func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{}, f ScalarFunction, d DestroyFunctionData) error {
+	fname := C.CString(functionName)
+	defer C.free(unsafe.Pointer(fname))
+	if f == nil {
+		if len(c.udfs) > 0 {
+			delete(c.udfs, functionName)
+		}
+		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	udf := &sqliteFunction{f, d, pApp}
+	if len(c.udfs) == 0 {
+		c.udfs = make(map[string]*sqliteFunction)
+	}
+	c.udfs[functionName] = udf // FIXME same function name with different args is not supported
+	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
 }

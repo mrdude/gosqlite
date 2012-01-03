@@ -53,7 +53,7 @@ func (e *ConnError) Code() Errno {
 	return e.code
 }
 
-// FIXME  it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method. 
+// FIXME  it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method.
 func (e *ConnError) ExtendedCode() int {
 	return int(C.sqlite3_extended_errcode(e.c.db))
 }
@@ -211,7 +211,7 @@ type Conn struct {
 	commitHook      *sqliteCommitHook
 	rollbackHook    *sqliteRollbackHook
 	updateHook      *sqliteUpdateHook
-	udfs            map[string]*sqliteScalarFunction
+	udfs            map[string]*sqliteFunction
 }
 
 // Run-time library version number
@@ -238,7 +238,7 @@ const (
 // Open a new database connection.
 // ":memory:" for memory db
 // "" for temp file db
-// 
+//
 // Example:
 //	db, err := sqlite.Open(":memory:")
 //	if err != nil {
@@ -302,8 +302,8 @@ func (c *Conn) EnableFKey(b bool) (bool, error) {
 }
 
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
-// Another way is PRAGMA foreign_keys; 
-// 
+// Another way is PRAGMA foreign_keys;
+//
 // http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html
 func (c *Conn) IsFKeyEnabled() (bool, error) {
 	return c.queryOrSetEnableFKey(-1)
