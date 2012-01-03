@@ -80,6 +80,7 @@ func TestRegexpFunction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("couldn't prepare statement: %s", err)
 	}
+	defer s.Finalize()
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
@@ -100,15 +101,54 @@ func TestRegexpFunction(t *testing.T) {
 	if i != 0 {
 		t.Errorf("Expected %d but got %d", 0, i)
 	}
-	if err = s.Finalize(); err != nil {
-		t.Fatalf("couldn't finalize statement: %s", err)
+}
+
+func sumStep(ctx *Context, nArg int) {
+	nt := ctx.NumericType(0)
+	if nt == Integer || nt == Float {
+		var sum float64
+		var ok bool
+		if sum, ok = (ctx.AggregateContext).(float64); !ok {
+			sum = 0
+		}
+		sum += ctx.Double(0)
+		ctx.AggregateContext = sum
 	}
 }
+
+func sumFinal(ctx *Context) {
+	if sum, ok := (ctx.AggregateContext).(float64); ok {
+		ctx.ResultDouble(sum)
+	} else {
+		ctx.ResultNull()
+	}
+}
+
+/*
+func TestSumFunction(t *testing.T) {
+	db, err := Open("")
+	if err != nil {
+		t.Fatalf("couldn't open database file: %s", err)
+	}
+	defer db.Close()
+	if err = db.CreateAggregateFunction("sum", 1, nil, sumStep, sumFinal, nil); err != nil {
+		t.Fatalf("couldn't create function: %s", err)
+	}
+	i, err := db.OneValue("select sum(i) from (select 2 as i union all select 2 as i)")
+	if err != nil {
+		t.Fatalf("couldn't execute statement: %s", err)
+	}
+	if i != 4 {
+		t.Errorf("Expected %d but got %d", 4, i)
+	}
+}
+*/
 
 func randomFill(db *Conn, n int) {
 	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (name TEXT, rank int)")
 	s, _ := db.Prepare("INSERT INTO test (name, rank) VALUES (?, ?)")
+	defer s.Finalize()
 
 	names := []string{"Bart", "Homer", "Lisa", "Maggie", "Marge"}
 
@@ -116,7 +156,6 @@ func randomFill(db *Conn, n int) {
 	for i := 0; i < n; i++ {
 		s.Exec(names[rand.Intn(len(names))], rand.Intn(100))
 	}
-	s.Finalize()
 	db.Commit()
 }
 
