@@ -18,23 +18,17 @@ func half(ctx *Context, nArg int) {
 
 func TestScalarFunction(t *testing.T) {
 	db, err := Open("")
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database file: %s")
 	defer db.Close()
-	if err = db.CreateScalarFunction("half", 1, nil, half, nil); err != nil {
-		t.Fatalf("couldn't create function: %s", err)
-	}
+	err = db.CreateScalarFunction("half", 1, nil, half, nil)
+	checkNoError(t, err, "couldn't create function: %s")
 	d, err := db.OneValue("select half(6)")
-	if err != nil {
-		t.Fatalf("couldn't retrieve result: %s", err)
-	}
+	checkNoError(t, err, "couldn't retrieve result: %s")
 	if d != 3.0 {
 		t.Errorf("Expected %f but got %f", 3.0, d)
 	}
-	if err = db.CreateScalarFunction("half", 1, nil, nil, nil); err != nil {
-		t.Errorf("couldn't destroy function: %s", err)
-	}
+	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
+	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
 func re(ctx *Context, nArg int) {
@@ -69,25 +63,18 @@ func reDestroy(ad interface{}) {
 
 func TestRegexpFunction(t *testing.T) {
 	db, err := Open("")
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database file: %s")
 	defer db.Close()
-	if err = db.CreateScalarFunction("regexp", 2, nil, re, reDestroy); err != nil {
-		t.Fatalf("couldn't create function: %s", err)
-	}
+	err = db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+	checkNoError(t, err, "couldn't create function: %s")
 	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart' as name)")
-	if err != nil {
-		t.Fatalf("couldn't prepare statement: %s", err)
-	}
+	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer s.Finalize()
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	i, _, err := s.ScanInt(0)
-	if err != nil {
-		t.Fatalf("couldn't scan result: %s", err)
-	}
+	checkNoError(t, err, "couldn't scan result: %s")
 	if i != 1 {
 		t.Errorf("Expected %d but got %d", 1, i)
 	}
@@ -95,9 +82,7 @@ func TestRegexpFunction(t *testing.T) {
 		t.Fatalf("No result")
 	}
 	i, _, err = s.ScanInt(0)
-	if err != nil {
-		t.Fatalf("couldn't scan result: %s", err)
-	}
+	checkNoError(t, err, "couldn't scan result: %s")
 	if i != 0 {
 		t.Errorf("Expected %d but got %d", 0, i)
 	}
@@ -127,17 +112,12 @@ func sumFinal(ctx *Context) {
 /*
 func TestSumFunction(t *testing.T) {
 	db, err := Open("")
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database file: %s")
 	defer db.Close()
-	if err = db.CreateAggregateFunction("sum", 1, nil, sumStep, sumFinal, nil); err != nil {
-		t.Fatalf("couldn't create function: %s", err)
-	}
+	err = db.CreateAggregateFunction("sum", 1, nil, sumStep, sumFinal, nil)
+	checkNoError(t, err, "couldn't create function: %s")
 	i, err := db.OneValue("select sum(i) from (select 2 as i union all select 2 as i)")
-	if err != nil {
-		t.Fatalf("couldn't execute statement: %s", err)
-	}
+	checkNoError(t, err, "couldn't execute statement: %s")
 	if i != 4 {
 		t.Errorf("Expected %d but got %d", 4, i)
 	}

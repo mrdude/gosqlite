@@ -19,35 +19,27 @@ const (
 
 func sqlOpen(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite3", "")
-	if err != nil {
-		t.Fatalf("Error opening database: %s", err)
-	}
+	checkNoError(t, err, "Error opening database: %s")
 	return db
 }
 
 func sqlCreate(ddl string, t *testing.T) *sql.DB {
 	db := sqlOpen(t)
 	_, err := db.Exec(ddl)
-	if err != nil {
-		t.Fatalf("Error creating table: %s", err)
-	}
+	checkNoError(t, err, "Error creating table: %s")
 	return db
 }
 
 func TestSqlOpen(t *testing.T) {
 	db := sqlOpen(t)
-	if err := db.Close(); err != nil {
-		t.Fatalf("Error closing database: %s", err)
-	}
+	checkNoError(t, db.Close(), "Error closing database: %s")
 }
 
 func TestSqlDdl(t *testing.T) {
 	db := sqlOpen(t)
 	defer db.Close()
 	result, err := db.Exec(ddl)
-	if err != nil {
-		t.Fatalf("Error creating table: %s", err)
-	}
+	checkNoError(t, err, "Error creating table: %s")
 	_, err = result.LastInsertId() // FIXME Error expected
 	if err == nil {
 		t.Logf("Error expected when calling LastInsertId after DDL")
@@ -62,20 +54,14 @@ func TestSqlDml(t *testing.T) {
 	db := sqlCreate(ddl, t)
 	defer db.Close()
 	result, err := db.Exec(dml)
-	if err != nil {
-		t.Fatalf("Error updating data: %s", err)
-	}
+	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
-	if err != nil {
-		t.Errorf("Error while calling LastInsertId: %s", err)
-	}
+	checkNoError(t, err, "Error while calling LastInsertId: %s")
 	if id != 2 {
 		t.Errorf("Expected %d got %d LastInsertId", 2, id)
 	}
 	changes, err := result.RowsAffected()
-	if err != nil {
-		t.Errorf("Error while calling RowsAffected: %s", err)
-	}
+	checkNoError(t, err, "Error while calling RowsAffected: %s")
 	if changes != 0 {
 		t.Errorf("Expected %d got %d RowsAffected", 0, changes)
 	}
@@ -85,20 +71,14 @@ func TestSqlInsert(t *testing.T) {
 	db := sqlCreate(ddl, t)
 	defer db.Close()
 	result, err := db.Exec(insert, "Bart")
-	if err != nil {
-		t.Fatalf("Error updating data: %s", err)
-	}
+	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
-	if err != nil {
-		t.Errorf("Error while calling LastInsertId: %s", err)
-	}
+	checkNoError(t, err, "Error while calling LastInsertId: %s")
 	if id != 1 {
 		t.Errorf("Expected %d got %d LastInsertId", 2, id)
 	}
 	changes, err := result.RowsAffected()
-	if err != nil {
-		t.Errorf("Error while calling RowsAffected: %s", err)
-	}
+	checkNoError(t, err, "Error while calling RowsAffected: %s")
 	if changes != 1 {
 		t.Errorf("Expected %d got %d RowsAffected", 0, changes)
 	}
@@ -124,9 +104,7 @@ func TestSqlQuery(t *testing.T) {
 	var name string
 	for rows.Next() {
 		err = rows.Scan(&id, &name)
-		if err != nil {
-			t.Errorf("Error while scanning: %s", err)
-		}
+		checkNoError(t, err, "Error while scanning: %s")
 	}
 	// FIXME Dangling statement
 }
@@ -136,13 +114,9 @@ func TestSqlTx(t *testing.T) {
 	defer db.Close()
 
 	tx, err := db.Begin()
-	if err != nil {
-		t.Errorf("Error while begining tx: %s", err)
-	}
+	checkNoError(t, err, "Error while begining tx: %s")
 	err = tx.Rollback()
-	if err != nil {
-		t.Errorf("Error while rollbacking tx: %s", err)
-	}
+	checkNoError(t, err, "Error while rollbacking tx: %s")
 }
 
 func TestSqlPrepare(t *testing.T) {
@@ -150,12 +124,8 @@ func TestSqlPrepare(t *testing.T) {
 	defer db.Close()
 
 	stmt, err := db.Prepare(insert)
-	if err != nil {
-		t.Errorf("Error while preparing stmt: %s", err)
-	}
+	checkNoError(t, err, "Error while preparing stmt: %s")
 	defer stmt.Close()
 	_, err = stmt.Exec("Bart")
-	if err != nil {
-		t.Errorf("Error while executing stmt: %s", err)
-	}
+	checkNoError(t, err, "Error while executing stmt: %s")
 }

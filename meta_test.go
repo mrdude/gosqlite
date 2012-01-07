@@ -8,9 +8,7 @@ import (
 func createIndex(db *Conn, t *testing.T) {
 	err := db.Exec("DROP INDEX IF EXISTS test_index;" +
 		"CREATE INDEX test_index on test(a_string)")
-	if err != nil {
-		t.Fatalf("error creating index: %s", err)
-	}
+	checkNoError(t, err, "error creating index: %s")
 }
 
 func TestDatabases(t *testing.T) {
@@ -18,9 +16,7 @@ func TestDatabases(t *testing.T) {
 	defer db.Close()
 
 	databases, err := db.Databases()
-	if err != nil {
-		t.Fatalf("error looking for databases: %s", err)
-	}
+	checkNoError(t, err, "error looking for databases: %s")
 	if len(databases) != 1 {
 		t.Errorf("Expected one database but got %d\n", len(databases))
 	}
@@ -34,17 +30,13 @@ func TestTables(t *testing.T) {
 	defer db.Close()
 
 	tables, err := db.Tables()
-	if err != nil {
-		t.Fatalf("error looking for tables: %s", err)
-	}
+	checkNoError(t, err, "error looking for tables: %s")
 	if len(tables) != 0 {
 		t.Errorf("Expected no table but got %d\n", len(tables))
 	}
 	createTable(db, t)
 	tables, err = db.Tables()
-	if err != nil {
-		t.Fatalf("error looking for tables: %s", err)
-	}
+	checkNoError(t, err, "error looking for tables: %s")
 	if len(tables) != 1 {
 		t.Errorf("Expected one table but got %d\n", len(tables))
 	}
@@ -59,9 +51,7 @@ func TestColumns(t *testing.T) {
 	createTable(db, t)
 
 	columns, err := db.Columns("test")
-	if err != nil {
-		t.Fatalf("error listing columns: %s", err)
-	}
+	checkNoError(t, err, "error listing columns: %s")
 	if len(columns) != 4 {
 		t.Fatalf("Expected 4 columns <> %d", len(columns))
 	}
@@ -78,13 +68,9 @@ func TestForeignKeys(t *testing.T) {
 	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY);" +
 		"CREATE TABLE child (id INTEGER PRIMARY KEY, parentId INTEGER, " +
 		"FOREIGN KEY (parentId) REFERENCES parent(id));")
-	if err != nil {
-		t.Fatalf("error creating tables: %s", err)
-	}
+	checkNoError(t, err, "error creating tables: %s")
 	fks, err := db.ForeignKeys("child")
-	if err != nil {
-		t.Fatalf("error listing FKs: %s", err)
-	}
+	checkNoError(t, err, "error listing FKs: %s")
 	if len(fks) != 1 {
 		t.Fatalf("Expected 1 FK <> %d", len(fks))
 	}
@@ -101,9 +87,7 @@ func TestIndexes(t *testing.T) {
 	createIndex(db, t)
 
 	indexes, err := db.Indexes("test")
-	if err != nil {
-		t.Fatalf("error listing indexes: %s", err)
-	}
+	checkNoError(t, err, "error listing indexes: %s")
 	if len(indexes) != 1 {
 		t.Fatalf("Expected one index <> %d", len(indexes))
 	}
@@ -116,9 +100,7 @@ func TestIndexes(t *testing.T) {
 	}
 
 	columns, err := db.IndexColumns("test_index")
-	if err != nil {
-		t.Fatalf("error listing index columns: %s", err)
-	}
+	checkNoError(t, err, "error listing index columns: %s")
 	if len(columns) != 1 {
 		t.Fatalf("Expected one column <> %d", len(columns))
 	}
