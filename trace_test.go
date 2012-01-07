@@ -47,9 +47,7 @@ func log(d interface{}, err error, msg string) {
 
 func TestNoTrace(t *testing.T) {
 	db, err := Open("")
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database: %s")
 	defer db.Close()
 	db.Trace(nil, nil)
 	db.SetAuthorizer(nil, nil)
@@ -63,15 +61,11 @@ func TestNoTrace(t *testing.T) {
 
 func TestTrace(t *testing.T) {
 	db, err := Open("")
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database: %s")
 	defer db.Close()
 	db.Trace(trace, "TRACE")
 	err = db.SetAuthorizer(authorizer, "AUTH")
-	if err != nil {
-		t.Fatal("couldn't set an authorizer", err)
-	}
+	checkNoError(t, err, "couldn't set an authorizer")
 	db.Profile(profile, "PROFILE")
 	db.ProgressHandler(progressHandler, 1, /*20*/ nil)
 	db.CommitHook(commitHook, "CMT")

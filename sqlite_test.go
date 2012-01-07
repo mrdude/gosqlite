@@ -7,11 +7,15 @@ import (
 	"testing"
 )
 
+func checkNoError(t *testing.T, err error, format string) {
+	if err != nil {
+		t.Fatalf(format, err)
+	}
+}
+
 func open(t *testing.T) *Conn {
 	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX, OPEN_URI)
-	if err != nil {
-		t.Fatalf("couldn't open database file: %s", err)
-	}
+	checkNoError(t, err, "couldn't open database file: %s")
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
@@ -23,9 +27,7 @@ func createTable(db *Conn, t *testing.T) {
 	err := db.Exec("DROP TABLE IF EXISTS test;" +
 		"CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
 		" float_num REAL, int_num INTEGER, a_string TEXT); -- bim")
-	if err != nil {
-		t.Fatalf("error creating table: %s", err)
-	}
+	checkNoError(t, err, "error creating table: %s")
 }
 
 func TestVersion(t *testing.T) {
@@ -37,9 +39,7 @@ func TestVersion(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	db := open(t)
-	if err := db.Close(); err != nil {
-		t.Fatalf("Error closing database: %s", err)
-	}
+	checkNoError(t, db.Close(), "Error closing database: %s")
 }
 
 func TestEnableFKey(t *testing.T) {
@@ -57,17 +57,13 @@ func TestEnableFKey(t *testing.T) {
 func TestEnableExtendedResultCodes(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	if err := db.EnableExtendedResultCodes(true); err != nil {
-		t.Fatalf("cannot enabled extended result codes: %s", err)
-	}
+	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enabled extended result codes: %s")
 }
 
 func TestIntegrityCheck(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	if err := db.IntegrityCheck(1, true); err != nil {
-		t.Fatalf("Error checking integrity of database: %s", err)
-	}
+	checkNoError(t, db.IntegrityCheck(1, true), "Error checking integrity of database: %s")
 }
 
 func TestCreateTable(t *testing.T) {
@@ -79,15 +75,11 @@ func TestCreateTable(t *testing.T) {
 func TestTransaction(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	if err := db.Begin(); err != nil {
-		t.Fatalf("Error while beginning transaction: %s", err)
-	}
+	checkNoError(t, db.Begin(), "Error while beginning transaction: %s")
 	if err := db.Begin(); err == nil {
 		t.Fatalf("Error expected (transaction cannot be nested)")
 	}
-	if err := db.Commit(); err != nil {
-		t.Fatalf("Error while commiting transaction: %s", err)
-	}
+	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
 }
 
 func TestExists(t *testing.T) {
@@ -110,17 +102,13 @@ func TestInsert(t *testing.T) {
 	db.Begin()
 	for i := 0; i < 1000; i++ {
 		ierr := db.Exec("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)", float64(i)*float64(3.14), i, "hello")
-		if ierr != nil {
-			t.Fatalf("insert error: %s", ierr)
-		}
+		checkNoError(t, ierr, "insert error: %s")
 		c := db.Changes()
 		if c != 1 {
 			t.Errorf("insert error: %d but got 1", c)
 		}
 	}
-	if err := db.Commit(); err != nil {
-		t.Fatalf("Error: %s", err)
-	}
+	checkNoError(t, db.Commit(), "Error: %s")
 
 	lastId := db.LastInsertRowid()
 	if lastId != 1000 {
@@ -143,10 +131,7 @@ func TestInsert(t *testing.T) {
 		t.Fatal("no result for count")
 	}
 	var i int
-	err := cs.Scan(&i)
-	if err != nil {
-		t.Fatalf("error scanning count: %s", err)
-	}
+	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
 	if i != 1000 {
 		t.Errorf("count should be 1000, but it is %d", i)
 	}
@@ -157,9 +142,7 @@ func TestInsertWithStatement(t *testing.T) {
 	defer db.Close()
 	createTable(db, t)
 	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (:f, :i, :s)")
-	if serr != nil {
-		t.Fatalf("prepare error: %s", serr)
-	}
+	checkNoError(t, serr, "prepare error: %s")
 	if s == nil {
 		t.Fatal("statement is nil")
 	}
@@ -185,17 +168,13 @@ func TestInsertWithStatement(t *testing.T) {
 	db.Begin()
 	for i := 0; i < 1000; i++ {
 		c, ierr := s.ExecUpdate(float64(i)*float64(3.14), i, "hello")
-		if ierr != nil {
-			t.Fatalf("insert error: %s", ierr)
-		}
+		checkNoError(t, ierr, "insert error: %s")
 		if c != 1 {
 			t.Errorf("insert error: %d but got 1", c)
 		}
 	}
 
-	if err := db.Commit(); err != nil {
-		t.Fatalf("Error: %s", err)
-	}
+	checkNoError(t, db.Commit(), "Error: %s")
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
@@ -206,10 +185,7 @@ func TestInsertWithStatement(t *testing.T) {
 		t.Fatal("no result for count")
 	}
 	var i int
-	err := cs.Scan(&i)
-	if err != nil {
-		t.Fatalf("error scanning count: %s", err)
-	}
+	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
 	if i != 1000 {
 		t.Errorf("count should be 1000, but it is %d", i)
 	}
@@ -271,48 +247,32 @@ func TestBlob(t *testing.T) {
 	defer db.Close()
 
 	err := db.Exec("CREATE TABLE test (content BLOB);")
-	if err != nil {
-		t.Fatalf("error creating tables: %s", err)
-	}
+	checkNoError(t, err, "error creating table: %s")
 	s, err := db.Prepare("INSERT INTO test VALUES (?)")
-	if err != nil {
-		t.Fatalf("prepare error: %s", err)
-	}
+	checkNoError(t, err, "prepare error: %s")
 	if s == nil {
 		t.Fatal("statement is nil")
 	}
 	defer s.Finalize()
 	err = s.Exec(ZeroBlobLength(10))
-	if err != nil {
-		t.Fatalf("insert error: %s", err)
-	}
+	checkNoError(t, err, "insert error: %s")
 	rowid := db.LastInsertRowid()
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", rowid)
-	if err != nil {
-		t.Fatalf("blob open error: %s", err)
-	}
+	checkNoError(t, err, "blob open error: %s")
 	defer bw.Close()
 	content := []byte("Clob")
 	n, err := bw.Write(content)
-	if err != nil {
-		t.Fatalf("blob write error: %s", err)
-	}
+	checkNoError(t, err, "blob write error: %s")
 
 	br, err := db.NewBlobReader("main", "test", "content", rowid)
-	if err != nil {
-		t.Fatalf("blob open error: %s", err)
-	}
+	checkNoError(t, err, "blob open error: %s")
 	defer br.Close()
 	size, err := br.Size()
-	if err != nil {
-		t.Fatalf("blob size error: %s", err)
-	}
+	checkNoError(t, err, "blob size error: %s")
 	content = make([]byte, size)
 	n, err = br.Read(content)
-	if err != nil {
-		t.Fatalf("blob read error: %s", err)
-	}
+	checkNoError(t, err, "blob read error: %s")
 	if n != 10 {
 		t.Fatalf("Expected 10 bytes but got %d", n)
 	}
@@ -325,9 +285,7 @@ func TestScanColumn(t *testing.T) {
 	defer db.Close()
 
 	s, err := db.Prepare("select 1, null, 0")
-	if err != nil {
-		t.Fatalf("prepare error: %s", err)
-	}
+	checkNoError(t, err, "prepare error: %s")
 	defer s.Finalize()
 	if !Must(s.Next()) {
 		t.Fatal("no result")
@@ -358,9 +316,7 @@ func TestNamedScanColumn(t *testing.T) {
 	defer db.Close()
 
 	s, err := db.Prepare("select 1 as i1, null as i2, 0 as i3")
-	if err != nil {
-		t.Fatalf("prepare error: %s", err)
-	}
+	checkNoError(t, err, "prepare error: %s")
 	defer s.Finalize()
 	if !Must(s.Next()) {
 		t.Fatal("no result")
@@ -391,9 +347,7 @@ func TestScanCheck(t *testing.T) {
 	defer db.Close()
 
 	s, err := db.Prepare("select 'hello'")
-	if err != nil {
-		t.Fatalf("prepare error: %s", err)
-	}
+	checkNoError(t, err, "prepare error: %s")
 	defer s.Finalize()
 	if !Must(s.Next()) {
 		t.Fatal("no result")
@@ -422,8 +376,6 @@ func TestLoadExtension(t *testing.T) {
 	db.EnableLoadExtension(true)
 
 	err := db.LoadExtension("/tmp/myext.so")
-	if err != nil {
-		t.Errorf("load extension error: %s", err)
-	}
+	checkNoError(t, err, "load extension error: %s")
 }
 */
