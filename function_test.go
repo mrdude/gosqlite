@@ -67,7 +67,7 @@ func TestRegexpFunction(t *testing.T) {
 	defer db.Close()
 	err = db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
-	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart' as name)")
+	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer s.Finalize()
 	if b := Must(s.Next()); !b {
@@ -109,20 +109,19 @@ func sumFinal(ctx *Context) {
 	}
 }
 
-/*
+
 func TestSumFunction(t *testing.T) {
 	db, err := Open("")
 	checkNoError(t, err, "couldn't open database file: %s")
 	defer db.Close()
-	err = db.CreateAggregateFunction("sum", 1, nil, sumStep, sumFinal, nil)
+	err = db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
-	i, err := db.OneValue("select sum(i) from (select 2 as i union all select 2 as i)")
+	i, err := db.OneValue("select sum(i) from (select 2 as i union all select 2)")
 	checkNoError(t, err, "couldn't execute statement: %s")
-	if i != 4 {
+	if i != int64(4) {
 		t.Errorf("Expected %d but got %d", 4, i)
 	}
 }
-*/
 
 func randomFill(db *Conn, n int) {
 	db.Exec("DROP TABLE IF EXISTS test")
