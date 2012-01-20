@@ -5,8 +5,8 @@
 package sqlite
 
 import (
-	"exp/sql"
-	"exp/sql/driver"
+	"database/sql"
+	"database/sql/driver"
 	"io"
 )
 

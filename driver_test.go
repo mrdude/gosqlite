@@ -1,7 +1,7 @@
 package sqlite_test
 
 import (
-	"exp/sql"
+	"database/sql"
 	"testing"
 )
 
