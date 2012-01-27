@@ -52,27 +52,32 @@ static void goSqlite3SetAuxdata(sqlite3_context *ctx, int N, void *ad) {
 	sqlite3_set_auxdata(ctx, N, ad, goXAuxDataDestroy);
 }
 
-extern void goXFuncOrStep(sqlite3_context *ctx, void *udf, void *goctx, int argc, sqlite3_value **argv);
-extern void goXFinal(void *udf, void *goctx);
+extern void goXFunc(sqlite3_context *ctx, void *udf, void *goctx, int argc, sqlite3_value **argv);
+extern void goXStep(sqlite3_context *ctx, void *udf, int argc, sqlite3_value **argv);
+extern void goXFinal(sqlite3_context *ctx, void *udf);
 extern void goXDestroy(void *pApp);
 
-static void cXFuncOrStep(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static void cXFunc(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
 	void *udf = sqlite3_user_data(ctx);
 	void *goctx = sqlite3_get_auxdata(ctx, 0);
-	goXFuncOrStep(ctx, udf, goctx, argc, argv);
+	goXFunc(ctx, udf, goctx, argc, argv);
+}
+
+static void cXStep(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+	void *udf = sqlite3_user_data(ctx);
+	goXStep(ctx, udf, argc, argv);
 }
 
 static void cXFinal(sqlite3_context *ctx) {
 	void *udf = sqlite3_user_data(ctx);
-	void *goctx = sqlite3_get_auxdata(ctx, 0);
-	goXFinal(udf, goctx);
+	goXFinal(ctx, udf);
 }
 
 static int goSqlite3CreateScalarFunction(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
-	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, cXFuncOrStep, NULL, NULL, goXDestroy);
+	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, cXFunc, NULL, NULL, goXDestroy);
 }
 static int goSqlite3CreateAggregateFunction(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
-	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, NULL, cXFuncOrStep, cXFinal, goXDestroy);
+	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, NULL, cXStep, cXFinal, goXDestroy);
 }
 */
 import "C"
@@ -349,8 +354,8 @@ func goXAuxDataDestroy(ad unsafe.Pointer) {
 	//fmt.Printf("%v\n", contexts)
 }
 
-//export goXFuncOrStep
-func goXFuncOrStep(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
+//export goXFunc
+func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 	udf := (*sqliteFunction)(udfp)
 	// To avoid the creation of a Context at each call, just put it in auxdata
 	c := (*Context)(ctxp)
@@ -366,11 +371,17 @@ func goXFuncOrStep(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer
 	c.argv = nil
 }
 
+//export goXStep
+func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
+	//udf := (*sqliteFunction)(udfp)
+	//c := nil // FIXME
+}
+
 //export goXFinal
-func goXFinal(udfp, ctxp unsafe.Pointer) {
-	udf := (*sqliteFunction)(udfp)
-	c := (*Context)(ctxp)
-	udf.final(c)
+func goXFinal(scp, udfp unsafe.Pointer) {
+	//udf := (*sqliteFunction)(udfp)
+	//c := nil // FIXME (*C.sqlite3_context)(scp)
+	//udf.final(c)
 }
 
 //export goXDestroy
@@ -402,12 +413,10 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
 }
 
-/*
 // Calls http://sqlite.org/c3ref/aggregate_context.html
 func (c *Context) AggregateContext(nBytes int) interface{} {
 	return C.sqlite3_aggregate_context(c.sc, C.int(nBytes))
 }
-*/
 
 // Create or redefine SQL functions
 // TODO Make possible to specify the preferred encoding

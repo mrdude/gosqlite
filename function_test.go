@@ -88,6 +88,7 @@ func TestRegexpFunction(t *testing.T) {
 	}
 }
 
+/*
 func sumStep(ctx *Context, nArg int) {
 	nt := ctx.NumericType(0)
 	if nt == Integer || nt == Float {
@@ -109,7 +110,6 @@ func sumFinal(ctx *Context) {
 	}
 }
 
-
 func TestSumFunction(t *testing.T) {
 	db, err := Open("")
 	checkNoError(t, err, "couldn't open database file: %s")
@@ -122,6 +122,7 @@ func TestSumFunction(t *testing.T) {
 		t.Errorf("Expected %d but got %d", 4, i)
 	}
 }
+*/
 
 func randomFill(db *Conn, n int) {
 	db.Exec("DROP TABLE IF EXISTS test")
