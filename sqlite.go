@@ -790,7 +790,7 @@ func (s *Stmt) ColumnType(index int) Type {
 //	var id int
 //	var name string
 //	for sqlite.Must(stmt.Next()) {
-//		stmt.NamedScan("name", &name, "id", &id)
+//		err = stmt.NamedScan("name", &name, "id", &id)
 //		// TODO error handling
 //		fmt.Println(id, name)
 //	}
@@ -909,18 +909,84 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case nil:
 	case *string:
 		*value, isNull = s.ScanText(index)
+	case **string:
+		var st string
+		st, isNull = s.ScanText(index)
+		if isNull {
+			*value = nil
+		} else {
+			**value = st
+		}
 	case *int:
 		*value, isNull, err = s.ScanInt(index)
+	case **int:
+		var i int
+		i, isNull, err = s.ScanInt(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = i
+			}
+		}
 	case *int64:
 		*value, isNull, err = s.ScanInt64(index)
+	case **int64:
+		var i int64
+		i, isNull, err = s.ScanInt64(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = i
+			}
+		}
 	case *byte:
 		*value, isNull, err = s.ScanByte(index)
+	case **byte:
+		var b byte
+		b, isNull, err = s.ScanByte(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = b
+			}
+		}
 	case *bool:
 		*value, isNull, err = s.ScanBool(index)
+	case **bool:
+		var b bool
+		b, isNull, err = s.ScanBool(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = b
+			}
+		}
 	case *float64:
 		*value, isNull, err = s.ScanDouble(index)
+	case **float64:
+		var f float64
+		f, isNull, err = s.ScanDouble(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = f
+			}
+		}
 	case *[]byte:
 		*value, isNull = s.ScanBlob(index)
+	case **[]byte:
+		var bs []byte
+		bs, isNull = s.ScanBlob(index)
+		if isNull {
+			*value = nil
+		} else {
+			**value = bs
+		}
 	case *interface{}:
 		*value = s.ScanValue(index)
 		isNull = *value == nil
@@ -948,8 +1014,7 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 		value = nil
 	case Text:
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
-		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
+		value = C.GoString((*C.char)(unsafe.Pointer(p)))
 	case Integer:
 		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
 	case Float:
@@ -966,7 +1031,7 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 
 // Like ScanValue on several columns
 func (s *Stmt) ScanValues(values []interface{}) {
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		values[i] = s.ScanValue(i)
 	}
 }
@@ -980,8 +1045,7 @@ func (s *Stmt) ScanText(index int) (value string, isNull bool) {
 	if p == nil {
 		isNull = true
 	} else {
-		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
+		value = C.GoString((*C.char)(unsafe.Pointer(p)))
 	}
 	return
 }

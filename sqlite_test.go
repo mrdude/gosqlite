@@ -379,3 +379,29 @@ func TestLoadExtension(t *testing.T) {
 	checkNoError(t, err, "load extension error: %s")
 }
 */
+
+func TestScanNull(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("select null")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+	var pi *int
+	null := Must(s.ScanByIndex(0, &pi))
+	if !null {
+		t.Errorf("Expected null value")
+	} else if pi != nil {
+		t.Errorf("Expected nil but got %p\n", pi)
+	}
+	var ps *string
+	null = Must(s.ScanByIndex(0, &ps))
+	if !null {
+		t.Errorf("Expected null value")
+	} else if ps != nil {
+		t.Errorf("Expected nil but got %p\n", ps)
+	}
+}
