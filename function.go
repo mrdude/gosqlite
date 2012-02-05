@@ -326,16 +326,12 @@ func (c *Context) Value(i int) (value interface{}) {
 	return
 }
 
-type ScalarFunction func(ctx *Context, nArg int)
+type FuncOrStep func(ctx *Context, nArg int)
 type FinalFunction func(ctx *Context)
 type DestroyFunctionData func(pApp interface{})
 
-/*
-  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-*/
-
 type sqliteFunction struct {
-	funcOrStep ScalarFunction
+	funcOrStep FuncOrStep
 	final      FinalFunction
 	d          DestroyFunctionData
 	pApp       interface{}
@@ -373,15 +369,26 @@ func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 
 //export goXStep
 func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
-	//udf := (*sqliteFunction)(udfp)
-	//c := nil // FIXME
+	udf := (*sqliteFunction)(udfp)
+	var c *Context
+	c = (*Context)(C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), C.int(unsafe.Sizeof(c))))
+	if c != nil {
+		c.sc = (*C.sqlite3_context)(scp)
+
+		c.argv = (**C.sqlite3_value)(argv)
+		udf.funcOrStep(c, argc)
+		c.argv = nil
+	}
 }
 
 //export goXFinal
 func goXFinal(scp, udfp unsafe.Pointer) {
-	//udf := (*sqliteFunction)(udfp)
-	//c := nil // FIXME (*C.sqlite3_context)(scp)
-	//udf.final(c)
+	udf := (*sqliteFunction)(udfp)
+	c := (*Context)(C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), 0))
+	if c != nil {
+		//c.sc = (*C.sqlite3_context)(scp)
+		udf.final(c)
+	}
 }
 
 //export goXDestroy
@@ -395,7 +402,7 @@ func goXDestroy(pApp unsafe.Pointer) {
 // Create or redefine SQL functions
 // TODO Make possible to specify the preferred encoding
 // Calls http://sqlite.org/c3ref/create_function.html
-func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{}, f ScalarFunction, d DestroyFunctionData) error {
+func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{}, f FuncOrStep, d DestroyFunctionData) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
 	if f == nil {
@@ -413,16 +420,11 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
 }
 
-// Calls http://sqlite.org/c3ref/aggregate_context.html
-func (c *Context) AggregateContext(nBytes int) interface{} {
-	return C.sqlite3_aggregate_context(c.sc, C.int(nBytes))
-}
-
 // Create or redefine SQL functions
 // TODO Make possible to specify the preferred encoding
 // Calls http://sqlite.org/c3ref/create_function.html
 func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{},
-	step ScalarFunction, final FinalFunction, d DestroyFunctionData) error {
+	step FuncOrStep, final FinalFunction, d DestroyFunctionData) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
 	if step == nil {

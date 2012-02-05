@@ -1,7 +1,7 @@
 Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
-This binding implements the "exp/sql/driver" interface but leaves dangling statements (see drivert_test).
+This binding implements the "exp/sql/driver" interface.
 
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
@@ -15,7 +15,7 @@ Stmt#Scan uses native sqlite3_column_x methods.
 Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).
 Stmt#ScanByIndex/ScanByName are added to test NULL value.
 
-Currently, the weak point of the binding is the *Scan methods:
+Currently, the weak point of the binding is the *Scan* methods:
 The original implementation is using this strategy:
  - convert the stored value to a []byte by calling sqlite3_column_bytes,
  - convert the bytes to the desired Go type with correct feedback in case of illegal conversion,
@@ -23,9 +23,7 @@ The original implementation is using this strategy:
 Using the native sqlite3_column_x implies:
  - optimal conversion from the storage type to Go type (when they match),
  - loosy conversion when types mismatch (select cast('M' as int); --> 0),
- - NULL value cannot be returned, default value (0, false, "") is returned instead.
-
-Maybe we should let the caller do the conversion.
+ - NULL value can be returned only for **type, otherwise a default value (0, false, "") is returned.
 
 Misc:
 Conn#Exists
@@ -42,7 +40,7 @@ Conn#EnableLoadExtension/LoadExtension
 Conn#IntegrityCheck
 
 Stmt#ExecInsert/ExecUpdate
-Stmt#BindParameterCount/BindParameterIndex/BindParameterName
+Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
 Stmt#ReadOnly
