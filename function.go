@@ -347,7 +347,7 @@ func goXAuxDataDestroy(ad unsafe.Pointer) {
 	if c != nil {
 		delete(contexts, c.sc)
 	}
-//	fmt.Printf("Contexts: %v\n", contexts)
+	//	fmt.Printf("Contexts: %v\n", contexts)
 }
 
 //export goXFunc
@@ -404,7 +404,7 @@ func goXFinal(scp, udfp unsafe.Pointer) {
 			udf.final(c)
 		}
 	}
-//	fmt.Printf("Contexts: %v\n", contexts)
+	//	fmt.Printf("Contexts: %v\n", contexts)
 }
 
 //export goXDestroy

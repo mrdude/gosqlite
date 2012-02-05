@@ -39,7 +39,7 @@ Conn#GetAutocommit
 Conn#EnableLoadExtension/LoadExtension
 Conn#IntegrityCheck
 
-Stmt#ExecInsert/ExecUpdate
+Stmt#Insert/ExecDml/Select
 Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)

@@ -167,7 +167,7 @@ func TestInsertWithStatement(t *testing.T) {
 
 	db.Begin()
 	for i := 0; i < 1000; i++ {
-		c, ierr := s.ExecUpdate(float64(i)*float64(3.14), i, "hello")
+		c, ierr := s.ExecDml(float64(i)*float64(3.14), i, "hello")
 		checkNoError(t, ierr, "insert error: %s")
 		if c != 1 {
 			t.Errorf("insert error: %d but got 1", c)

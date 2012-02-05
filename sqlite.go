@@ -532,7 +532,7 @@ func (s *Stmt) Exec(args ...interface{}) error {
 
 // Like Exec but returns the number of rows that were changed or inserted or deleted.
 // Don't use it with SELECT or anything that returns data.
-func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
+func (s *Stmt) ExecDml(args ...interface{}) (int, error) {
 	err := s.Exec(args...)
 	if err != nil {
 		return -1, err
@@ -540,10 +540,10 @@ func (s *Stmt) ExecUpdate(args ...interface{}) (int, error) {
 	return s.c.Changes(), nil
 }
 
-// Like Exec but returns the autoincremented rowid.
+// Like ExecDml but returns the autoincremented rowid.
 // Don't use it with SELECT or anything that returns data.
-func (s *Stmt) ExecInsert(args ...interface{}) (int64, error) {
-	n, err := s.ExecUpdate(args...)
+func (s *Stmt) Insert(args ...interface{}) (int64, error) {
+	n, err := s.ExecDml(args...)
 	if err != nil {
 		return -1, err
 	}
@@ -551,6 +551,29 @@ func (s *Stmt) ExecInsert(args ...interface{}) (int64, error) {
 		return -1, nil
 	}
 	return s.c.LastInsertRowid(), nil
+}
+
+// The callback function is invoked for each result row coming out of the statement.
+//
+//  s, err := c.Prepare(...)
+//	// TODO error handling
+//  defer s.Finalize()
+//  err = s.Select(func(s *Stmt) error {
+//  	//Scan
+//  })
+//	// TODO error handling
+func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error) error {
+	for {
+		if ok, err := s.Next(); err != nil {
+			return err
+		} else if !ok {
+			break
+		}
+		if err := rowCallbackHandler(s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Number of SQL parameters
@@ -789,11 +812,14 @@ func (s *Stmt) ColumnType(index int) Type {
 //	defer stmt.Finalize()
 //	var id int
 //	var name string
-//	for sqlite.Must(stmt.Next()) {
-//		err = stmt.NamedScan("name", &name, "id", &id)
-//		// TODO error handling
+//  err = s.Select(func(s *Stmt) (err error) {
+//		if err = stmt.NamedScan("name", &name, "id", &id); err != nil {
+//			return
+//      }
 //		fmt.Println(id, name)
-//	}
+//  	return
+//  })
+//	// TODO error handling
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // Calls sqlite3_column_count, sqlite3_column_name and sqlite3_column_(blob|double|int|int64|text) depending on args type.
@@ -827,11 +853,14 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 //	defer stmt.Finalize()
 //	var id int
 //	var name string
-//	for sqlite.Must(stmt.Next()) {
-//		err = stmt.Scan(&id, &name)
-//		// TODO error handling
+//  err = s.Select(func(s *Stmt) error {
+//		if err = stmt.Scan(&id, &name); err != nil {
+//			return
+//      }
 //		fmt.Println(id, name)
-//	}
+//  	return
+//  })
+//	// TODO error handling
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // TODO How to avoid NULL conversion?
