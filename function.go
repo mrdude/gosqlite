@@ -347,7 +347,7 @@ func goXAuxDataDestroy(ad unsafe.Pointer) {
 	if c != nil {
 		delete(contexts, c.sc)
 	}
-	//fmt.Printf("%v\n", contexts)
+//	fmt.Printf("Contexts: %v\n", contexts)
 }
 
 //export goXFunc
@@ -370,10 +370,20 @@ func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 //export goXStep
 func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 	udf := (*sqliteFunction)(udfp)
-	var c *Context
-	c = (*Context)(C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), C.int(unsafe.Sizeof(c))))
-	if c != nil {
-		c.sc = (*C.sqlite3_context)(scp)
+	var cp unsafe.Pointer
+	cp = C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), C.int(unsafe.Sizeof(cp)))
+	if cp != nil {
+		var c *Context
+		p := *(*unsafe.Pointer)(cp)
+		if p == nil {
+			c = new(Context)
+			c.sc = (*C.sqlite3_context)(scp)
+			*(*unsafe.Pointer)(cp) = unsafe.Pointer(c)
+			// To make sure it is not cged
+			contexts[c.sc] = c
+		} else {
+			c = (*Context)(p)
+		}
 
 		c.argv = (**C.sqlite3_value)(argv)
 		udf.funcOrStep(c, argc)
@@ -384,11 +394,17 @@ func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 //export goXFinal
 func goXFinal(scp, udfp unsafe.Pointer) {
 	udf := (*sqliteFunction)(udfp)
-	c := (*Context)(C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), 0))
-	if c != nil {
-		//c.sc = (*C.sqlite3_context)(scp)
-		udf.final(c)
+	cp := C.sqlite3_aggregate_context((*C.sqlite3_context)(scp), 0)
+	if cp != nil {
+		p := *(*unsafe.Pointer)(cp)
+		if p != nil {
+			c := (*Context)(p)
+			delete(contexts, c.sc)
+			c.sc = (*C.sqlite3_context)(scp)
+			udf.final(c)
+		}
 	}
+//	fmt.Printf("Contexts: %v\n", contexts)
 }
 
 //export goXDestroy

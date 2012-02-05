@@ -88,23 +88,22 @@ func TestRegexpFunction(t *testing.T) {
 	}
 }
 
-
 func sumStep(ctx *Context, nArg int) {
 	nt := ctx.NumericType(0)
 	if nt == Integer || nt == Float {
-		var sum float64
+		var sum int64
 		var ok bool
-		if sum, ok = (ctx.AggregateContext).(float64); !ok {
+		if sum, ok = (ctx.AggregateContext).(int64); !ok {
 			sum = 0
 		}
-		sum += ctx.Double(0)
+		sum += ctx.Int64(0)
 		ctx.AggregateContext = sum
 	}
 }
 
 func sumFinal(ctx *Context) {
-	if sum, ok := (ctx.AggregateContext).(float64); ok {
-		ctx.ResultDouble(sum)
+	if sum, ok := (ctx.AggregateContext).(int64); ok {
+		ctx.ResultInt64(sum)
 	} else {
 		ctx.ResultNull()
 	}
@@ -116,10 +115,10 @@ func TestSumFunction(t *testing.T) {
 	defer db.Close()
 	err = db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
-	i, err := db.OneValue("select sum(i) from (select 2 as i union all select 2)")
+	i, err := db.OneValue("select mysum(i) from (select 2 as i union all select 2)")
 	checkNoError(t, err, "couldn't execute statement: %s")
 	if i != int64(4) {
-		t.Errorf("Expected %d but got %d", 4, i)
+		t.Errorf("Expected %d but got %v", 4, i)
 	}
 }
 
