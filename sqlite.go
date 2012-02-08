@@ -27,6 +27,11 @@ static int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
 	return sqlite3_bind_blob(stmt, n, p, np, SQLITE_TRANSIENT);
 }
 
+// just to get ride of "warning: passing argument 5 of ‘sqlite3_prepare_v2’ from incompatible pointer type [...] ‘const char **’ but argument is of type ‘char **’"
+static int my_prepare_v2(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, char **pzTail) {
+	return sqlite3_prepare_v2(db, zSql, nByte, ppStmt, (const char**)pzTail);
+}
+
 // cgo doesn't support varargs
 static int my_db_config(sqlite3 *db, int op, int v, int *ok) {
 	return sqlite3_db_config(db, op, v, ok);
@@ -496,7 +501,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	defer C.free(unsafe.Pointer(cmdstr))
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
-	rv := C.sqlite3_prepare_v2(c.db, cmdstr, -1, &stmt, &tail)
+	rv := C.my_prepare_v2(c.db, cmdstr, -1, &stmt, &tail)
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, cmd)
 	}
@@ -675,6 +680,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		cstr := C.CString(value)
 		rv = C.my_bind_text(s.stmt, i, cstr, C.int(len(value)))
 		C.free(unsafe.Pointer(cstr))
+		//rv = C.my_bind_text(s.stmt, i, *((**C.char)(unsafe.Pointer(&value))), C.int(len(value)))
 	case int:
 		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
 	case int64:
