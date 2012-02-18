@@ -61,6 +61,24 @@ func TestColumns(t *testing.T) {
 	}
 }
 
+func TestColumn(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	createTable(db, t)
+
+	column, err := db.Column("", "test", "id")
+	checkNoError(t, err, "error getting column metadata: %s")
+	if column.Name != "id" {
+		t.Errorf("Wrong column name: 'id' <> %s", column.Name)
+	}
+	if !column.Pk {
+		t.Errorf("Expecting primary key flag to be true")
+	}
+	if !column.Autoinc {
+		t.Errorf("Expecting autoinc flag to be true")
+	}
+}
+
 func TestForeignKeys(t *testing.T) {
 	db := open(t)
 	defer db.Close()

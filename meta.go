@@ -12,6 +12,23 @@ package sqlite
 static char *my_mprintf(char *zFormat, char *arg) {
 	return sqlite3_mprintf(zFormat, arg);
 }
+
+// just to get ride of warning
+static int my_table_column_metadata(
+  sqlite3 *db,
+  const char *zDbName,
+  const char *zTableName,
+  const char *zColumnName,
+  char **pzDataType,
+  char **pzCollSeq,
+  int *pNotNull,
+  int *pPrimaryKey,
+  int *pAutoinc
+) {
+	return sqlite3_table_column_metadata(db, zDbName, zTableName, zColumnName,
+		(char const **)pzDataType, (char const **)pzCollSeq, pNotNull, pPrimaryKey, pAutoinc);
+}
+
 */
 import "C"
 
@@ -67,6 +84,8 @@ type Column struct {
 	NotNull   bool
 	DfltValue string // FIXME type ?
 	Pk        bool
+	Autoinc bool
+	CollSeq string
 }
 
 // Executes pragma 'table_info'
@@ -91,6 +110,27 @@ func (c *Conn) Columns(table string) ([]Column, error) {
 		return nil, err
 	}
 	return columns, nil
+}
+
+func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
+	var zDbName *C.char
+	if len(dbName) > 0 {
+		zDbName = C.CString(dbName)
+		defer C.free(unsafe.Pointer(zDbName))
+	}
+	zTableName := C.CString(tableName)
+	defer C.free(unsafe.Pointer(zTableName))
+	zColumnName := C.CString(columnName)
+	defer C.free(unsafe.Pointer(zColumnName))
+	var zDataType, zCollSeq *C.char
+	var notNull, primaryKey, autoinc C.int
+	rv := C.my_table_column_metadata(c.db, zDbName, zTableName, zColumnName, &zDataType, &zCollSeq,
+		&notNull, &primaryKey, &autoinc)
+	if rv != C.SQLITE_OK {
+		return nil, c.error(rv)
+	}
+	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", primaryKey == 1,
+		autoinc == 1, C.GoString(zCollSeq)}, nil
 }
 
 // See Conn.ForeignKeys
