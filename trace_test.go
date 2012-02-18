@@ -75,5 +75,5 @@ func TestTrace(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
-	Log(0, "One message")
+	//Log(0, "One message")
 }
