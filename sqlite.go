@@ -529,6 +529,7 @@ func (s *Stmt) Exec(args ...interface{}) error {
 		return err
 	}
 	rv := C.sqlite3_step(s.stmt)
+	C.sqlite3_reset(s.stmt)
 	if Errno(rv) != Done {
 		return s.error(rv)
 	}
@@ -621,10 +622,6 @@ func (s *Stmt) BindParameterName(i int) (string, error) {
 
 // Bind parameters by their name (name1, value1, ...)
 func (s *Stmt) NamedBind(args ...interface{}) error {
-	err := s.Reset()
-	if err != nil {
-		return err
-	}
 	if len(args)%2 != 0 {
 		return s.specificError("Expected an even number of arguments")
 	}
@@ -649,18 +646,13 @@ func (s *Stmt) NamedBind(args ...interface{}) error {
 // Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
 // http://sqlite.org/c3ref/bind_blob.html
 func (s *Stmt) Bind(args ...interface{}) error {
-	err := s.Reset()
-	if err != nil {
-		return err
-	}
-
 	n := s.BindParameterCount()
 	if n != len(args) {
 		return s.specificError("incorrect argument count for Stmt.Bind: have %d want %d", len(args), n)
 	}
 
 	for i, v := range args {
-		err = s.BindByIndex(i+1, v)
+		err := s.BindByIndex(i+1, v)
 		if err != nil {
 			return err
 		}
@@ -731,6 +723,7 @@ func (s *Stmt) Next() (bool, error) {
 	if err == Row {
 		return true, nil
 	}
+	C.sqlite3_reset(s.stmt)
 	if err != Done {
 		return false, s.error(rv)
 	}
@@ -1222,6 +1215,12 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 	}
 	return nil
 }
+
+// Determine if a prepared statement has been reset
+// Calls http://sqlite.org/c3ref/stmt_busy.html
+/*func (s *Stmt) Busy() bool {
+	return C.sqlite3_stmt_busy(s.stmt) != 0
+}*/
 
 // Destroy a prepared statement
 // Calls http://sqlite.org/c3ref/finalize.html
