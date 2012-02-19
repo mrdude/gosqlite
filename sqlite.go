@@ -862,7 +862,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 //	// TODO error handling
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
-// TODO How to avoid NULL conversion?
+// To avoid NULL conversion, arg type must be **T
 // Calls sqlite3_column_count and sqlite3_column_(blob|double|int|int64|text) depending on args type.
 // http://sqlite.org/c3ref/column_blob.html
 func (s *Stmt) Scan(args ...interface{}) error {
@@ -918,13 +918,13 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 
 // The leftmost column/index is number 0.
 //
-// Destination type is specified by the caller.
+// Destination type is specified by the caller (except when value type is *interface{}).
 // The value must be of one of the following types:
-//    *string
-//    *int, *int64, *byte,
-//    *bool
-//    *float64
-//    *[]byte
+//    (*)*string,
+//    (*)*int, (*)*int64, (*)*byte,
+//    (*)*bool
+//    (*)*float64
+//    (*)*[]byte
 //    *interface{}
 //
 // Returns true when column is null and Stmt.CheckNull is activated.

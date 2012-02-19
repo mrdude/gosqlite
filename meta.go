@@ -84,8 +84,8 @@ type Column struct {
 	NotNull   bool
 	DfltValue string // FIXME type ?
 	Pk        bool
-	Autoinc bool
-	CollSeq string
+	Autoinc   bool
+	CollSeq   string
 }
 
 // Executes pragma 'table_info'
