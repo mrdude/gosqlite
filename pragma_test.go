@@ -1,7 +1,6 @@
 package sqlite_test
 
 import (
-//	. "github.com/gwenn/gosqlite"
 	"testing"
 )
 

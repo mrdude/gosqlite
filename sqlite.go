@@ -378,19 +378,19 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 
 // Use it with SELECT that returns only one row with only one column.
 // Returns io.EOF when there is no row.
-func (c *Conn) OneValue(query string, args ...interface{}) (interface{}, error) {
+func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) error {
 	s, err := c.Prepare(query, args...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer s.Finalize()
 	b, err := s.Next()
 	if err != nil {
-		return nil, err
+		return err
 	} else if !b {
-		return nil, io.EOF
+		return io.EOF
 	}
-	return s.ScanValue(0), nil
+	return s.Scan(value)
 }
 
 // Count the number of rows modified

@@ -19,7 +19,8 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 	} else {
 		pragma = "integrity"
 	}
-	msg, err := c.OneValue(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max))
+	var msg string
+	err := c.OneValue(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max), &msg)
 	if err != nil {
 		return err
 	}
@@ -33,25 +34,21 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 // (See http://sqlite.org/pragma.html#pragma_encoding)
 // TODO Make possible to specify the database-name (PRAGMA %Q.encoding)
 func (c *Conn) Encoding() (string, error) {
-	value, err := c.OneValue("PRAGMA encoding")
+	var encoding string
+	err := c.OneValue("PRAGMA encoding", &encoding)
 	if err != nil {
 		return "", err
 	}
-	if encoding, ok := value.(string); ok {
-		return encoding, nil
-	}
-	return "", c.specificError("Unexpected encoding (%v)", value)
+	return encoding, nil
 }
 
 // (See http://sqlite.org/pragma.html#pragma_schema_version)
 // TODO Make possible to specify the database-name (PRAGMA %Q.schema_version)
-func (c *Conn) SchemaVersion() (int64, error) {
-	value, err := c.OneValue("PRAGMA schema_version")
+func (c *Conn) SchemaVersion() (int, error) {
+	var version int
+	err := c.OneValue("PRAGMA schema_version", &version)
 	if err != nil {
 		return -1, err
 	}
-	if version, ok := value.(int64); ok {
-		return version, nil
-	}
-	return -1, c.specificError("Unexpected version (%v)", value)
+	return version, nil
 }

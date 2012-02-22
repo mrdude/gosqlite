@@ -10,8 +10,8 @@ import (
 )
 
 type Cache struct {
-	m sync.Mutex
-	l *list.List
+	m       sync.Mutex
+	l       *list.List
 	MaxSize int // Cache turned off when MaxSize <= 0
 }
 

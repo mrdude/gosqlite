@@ -22,7 +22,8 @@ func TestScalarFunction(t *testing.T) {
 	defer db.Close()
 	err = db.CreateScalarFunction("half", 1, nil, half, nil)
 	checkNoError(t, err, "couldn't create function: %s")
-	d, err := db.OneValue("select half(6)")
+	var d float64
+	err = db.OneValue("select half(6)", &d)
 	checkNoError(t, err, "couldn't retrieve result: %s")
 	if d != 3.0 {
 		t.Errorf("Expected %f but got %f", 3.0, d)
@@ -115,9 +116,10 @@ func TestSumFunction(t *testing.T) {
 	defer db.Close()
 	err = db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
-	i, err := db.OneValue("select mysum(i) from (select 2 as i union all select 2)")
+	var i int
+	err = db.OneValue("select mysum(i) from (select 2 as i union all select 2)", &i)
 	checkNoError(t, err, "couldn't execute statement: %s")
-	if i != int64(4) {
+	if i != 4 {
 		t.Errorf("Expected %d but got %v", 4, i)
 	}
 }
