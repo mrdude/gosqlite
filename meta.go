@@ -142,7 +142,7 @@ type ForeignKey struct {
 }
 
 // Executes pragma 'foreign_key_list'
-// TODO How to specify a database-name?
+// TODO Make possible to specify the database-name (PRAGMA %Q.foreign_key_list(%Q))
 func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
 	s, err := c.Prepare(Mprintf("PRAGMA foreign_key_list(%Q)", table))
 	if err != nil {
@@ -179,7 +179,7 @@ type Index struct {
 }
 
 // Executes pragma 'index_list'
-// TODO How to specify a database-name?
+// TODO Make possible to specify the database-name (PRAGMA %Q.index_list(%Q))
 func (c *Conn) Indexes(table string) ([]Index, error) {
 	s, err := c.Prepare(Mprintf("PRAGMA index_list(%Q)", table))
 	if err != nil {

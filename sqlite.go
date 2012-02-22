@@ -1286,26 +1286,6 @@ func EnableSharedCache(b bool) {
 	C.sqlite3_enable_shared_cache(btocint(b))
 }
 
-// Check database integrity
-// (See http://www.sqlite.org/pragma.html#pragma_integrity_check
-// and http://www.sqlite.org/pragma.html#pragma_quick_check)
-func (c *Conn) IntegrityCheck(max int, quick bool) error {
-	var pragma string
-	if quick {
-		pragma = "quick"
-	} else {
-		pragma = "integrity"
-	}
-	msg, err := c.OneValue(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max))
-	if err != nil {
-		return err
-	}
-	if msg != "ok" {
-		return c.specificError("Integrity check failed (%s)", msg)
-	}
-	return nil
-}
-
 // Must is a helper that wraps a call to a function returning (bool, os.Error)
 // and panics if the error is non-nil.
 func Must(b bool, err error) bool {

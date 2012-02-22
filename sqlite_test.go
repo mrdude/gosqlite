@@ -60,12 +60,6 @@ func TestEnableExtendedResultCodes(t *testing.T) {
 	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enabled extended result codes: %s")
 }
 
-func TestIntegrityCheck(t *testing.T) {
-	db := open(t)
-	defer db.Close()
-	checkNoError(t, db.IntegrityCheck(1, true), "Error checking integrity of database: %s")
-}
-
 func TestCreateTable(t *testing.T) {
 	db := open(t)
 	defer db.Close()
