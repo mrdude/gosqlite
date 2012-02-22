@@ -202,7 +202,6 @@ func goXBusy(udp unsafe.Pointer, count int) C.int {
 }
 
 // Register a callback to handle SQLITE_BUSY errors
-// TODO NOT TESTED
 // (See http://sqlite.org/c3ref/busy_handler.html)
 func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
