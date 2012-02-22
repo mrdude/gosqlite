@@ -143,7 +143,7 @@ func (c *Context) ResultBool(b bool) {
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_blob, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_blob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultBlob(b []byte) {
 	var p *byte
 	if len(b) > 0 {
@@ -153,13 +153,13 @@ func (c *Context) ResultBlob(b []byte) {
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_double, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_double, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultDouble(d float64) {
 	C.sqlite3_result_double(c.sc, C.double(d))
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_error, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_error, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultError(msg string) {
 	cs := C.CString(msg)
 	defer C.free(unsafe.Pointer(cs))
@@ -167,43 +167,43 @@ func (c *Context) ResultError(msg string) {
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_error_toobig, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_error_toobig, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorTooBig() {
 	C.sqlite3_result_error_toobig(c.sc)
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_error_nomem, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_error_nomem, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorNoMem() {
 	C.sqlite3_result_error_nomem(c.sc)
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_error_code, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_error_code, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorCode(e Errno) {
 	C.sqlite3_result_error_code(c.sc, C.int(e))
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt(i int) {
 	C.sqlite3_result_int(c.sc, C.int(i))
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_int64, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_int64, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt64(i int64) {
 	C.sqlite3_result_int64(c.sc, C.sqlite3_int64(i))
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_null, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_null, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultNull() {
 	C.sqlite3_result_null(c.sc)
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_text, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_text, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultText(s string) {
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
@@ -212,26 +212,26 @@ func (c *Context) ResultText(s string) {
 
 // Set the result of an SQL function
 // The leftmost value is number 0.
-// Calls sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultValue(i int) {
 	C.my_result_value(c.sc, c.argv, C.int(i))
 }
 
 // Set the result of an SQL function
-// Calls sqlite3_result_zeroblob, http://sqlite.org/c3ref/result_blob.html
+// (See sqlite3_result_zeroblob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultZeroblob(n ZeroBlobLength) {
 	C.sqlite3_result_zeroblob(c.sc, C.int(n))
 }
 
 // User data for functions
-// Calls http://sqlite.org/c3ref/user_data.html
+// (See http://sqlite.org/c3ref/user_data.html)
 func (c *Context) UserData() interface{} {
 	udf := (*sqliteFunction)(C.sqlite3_user_data(c.sc))
 	return udf.pApp
 }
 
 // Function auxiliary data
-// Calls sqlite3_get_auxdata, http://sqlite.org/c3ref/get_auxdata.html
+// (See sqlite3_get_auxdata, http://sqlite.org/c3ref/get_auxdata.html)
 func (c *Context) GetAuxData(n int) interface{} {
 	if len(c.ad) == 0 {
 		return nil
@@ -241,7 +241,7 @@ func (c *Context) GetAuxData(n int) interface{} {
 
 // Function auxiliary data
 // No destructor is needed a priori
-// Calls sqlite3_set_auxdata, http://sqlite.org/c3ref/get_auxdata.html
+// (See sqlite3_set_auxdata, http://sqlite.org/c3ref/get_auxdata.html)
 func (c *Context) SetAuxData(n int, ad interface{}) {
 	if len(c.ad) == 0 {
 		c.ad = make(map[int]interface{})
@@ -255,7 +255,7 @@ func (c *Context) Bool(i int) bool {
 }
 
 // The leftmost value is number 0.
-// Calls sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Blob(i int) (value []byte) {
 	p := C.my_value_blob(c.argv, C.int(i))
 	if p != nil {
@@ -266,25 +266,25 @@ func (c *Context) Blob(i int) (value []byte) {
 }
 
 // The leftmost value is number 0.
-// Calls sqlite3_value_double, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_double, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Double(i int) float64 {
 	return float64(C.my_value_double(c.argv, C.int(i)))
 }
 
 // The leftmost value is number 0.
-// Calls sqlite3_value_int, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_int, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Int(i int) int {
 	return int(C.my_value_int(c.argv, C.int(i)))
 }
 
 // The leftmost value is number 0.
-// Calls sqlite3_value_int64, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_int64, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Int64(i int) int64 {
 	return int64(C.my_value_int64(c.argv, C.int(i)))
 }
 
 // The leftmost value is number 0.
-// Calls sqlite3_value_text, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_text, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Text(i int) string {
 	p := C.my_value_text(c.argv, C.int(i))
 	if p == nil {
@@ -296,14 +296,14 @@ func (c *Context) Text(i int) string {
 
 // The leftmost value is number 0.
 // SQL function parameter value type
-// Calls sqlite3_value_type, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_type, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Type(i int) Type {
 	return Type(C.my_value_type(c.argv, C.int(i)))
 }
 
 // The leftmost value is number 0.
 // SQL function parameter value numeric type (with possible conversion)
-// Calls sqlite3_value_numeric_type, http://sqlite.org/c3ref/value_blob.html
+// (See sqlite3_value_numeric_type, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) NumericType(i int) Type {
 	return Type(C.my_value_numeric_type(c.argv, C.int(i)))
 }
@@ -417,7 +417,7 @@ func goXDestroy(pApp unsafe.Pointer) {
 
 // Create or redefine SQL functions
 // TODO Make possible to specify the preferred encoding
-// Calls http://sqlite.org/c3ref/create_function.html
+// (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{}, f FuncOrStep, d DestroyFunctionData) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
@@ -438,7 +438,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 
 // Create or redefine SQL functions
 // TODO Make possible to specify the preferred encoding
-// Calls http://sqlite.org/c3ref/create_function.html
+// (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{},
 	step FuncOrStep, final FinalFunction, d DestroyFunctionData) error {
 	fname := C.CString(functionName)

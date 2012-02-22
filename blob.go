@@ -49,7 +49,7 @@ type ZeroBlobLength int
 //	n, err = br.Read(content)
 //  // check err
 //
-// Calls http://sqlite.org/c3ref/blob_open.html
+// (See http://sqlite.org/c3ref/blob_open.html)
 // TODO A real 'incremental' example...
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
 	bl, err := c.blob_open(db, table, column, row, false)
@@ -60,7 +60,7 @@ func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, 
 }
 
 // Open a BLOB For incremental I/O
-// Calls http://sqlite.org/c3ref/blob_open.html
+// (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobReadWriter, error) {
 	bl, err := c.blob_open(db, table, column, row, true)
 	if err != nil {
@@ -91,7 +91,7 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 }
 
 // Close a BLOB handle
-// Calls http://sqlite.org/c3ref/blob_close.html
+// (See http://sqlite.org/c3ref/blob_close.html)
 func (r *BlobReader) Close() error {
 	rv := C.sqlite3_blob_close(r.bl)
 	if rv != C.SQLITE_OK {
@@ -102,7 +102,7 @@ func (r *BlobReader) Close() error {
 }
 
 // Read data from a BLOB incrementally
-// Calls http://sqlite.org/c3ref/blob_read.html
+// (See http://sqlite.org/c3ref/blob_read.html)
 func (r *BlobReader) Read(v []byte) (int, error) {
 	var p *byte
 	if len(v) > 0 {
@@ -117,14 +117,14 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 }
 
 // Return the size of an open BLOB
-// Calls http://sqlite.org/c3ref/blob_bytes.html
+// (See http://sqlite.org/c3ref/blob_bytes.html)
 func (r *BlobReader) Size() (int, error) {
 	s := C.sqlite3_blob_bytes(r.bl)
 	return int(s), nil
 }
 
 // Write data into a BLOB incrementally
-// Calls http://sqlite.org/c3ref/blob_write.html
+// (See http://sqlite.org/c3ref/blob_write.html)
 func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	var p *byte
 	if len(v) > 0 {
@@ -139,7 +139,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 }
 
 // Move a BLOB handle to a new row
-// Calls http://sqlite.org/c3ref/blob_reopen.html
+// (See http://sqlite.org/c3ref/blob_reopen.html)
 func (r *BlobReader) Reopen(rowid int64) error {
 	rv := C.sqlite3_blob_reopen(r.bl, C.sqlite3_int64(rowid))
 	if rv != C.SQLITE_OK {

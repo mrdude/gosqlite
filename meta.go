@@ -90,7 +90,6 @@ type Column struct {
 
 // Executes pragma 'table_info'
 // TODO Make possible to specify the database-name (PRAGMA %Q.table_info(%Q))
-// TODO sqlite3_table_column_metadata?
 func (c *Conn) Columns(table string) ([]Column, error) {
 	s, err := c.Prepare(Mprintf("PRAGMA table_info(%Q)", table))
 	if err != nil {
@@ -112,6 +111,8 @@ func (c *Conn) Columns(table string) ([]Column, error) {
 	return columns, nil
 }
 
+// Extract metadata about a column of a table
+// (See http://sqlite.org/c3ref/table_column_metadata.html)
 func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	var zDbName *C.char
 	if len(dbName) > 0 {
@@ -223,7 +224,7 @@ func (c *Conn) IndexColumns(index string) ([]Column, error) {
 	return columns, nil
 }
 
-// Calls http://sqlite.org/c3ref/mprintf.html
+// (See http://sqlite.org/c3ref/mprintf.html)
 func Mprintf(format string, arg string) string {
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))

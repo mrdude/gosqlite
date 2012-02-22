@@ -46,7 +46,7 @@ func goXCommitHook(udp unsafe.Pointer) C.int {
 }
 
 // Commit notification callback
-// Calls http://sqlite.org/c3ref/commit_hook.html
+// (See http://sqlite.org/c3ref/commit_hook.html)
 func (c *Conn) CommitHook(f CommitHook, udp interface{}) {
 	if f == nil {
 		c.commitHook = nil
@@ -72,7 +72,7 @@ func goXRollbackHook(udp unsafe.Pointer) {
 }
 
 // Rollback notification callback
-// Calls http://sqlite.org/c3ref/commit_hook.html
+// (See http://sqlite.org/c3ref/commit_hook.html)
 func (c *Conn) RollbackHook(f RollbackHook, udp interface{}) {
 	if f == nil {
 		c.rollbackHook = nil
@@ -98,7 +98,7 @@ func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, ro
 }
 
 // Data change notification callbacks
-// Calls http://sqlite.org/c3ref/update_hook.html
+// (See http://sqlite.org/c3ref/update_hook.html)
 func (c *Conn) UpdateHook(f UpdateHook, udp interface{}) {
 	if f == nil {
 		c.updateHook = nil

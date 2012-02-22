@@ -29,7 +29,7 @@ import (
 //	err = bck.Run(100, 250000, cbs)
 //	check(err)
 //
-// Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit
+// (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
 func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backup, error) {
 	dname := C.CString(dstDbName)
 	sname := C.CString(srcDbName)
@@ -50,7 +50,7 @@ type Backup struct {
 }
 
 // Copy up to N pages between the source and destination databases
-// Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep
+// (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
 func (b *Backup) Step(npage int) error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
 	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
@@ -66,12 +66,12 @@ type BackupStatus struct {
 }
 
 // Return the number of pages still to be backed up and the total number of pages in the source database file.
-// Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining
+// (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
 func (b *Backup) Status() BackupStatus {
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
 }
 
-// Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount
+// (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount)
 func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) error {
 	var err error
 	for {
@@ -90,7 +90,7 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 }
 
 // Finish/stop the backup
-// Calls http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish
+// (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
 func (b *Backup) Close() error {
 	if b.sb == nil {
 		return os.EINVAL
