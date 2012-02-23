@@ -67,7 +67,7 @@ func TestTrace(t *testing.T) {
 	err = db.SetAuthorizer(authorizer, "AUTH")
 	checkNoError(t, err, "couldn't set an authorizer")
 	db.Profile(profile, "PROFILE")
-	db.ProgressHandler(progressHandler, 1, /*20*/ nil)
+	db.ProgressHandler(progressHandler, 1, nil /*20*/)
 	db.CommitHook(commitHook, "CMT")
 	db.RollbackHook(rollbackHook, "RBK")
 	db.UpdateHook(updateHook, "UPD")

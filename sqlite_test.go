@@ -285,19 +285,19 @@ func TestScanColumn(t *testing.T) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null := Must(s.ScanByIndex(0, &i1 /*, true*/ ))
+	null := Must(s.ScanByIndex(0, &i1))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 but got %d\n", i1)
 	}
-	null = Must(s.ScanByIndex(1, &i2 /*, true*/ ))
+	null = Must(s.ScanByIndex(1, &i2))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 but got %d\n", i2)
 	}
-	null = Must(s.ScanByIndex(2, &i3 /*, true*/ ))
+	null = Must(s.ScanByIndex(2, &i3))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
@@ -316,19 +316,19 @@ func TestNamedScanColumn(t *testing.T) {
 		t.Fatal("no result")
 	}
 	var i1, i2, i3 int
-	null := Must(s.ScanByName("i1", &i1 /*, true*/ ))
+	null := Must(s.ScanByName("i1", &i1))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i1 != 1 {
 		t.Errorf("Expected 1 but got %d\n", i1)
 	}
-	null = Must(s.ScanByName("i2", &i2 /*, true*/ ))
+	null = Must(s.ScanByName("i2", &i2))
 	if !null {
 		t.Errorf("Expected null value")
 	} else if i2 != 0 {
 		t.Errorf("Expected 0 but got %d\n", i2)
 	}
-	null = Must(s.ScanByName("i3", &i3 /*, true*/ ))
+	null = Must(s.ScanByName("i3", &i3))
 	if null {
 		t.Errorf("Expected not null value")
 	} else if i3 != 0 {
