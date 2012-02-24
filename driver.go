@@ -33,8 +33,12 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
-func (c *connImpl) Exec(query string, args []interface{}) (driver.Result, error) {
-	if err := c.c.Exec(query, args...); err != nil {
+func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error) {
+	tmp := make([]interface{}, len(args))
+	for i, arg := range args {
+		tmp[i] = arg
+	}
+	if err := c.c.Exec(query, tmp...); err != nil {
 		return nil, err
 	}
 	return c, nil // FIXME RowAffected/ddlSuccess
@@ -84,9 +88,11 @@ func (s *stmtImpl) NumInput() int {
 	return s.s.BindParameterCount()
 }
 
-func (s *stmtImpl) Exec(args []interface{}) (driver.Result, error) {
-	err := s.s.Exec(args...)
-	if err != nil {
+func (s *stmtImpl) Exec(args []driver.Value) (driver.Result, error) {
+	if err := s.bind(args); err != nil {
+		return nil, err
+	}
+	if err := s.s.exec(); err != nil {
 		return nil, err
 	}
 	return s, nil // FIXME RowAffected/ddlSuccess
@@ -102,11 +108,20 @@ func (s *stmtImpl) RowsAffected() (int64, error) {
 	return int64(s.s.c.Changes()), nil
 }
 
-func (s *stmtImpl) Query(args []interface{}) (driver.Rows, error) {
-	if err := s.s.Bind(args...); err != nil {
+func (s *stmtImpl) Query(args []driver.Value) (driver.Rows, error) {
+	if err := s.bind(args); err != nil {
 		return nil, err
 	}
 	return s, nil
+}
+
+func (s *stmtImpl) bind(args []driver.Value) error {
+	for i, v := range args {
+		if err := s.s.BindByIndex(i+1, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // TODO Cache result?
@@ -114,7 +129,7 @@ func (s *stmtImpl) Columns() []string {
 	return s.s.ColumnNames()
 }
 
-func (s *stmtImpl) Next(dest []interface{}) error {
+func (s *stmtImpl) Next(dest []driver.Value) error {
 	ok, err := s.s.Next()
 	if err != nil {
 		return err
@@ -122,6 +137,8 @@ func (s *stmtImpl) Next(dest []interface{}) error {
 	if !ok {
 		return io.EOF
 	}
-	s.s.ScanValues(dest)
+	for i := range dest {
+		dest[i] = s.s.ScanValue(i)
+	}
 	return nil
 }

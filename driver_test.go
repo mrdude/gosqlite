@@ -106,7 +106,6 @@ func TestSqlQuery(t *testing.T) {
 		err = rows.Scan(&id, &name)
 		checkNoError(t, err, "Error while scanning: %s")
 	}
-	// FIXME Dangling statement
 }
 
 func TestSqlTx(t *testing.T) {

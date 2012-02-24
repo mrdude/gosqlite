@@ -523,6 +523,9 @@ func (s *Stmt) Exec(args ...interface{}) error {
 	if err != nil {
 		return err
 	}
+	return s.exec()
+}
+func (s *Stmt) exec() error {
 	rv := C.sqlite3_step(s.stmt)
 	C.sqlite3_reset(s.stmt)
 	if Errno(rv) != Done {

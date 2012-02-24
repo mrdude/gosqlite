@@ -11,7 +11,6 @@ package sqlite
 import "C"
 
 import (
-	"os"
 	"time"
 	"unsafe"
 )
@@ -92,10 +91,10 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 // Finish/stop the backup
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
 func (b *Backup) Close() error {
-	if b.sb == nil {
-		return os.EINVAL
+	rv := C.sqlite3_backup_finish(b.sb)
+	if rv != C.SQLITE_OK {
+		return Errno(rv)
 	}
-	C.sqlite3_backup_finish(b.sb)
 	b.sb = nil
 	return nil
 }
