@@ -129,6 +129,12 @@ func TestInsert(t *testing.T) {
 	if i != 1000 {
 		t.Errorf("count should be 1000, but it is %d", i)
 	}
+	if Must(cs.Next()) {
+		t.Fatal("Only one row expected")
+	}
+	if cs.Busy() {
+		t.Error("Statement not reset")
+	}
 }
 
 func TestInsertWithStatement(t *testing.T) {
@@ -165,6 +171,9 @@ func TestInsertWithStatement(t *testing.T) {
 		checkNoError(t, ierr, "insert error: %s")
 		if c != 1 {
 			t.Errorf("insert error: %d but got 1", c)
+		}
+		if s.Busy() {
+			t.Errorf("Statement not reset")
 		}
 	}
 

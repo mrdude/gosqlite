@@ -68,7 +68,7 @@ func (e *ConnError) Filename() string {
 	return e.c.Filename
 }
 
-func (e *ConnError) Error() string {
+func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often redundant...
 	if len(e.details) > 0 {
 		return fmt.Sprintf("%s: %s (%s)", e.code.Error(), e.msg, e.details)
 	} else if len(e.msg) > 0 {
@@ -126,7 +126,7 @@ var (
 	ErrNotDB      error = Errno(C.SQLITE_NOTADB)     /* File opened that is not a database file */
 	Row                 = Errno(C.SQLITE_ROW)        /* sqlite3_step() has another row ready */
 	Done                = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
-	ErrSpecific         = Errno(-1)                  /* Gosqlite specific error */
+	ErrSpecific         = Errno(-1)                  /* Wrapper specific error */
 )
 
 var errText = map[Errno]string{
@@ -158,7 +158,7 @@ var errText = map[Errno]string{
 	C.SQLITE_NOTADB:     "File opened that is not a database file",
 	Row:                 "sqlite3_step() has another row ready",
 	Done:                "sqlite3_step() has finished executing",
-	ErrSpecific:         "Gosqlite specific error",
+	ErrSpecific:         "Wrapper specific error",
 }
 
 func (c *Conn) error(rv C.int, details ...string) error {
@@ -587,6 +587,7 @@ func (s *Stmt) BindParameterCount() int {
 }
 
 // Index of a parameter with a given name (cached)
+// The first host parameter has an index of 1, not 0.
 // (See http://sqlite.org/c3ref/bind_parameter_index.html)
 func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	if s.params == nil {
@@ -601,7 +602,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	defer C.free(unsafe.Pointer(cname))
 	index = int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 	if index == 0 {
-		return -1, s.specificError("invalid parameter name: %s", name)
+		return index, s.specificError("invalid parameter name: %s", name)
 	}
 	s.params[name] = index
 	return index, nil
@@ -883,6 +884,7 @@ func (s *Stmt) SQL() string {
 }
 
 // Column index in a result set for a given column name
+// The leftmost column is number 0.
 // Must scan all columns (but result is cached).
 // (See http://sqlite.org/c3ref/column_name.html)
 func (s *Stmt) ColumnIndex(name string) (int, error) {
@@ -897,7 +899,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	if ok {
 		return index, nil
 	}
-	return 0, s.specificError("invalid column name: %s", name)
+	return -1, s.specificError("invalid column name: %s", name)
 }
 
 // Returns true when column is null and Stmt.CheckNull is activated.
@@ -1206,9 +1208,9 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 
 // Determine if a prepared statement has been reset
 // (See http://sqlite.org/c3ref/stmt_busy.html)
-/*func (s *Stmt) Busy() bool {
+func (s *Stmt) Busy() bool {
 	return C.sqlite3_stmt_busy(s.stmt) != 0
-}*/
+}
 
 // Destroy a prepared statement
 // (See http://sqlite.org/c3ref/finalize.html)
