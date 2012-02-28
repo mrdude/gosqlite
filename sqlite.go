@@ -44,6 +44,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -293,7 +294,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 
 // Set a busy timeout
 // (See http://sqlite.org/c3ref/busy_timeout.html)
-func (c *Conn) BusyTimeout(ms int) error {
+func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
 	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)))
 }
 
@@ -690,6 +691,10 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			p = &value[0]
 		}
 		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
+	/*
+		case time.Time: // At least three representations are possible: string (YYYY-MM-DDTHH:MM:SS.SSS), int64 (unix time), float64 (julian day)
+			rv = C.sqlite3_bind_text()
+	*/
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
@@ -1012,6 +1017,8 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 		} else {
 			**value = bs
 		}
+	case *time.Time: // go fix doesn't like this type!
+		*value, isNull, err = s.ScanTime(index)
 	case *interface{}:
 		*value = s.ScanValue(index)
 		isNull = *value == nil
@@ -1179,6 +1186,55 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 	} else {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
+	}
+	return
+}
+
+func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
+	switch s.ColumnType(index) {
+	case Null:
+		isNull = true
+	case Text:
+		p := C.sqlite3_column_text(s.stmt, C.int(index))
+		txt := C.GoString((*C.char)(unsafe.Pointer(p)))
+		var layout string
+		switch len(txt) {
+		case 5: // HH:MM
+			layout = "15:04"
+		case 8: // HH:MM:SS
+			layout = "15:04:05"
+		case 10: // YYYY-MM-DD
+			layout = "2006-01-02"
+		case 12: // HH:MM:SS.SSS
+			layout = "15:04:05.000"
+		case 16: // YYYY-MM-DDTHH:MM
+			if txt[10] == 'T' {
+				layout = "2006-01-02T15:04"
+			} else {
+				layout = "2006-01-02 15:04"
+			}
+		case 19: // YYYY-MM-DDTHH:MM:SS
+			if txt[10] == 'T' {
+				layout = "2006-01-02T15:04:05"
+			} else {
+				layout = "2006-01-02 15:04:05"
+			}
+		default: // YYYY-MM-DDTHH:MM:SS.SSS or parse error
+			if len(txt) > 10 && txt[10] == 'T' {
+				layout = "2006-01-02T15:04:05.000"
+			} else {
+				layout = "2006-01-02 15:04:05.000"
+			}
+		}
+		value, err = time.Parse(layout, txt)
+	case Integer:
+		unixepoch := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		value = time.Unix(unixepoch, 0)
+	case Float:
+		jd := float64(C.sqlite3_column_double(s.stmt, C.int(index)))
+		value = JulianDayToUTC(jd)
+	default:
+		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, or SQLITE_NULL")
 	}
 	return
 }

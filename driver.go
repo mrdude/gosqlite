@@ -41,7 +41,7 @@ func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error
 	if err := c.c.Exec(query, tmp...); err != nil {
 		return nil, err
 	}
-	return c, nil // FIXME RowAffected/ddlSuccess
+	return c, nil // FIXME RowAffected/noRows
 }
 
 // TODO How to know that the last Stmt did an INSERT?
@@ -95,7 +95,7 @@ func (s *stmtImpl) Exec(args []driver.Value) (driver.Result, error) {
 	if err := s.s.exec(); err != nil {
 		return nil, err
 	}
-	return s, nil // FIXME RowAffected/ddlSuccess
+	return s, nil // FIXME RowAffected/noRows
 }
 
 // TODO How to know that this Stmt did an INSERT?

@@ -53,7 +53,7 @@ func (c *Conn) Trace(f Tracer, udp interface{}) {
 }
 
 // See Conn.Profile
-type Profiler func(udp interface{}, sql string, nanoseconds uint64)
+type Profiler func(udp interface{}, sql string, nanoseconds uint64) // TODO time.Duration
 
 type sqliteProfile struct {
 	f   Profiler

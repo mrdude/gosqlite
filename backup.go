@@ -37,7 +37,7 @@ func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backu
 
 	sb := C.sqlite3_backup_init(dst.db, dname, src.db, sname)
 	if sb == nil {
-		return nil, dst.error(C.sqlite3_errcode(dst.db))
+		return nil, dst.error(C.sqlite3_errcode(dst.db), "backup init failed")
 	}
 	return &Backup{sb, dst, src}, nil
 }
@@ -52,7 +52,7 @@ type Backup struct {
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
 func (b *Backup) Step(npage int) error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
-	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked {
+	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked { // TODO Trace busy/locked errors
 		return nil
 	}
 	return Errno(rv)
