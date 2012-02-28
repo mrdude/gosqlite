@@ -691,10 +691,10 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			p = &value[0]
 		}
 		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
-	/*
-		case time.Time: // At least three representations are possible: string (YYYY-MM-DDTHH:MM:SS.SSS), int64 (unix time), float64 (julian day)
-			rv = C.sqlite3_bind_text()
-	*/
+	case time.Time: // At least three representations are possible: string (YYYY-MM-DD HH:MM:SS.SSS), int64 (unix time), float64 (julian day)
+		// rv = C.my_bind_text(s.stmt, i, value.format("2006-01-02 15:04:05.000"))
+		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
+		// rv = C.sqlite3_bind_double(s.stmt, i, JulianDay(value))
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
