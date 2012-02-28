@@ -1,7 +1,7 @@
 Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
-This binding implements the "exp/sql/driver" interface.
+This binding implements the "database/sql/driver" interface.
 
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
@@ -44,6 +44,7 @@ Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
 Stmt#ReadOnly
+Stmt#Busy
 
 Blob:
 ZeroBlobLength
@@ -74,3 +75,7 @@ Hook:
 Conn#CommitHook
 Conn#RollbackHook
 Conn#UpdateHook
+
+Function:
+Conn#CreateScalarFunction
+Conn#CreateAggregateFunction
