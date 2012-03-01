@@ -395,6 +395,7 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 }
 
 // Count the number of rows modified
+// If a separate thread makes changes on the same database connection while Changes() is running then the value returned is unpredictable and not meaningful.
 // (See http://sqlite.org/c3ref/changes.html)
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
@@ -407,6 +408,7 @@ func (c *Conn) TotalChanges() int {
 }
 
 // Return the rowid of the most recent successful INSERT into the database.
+// If a separate thread performs a new INSERT on the same database connection while the LastInsertRowid() function is running and thus changes the last insert rowid, then the value returned by LastInsertRowid() is unpredictable and might not equal either the old or the new last insert rowid.
 // (See http://sqlite.org/c3ref/last_insert_rowid.html)
 func (c *Conn) LastInsertRowid() int64 {
 	return int64(C.sqlite3_last_insert_rowid(c.db))
@@ -472,11 +474,12 @@ func (c *Conn) exec(cmd string) error {
 type Stmt struct {
 	c      *Conn
 	stmt   *C.sqlite3_stmt
+	sql string
 	tail   string
+	columnCount int
 	cols   map[string]int // cached columns index by name
+	bindParameterCount int
 	params map[string]int // cached parameter index by name
-	// Enable NULL value check in Scan methods
-	CheckNull bool
 	// Enable type check in Scan methods
 	CheckTypeMismatch bool
 }
@@ -506,7 +509,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	if tail != nil && C.strlen(tail) > 0 {
 		t = C.GoString(tail)
 	}
-	s := &Stmt{c: c, stmt: stmt, tail: t, CheckNull: true, CheckTypeMismatch: true}
+	s := &Stmt{c: c, stmt: stmt, tail: t, columnCount: -1, bindParameterCount: -1, CheckTypeMismatch: true}
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
@@ -584,7 +587,10 @@ func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error) error {
 // Number of SQL parameters
 // (See http://sqlite.org/c3ref/bind_parameter_count.html)
 func (s *Stmt) BindParameterCount() int {
-	return int(C.sqlite3_bind_parameter_count(s.stmt))
+	if s.bindParameterCount == -1 {
+		s.bindParameterCount = int(C.sqlite3_bind_parameter_count(s.stmt))
+	}
+	return s.bindParameterCount
 }
 
 // Index of a parameter with a given name (cached)
@@ -609,7 +615,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	return index, nil
 }
 
-// Name of a host parameter
+// Name of a host parameter (not cached)
 // The first host parameter has an index of 1, not 0.
 // (See http://sqlite.org/c3ref/bind_parameter_name.html)
 func (s *Stmt) BindParameterName(i int) (string, error) {
@@ -745,19 +751,23 @@ func (s *Stmt) ClearBindings() error {
 	return s.error(C.sqlite3_clear_bindings(s.stmt))
 }
 
-// Number of columns in a result set
+// Number of columns in a result set (with or without row)
 // (See http://sqlite.org/c3ref/column_count.html)
 func (s *Stmt) ColumnCount() int {
-	return int(C.sqlite3_column_count(s.stmt))
+	if s.columnCount == -1 {
+		s.columnCount = int(C.sqlite3_column_count(s.stmt))
+	}
+	return s.columnCount
 }
 
 // Number of columns in a result set
+// Same as ColumnCount() except when there is no (more) row, it returns 0
 // (See http://sqlite.org/c3ref/data_count.html)
 func (s *Stmt) DataCount() int {
 	return int(C.sqlite3_data_count(s.stmt))
 }
 
-// Column name in a result set
+// Column name in a result set (not cached)
 // The leftmost column is number 0.
 // (See http://sqlite.org/c3ref/column_name.html)
 func (s *Stmt) ColumnName(index int) string {
@@ -765,7 +775,7 @@ func (s *Stmt) ColumnName(index int) string {
 	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
-// Column names in a result set
+// Column names in a result set (not cached)
 func (s *Stmt) ColumnNames() []string {
 	count := s.ColumnCount()
 	names := make([]string, count)
@@ -800,6 +810,8 @@ var typeText = map[Type]string{
 
 // Return the datatype code for the initial data type of the result column.
 // The leftmost column is number 0.
+// Should not be cached (valid only for one row) (see dynamic type http://www.sqlite.org/datatype3.html)
+//
 // After a type conversion, the value returned by sqlite3_column_type() is undefined.
 // (See sqlite3_column_type: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ColumnType(index int) Type {
@@ -885,7 +897,10 @@ func (s *Stmt) Scan(args ...interface{}) error {
 // Retrieve statement SQL
 // (See http://sqlite.org/c3ref/sql.html)
 func (s *Stmt) SQL() string {
-	return C.GoString(C.sqlite3_sql(s.stmt))
+	if s.sql == "" {
+		s.sql = C.GoString(C.sqlite3_sql(s.stmt))
+	}
+	return s.sql
 }
 
 // Column index in a result set for a given column name
@@ -907,7 +922,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	return -1, s.specificError("invalid column name: %s", name)
 }
 
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
@@ -929,7 +944,7 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 //    (*)*[]byte
 //    *interface{}
 //
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
@@ -1082,14 +1097,11 @@ func (s *Stmt) ScanText(index int) (value string, isNull bool) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
-	var ctype Type
-	if s.CheckNull || s.CheckTypeMismatch {
-		ctype = s.ColumnType(index)
-	}
-	if s.CheckNull && ctype == Null {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
@@ -1101,14 +1113,11 @@ func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // (See sqlite3_column_int64: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err error) {
-	var ctype Type
-	if s.CheckNull || s.CheckTypeMismatch {
-		ctype = s.ColumnType(index)
-	}
-	if s.CheckNull && ctype == Null {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
@@ -1120,14 +1129,11 @@ func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err error) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err error) {
-	var ctype Type
-	if s.CheckNull || s.CheckTypeMismatch {
-		ctype = s.ColumnType(index)
-	}
-	if s.CheckNull && ctype == Null {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
@@ -1139,14 +1145,11 @@ func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err error) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
-	var ctype Type
-	if s.CheckNull || s.CheckTypeMismatch {
-		ctype = s.ColumnType(index)
-	}
-	if s.CheckNull && ctype == Null {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {
@@ -1158,14 +1161,11 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 }
 
 // The leftmost column/index is number 0.
-// Returns true when column is null and Stmt.CheckNull is activated.
+// Returns true when column is null.
 // (See sqlite3_column_double: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanDouble(index int) (value float64, isNull bool, err error) {
-	var ctype Type
-	if s.CheckNull || s.CheckTypeMismatch {
-		ctype = s.ColumnType(index)
-	}
-	if s.CheckNull && ctype == Null {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
 		isNull = true
 	} else {
 		if s.CheckTypeMismatch {

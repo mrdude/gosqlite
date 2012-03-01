@@ -44,12 +44,12 @@ func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error
 	return c, nil // FIXME RowAffected/noRows
 }
 
-// TODO How to know that the last Stmt did an INSERT?
+// TODO How to know that the last Stmt has done an INSERT? An authorizer?
 func (c *connImpl) LastInsertId() (int64, error) {
 	return c.c.LastInsertRowid(), nil
 }
 
-// TODO How to know that the last Stmt did an DELETE/INSERT/UPDATE?
+// TODO How to know that the last Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
 func (c *connImpl) RowsAffected() (int64, error) {
 	return int64(c.c.Changes()), nil
 }
@@ -98,12 +98,12 @@ func (s *stmtImpl) Exec(args []driver.Value) (driver.Result, error) {
 	return s, nil // FIXME RowAffected/noRows
 }
 
-// TODO How to know that this Stmt did an INSERT?
+// TODO How to know that this Stmt has done an INSERT? An authorizer?
 func (s *stmtImpl) LastInsertId() (int64, error) {
 	return s.s.c.LastInsertRowid(), nil
 }
 
-// TODO How to know that this Stmt did an DELETE/INSERT/UPDATE?
+// TODO How to know that this Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
 func (s *stmtImpl) RowsAffected() (int64, error) {
 	return int64(s.s.c.Changes()), nil
 }
