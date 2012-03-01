@@ -16,6 +16,7 @@ import (
 )
 
 // Backup/Copy the content of one database (source) to another (destination).
+// The database name is "main", "temp", or the name specified in an ATTACH statement.
 // Example:
 //	bck, err := sqlite.NewBackup(dst, "main", src, "main")
 //	// check err

@@ -283,7 +283,7 @@ func (c *Conn) EnableExtendedResultCodes(b bool) error {
 // Don't use it with SELECT or anything that returns data.
 //
 // Example:
-//	err := db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)")
+//	err := db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL); -- ...")
 //
 func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	for len(cmd) > 0 {

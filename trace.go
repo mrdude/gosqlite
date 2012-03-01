@@ -39,7 +39,7 @@ func goXTrace(udp unsafe.Pointer, sql *C.char) {
 	arg.f(arg.udp, C.GoString(sql))
 }
 
-// Tracing function
+// Register or clear a trace function.
 // (See sqlite3_trace, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Trace(f Tracer, udp interface{}) {
 	if f == nil {
@@ -66,7 +66,7 @@ func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 	arg.f(arg.udp, C.GoString(sql), uint64(nanoseconds))
 }
 
-// Profiling Function
+// Register or clear a profile function.
 // (See sqlite3_profile, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Profile(f Profiler, udp interface{}) {
 	if f == nil {
@@ -142,7 +142,7 @@ func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.
 	return C.int(result)
 }
 
-// Compile-time authorization callbacks
+// Set or clear the access authorization function.
 // (See http://sqlite.org/c3ref/set_authorizer.html)
 func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
@@ -199,6 +199,7 @@ func goXProgress(udp unsafe.Pointer) C.int {
 }
 
 // Query progress callbacks
+// The progress callback will be invoked every numOps opcodes.
 // (See http://sqlite.org/c3ref/progress_handler.html)
 func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
 	if f == nil {
@@ -220,7 +221,7 @@ const (
 	STMTSTATUS_AUTOINDEX     StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
 )
 
-// Prepared statement status
+// Return the value of a status counter for a prepared statement
 // (See http://sqlite.org/c3ref/stmt_status.html)
 func (s *Stmt) Status(op StmtStatus, reset bool) int {
 	return int(C.sqlite3_stmt_status(s.stmt, C.int(op), btocint(reset)))
