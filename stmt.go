@@ -170,7 +170,13 @@ func (s *Stmt) Insert(args ...interface{}) (int64, error) {
 //  	//Scan
 //  })
 //	// TODO error handling
-func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error) error {
+func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error, args ...interface{}) error {
+	if len(args) > 0 {
+		err := s.Bind(args...)
+		if err != nil {
+			return err
+		}
+	}
 	for {
 		if ok, err := s.Next(); err != nil {
 			return err
