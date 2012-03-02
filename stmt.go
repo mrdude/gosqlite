@@ -81,7 +81,6 @@ type Stmt struct {
 }
 
 // Compile an SQL statement and optionally bind values.
-// If an error occurs while binding values, the statement is returned (not finalized).
 // Example:
 //	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
 //	if err != nil {
@@ -110,7 +109,8 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
-			return s, err
+			s.Finalize()
+			return nil, err
 		}
 	}
 	return s, nil
