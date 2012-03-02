@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	ConfigLog(log, "LOG")
+	//ConfigLog(log, "LOG")
 }
 
 func trace(d interface{}, sql string) {
@@ -75,5 +75,5 @@ func TestTrace(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
-	//Log(0, "One message")
+	Log(0, "One message")
 }

@@ -8,22 +8,26 @@ import (
 	"time"
 )
 
-/*
 func TestInterrupt(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 	db.CreateScalarFunction("interrupt", 0, nil, func(ctx *Context, nArg int) {
-		//db.Interrupt()
+		db.Interrupt()
 		ctx.ResultText("ok")
-		}, nil)
-	var err error
-	var result string
-	err = db.OneValue("select interrupt()", &result)
-	if err == nil || err != ErrInterrupt {
+	}, nil)
+	s, err := db.Prepare("SELECT interrupt() FROM (SELECT 1 UNION SELECT 2 UNION SELECT 3)")
+	checkNoError(t, err, "couldn't prepare stmt: %#v")
+	defer s.Finalize()
+	err = s.Select(func(s *Stmt) (err error) {
+		return
+	})
+	if err == nil {
+		t.Fatalf("Expected interrupt but got %v", err)
+	}
+	if se, ok := err.(*StmtError); !ok || se.Code() != ErrInterrupt {
 		t.Errorf("Expected interrupt but got %#v", err)
 	}
 }
-*/
 
 func openTwoConnSameDb(t *testing.T) (*os.File, *Conn, *Conn) {
 	f, err := ioutil.TempFile("", "gosqlite-test")
