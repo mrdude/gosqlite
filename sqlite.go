@@ -3,6 +3,31 @@
 // license that can be found in the LICENSE file.
 
 // Package sqlite provides access to the SQLite library, version 3.
+//
+// Simple example:
+//	db, err := sqlite.Open("/path/to/db")
+//	if err != nil {
+//		...
+//	}
+//	defer db.Close()
+//  err = db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL UNIQUE); -- ... and other ddls separated by semi-colon")
+//  ...
+//  ins, err := db.Prepare("INSERT INTO test (name) VALUES (?)")
+//  if err != nil {
+//    ...
+//	}
+//	defer ins.Finalize()
+//  rowId, err := ins.Insert("Bart")
+//  ...
+//	s, err := db.Prepare("SELECT name from test WHERE name like ?", "%a%")
+//  ...
+//  defer s.Finalize()
+//  var name string
+//  err = s.Select(func(s *Stmt) (err error) {
+//		err = s.Scan(&name)
+//      ...
+//		fmt.Printf("%s\n", name)
+//	})
 package sqlite
 
 /*
@@ -344,7 +369,7 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	return s.Scan(value)
 }
 
-// Count the number of rows modified
+// Count the number of rows modified.
 // If a separate thread makes changes on the same database connection while Changes() is running then the value returned is unpredictable and not meaningful.
 // (See http://sqlite.org/c3ref/changes.html)
 func (c *Conn) Changes() int {
@@ -432,7 +457,11 @@ func (c *Conn) Close() error {
 	// Dangling statements
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
-		Log(C.SQLITE_MISUSE, "Dangling statement")
+		if C.sqlite3_stmt_busy(stmt) != 0 {
+			Log(C.SQLITE_MISUSE, "Dangling statement (not reset)")
+		} else {
+			Log(C.SQLITE_MISUSE, "Dangling statement (not finalize)")
+		}
 		C.sqlite3_finalize(stmt)
 		stmt = C.sqlite3_next_stmt(c.db, stmt)
 	}
