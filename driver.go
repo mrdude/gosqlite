@@ -34,6 +34,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error) {
+	// http://code.google.com/p/go-wiki/wiki/InterfaceSlice
 	tmp := make([]interface{}, len(args))
 	for i, arg := range args {
 		tmp[i] = arg

@@ -440,9 +440,16 @@ func (c *Conn) Rollback() error {
 }
 
 func (c *Conn) exec(cmd string) error {
-	cmdstr := C.CString(cmd)
-	defer C.free(unsafe.Pointer(cmdstr))
-	return c.error(C.sqlite3_exec(c.db, cmdstr, nil, nil, nil))
+	s, err := c.Prepare(cmd)
+	if err != nil {
+		return err
+	}
+	defer s.Finalize()
+	rv := C.sqlite3_step(s.stmt)
+	if Errno(rv) != Done {
+		return s.error(rv)
+	}
+	return nil
 }
 
 // Close a database connection and any dangling statements.
@@ -458,9 +465,9 @@ func (c *Conn) Close() error {
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
 		if C.sqlite3_stmt_busy(stmt) != 0 {
-			Log(C.SQLITE_MISUSE, "Dangling statement (not reset)")
+			Log(C.SQLITE_MISUSE, "Dangling statement (not reset): \""+C.GoString(C.sqlite3_sql(stmt))+"\"")
 		} else {
-			Log(C.SQLITE_MISUSE, "Dangling statement (not finalize)")
+			Log(C.SQLITE_MISUSE, "Dangling statement (not finalize): \""+C.GoString(C.sqlite3_sql(stmt))+"\"")
 		}
 		C.sqlite3_finalize(stmt)
 		stmt = C.sqlite3_next_stmt(c.db, stmt)
