@@ -17,7 +17,8 @@ import (
 	"unsafe"
 )
 
-type CommitHook func(udp interface{}) int
+// If the callback on a commit hook function returns true, then the commit is converted into a rollback.
+type CommitHook func(udp interface{}) bool
 
 type sqliteCommitHook struct {
 	f   CommitHook
@@ -27,7 +28,7 @@ type sqliteCommitHook struct {
 //export goXCommitHook
 func goXCommitHook(udp unsafe.Pointer) C.int {
 	arg := (*sqliteCommitHook)(udp)
-	return C.int(arg.f(arg.udp))
+	return btocint(arg.f(arg.udp))
 }
 
 // Commit notification callback

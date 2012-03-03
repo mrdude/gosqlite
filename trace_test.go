@@ -28,9 +28,9 @@ func progressHandler(d interface{}) bool {
 	return false
 }
 
-func commitHook(d interface{}) int {
+func commitHook(d interface{}) bool {
 	fmt.Printf("%s\n", d)
-	return 0
+	return false
 }
 
 func rollbackHook(d interface{}) {
