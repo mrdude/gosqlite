@@ -10,6 +10,7 @@ package sqlite
 void* goSqlite3CommitHook(sqlite3 *db, void *udp);
 void* goSqlite3RollbackHook(sqlite3 *db, void *udp);
 void* goSqlite3UpdateHook(sqlite3 *db, void *udp);
+//void* goSqlite3WalHook(sqlite3 *db, void *udp);
 */
 import "C"
 
@@ -95,3 +96,31 @@ func (c *Conn) UpdateHook(f UpdateHook, udp interface{}) {
 	c.updateHook = &sqliteUpdateHook{f, udp}
 	C.goSqlite3UpdateHook(c.db, unsafe.Pointer(c.updateHook))
 }
+
+/*
+type WalHook func(udp interface{}, c *Conn, dbName string, nEntry int) int
+
+type sqliteWalHook struct {
+	f   WalHook
+	udp interface{}
+}
+
+//export goXWalHook
+func goXWalHook(udp, db unsafe.Pointer, dbName *C.char, nEntry C.int) C.int {
+	return 0
+}
+
+// Register a callback to be invoked each time a transaction is written
+// into the write-ahead-log by this database connection.
+// (See http://sqlite.org/c3ref/wal_hook.html)
+func (c *Conn) WalHook(f WalHook, udp interface{}) {
+	if f == nil {
+		c.walHook = nil
+		C.sqlite3_wal_hook(c.db, nil, nil)
+		return
+	}
+	// To make sure it is not gced, keep a reference in the connection.
+	c.walHook = &sqliteWalHook{f, udp}
+	C.goSqlite3WalHook(c.db, unsafe.Pointer(c.walHook))
+}
+*/

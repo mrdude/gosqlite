@@ -21,3 +21,11 @@ extern void goXUpdateHook(void *udp, int action, char const *dbName, char const 
 void* goSqlite3UpdateHook(sqlite3 *db, void *udp) {
 	return sqlite3_update_hook(db, goXUpdateHook, udp);
 }
+
+/*
+extern int goXWalHook(void *udp, sqlite3* db, const char *dbName, int nEntry);
+
+void* goSqlite3WalHook(sqlite3 *db, void *udp) {
+	return sqlite3_wal_hook(db, goXWalHook, udp);
+}
+*/
