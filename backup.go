@@ -20,7 +20,6 @@ import (
 // Example:
 //	bck, err := sqlite.NewBackup(dst, "main", src, "main")
 //	// check err
-//  defer bck.Close()
 //	cbs := make(chan sqlite.BackupStatus)
 //	go func() {
 //		s := <- cbs
@@ -86,7 +85,15 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 			time.Sleep(sleepNs)
 		}
 	}
-	return b.dst.error(C.sqlite3_errcode(b.dst.db))
+	if err != Done {
+		b.Close()
+	} else {
+		err = b.Close()
+	}
+	if err != nil && err != Done {
+		return err
+	}
+	return nil
 }
 
 // Finish/stop the backup
