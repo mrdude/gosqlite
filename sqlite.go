@@ -319,24 +319,24 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 		} else if s.stmt == nil {
 			// this happens for a comment or white-space
 			cmd = s.tail
-			if err = s.Finalize(); err != nil {
+			if err = s.finalize(); err != nil {
 				return err
 			}
 			continue
 		}
 		err = s.Exec(args...)
 		if err != nil {
-			s.Finalize()
+			s.finalize()
 			return err
 		}
 		if len(s.tail) > 0 {
 			if len(args) > 0 {
-				s.Finalize()
+				s.finalize()
 				return c.specificError("Cannot execute multiple statements when args are specified")
 			}
 		}
 		cmd = s.tail
-		if err = s.Finalize(); err != nil {
+		if err = s.finalize(); err != nil {
 			return err
 		}
 	}
@@ -349,7 +349,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	return s.Next()
 }
 
@@ -360,7 +360,7 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	if err != nil {
 		return err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	b, err := s.Next()
 	if err != nil {
 		return err
@@ -445,7 +445,7 @@ func (c *Conn) exec(cmd string) error {
 	if err != nil {
 		return err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	rv := C.sqlite3_step(s.stmt)
 	if Errno(rv) != Done {
 		return s.error(rv)

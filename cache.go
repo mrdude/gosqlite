@@ -49,11 +49,10 @@ func (c *Cache) find(sql string) *Stmt {
 	return nil
 }
 
-// TODO To be called instead of Stmt#Finalize
-func (c *Cache) release(s *Stmt) {
+// To be called in Stmt#Finalize
+func (c *Cache) release(s *Stmt) error {
 	if c.maxSize <= 0 || len(s.tail) > 0 {
-		s.Finalize()
-		return
+		return s.finalize()
 	}
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -61,9 +60,10 @@ func (c *Cache) release(s *Stmt) {
 	for c.l.Len() > c.maxSize {
 		v := c.l.Remove(c.l.Back())
 		if s, ok := v.(*Stmt); ok {
-			s.Finalize()
+			s.finalize()
 		}
 	}
+	return nil
 }
 
 // Finalize and free the cached prepared statements
@@ -79,7 +79,7 @@ func (c *Cache) flush() {
 		next = e.Next()
 		v := c.l.Remove(e)
 		if s, ok := v.(*Stmt); ok {
-			s.Finalize()
+			s.finalize()
 		} else {
 			panic(fmt.Sprintf("unexpected element in Stmt cache: %#v", v))
 		}

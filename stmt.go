@@ -76,8 +76,10 @@ type Stmt struct {
 	cols               map[string]int // cached columns index by name
 	bindParameterCount int
 	params             map[string]int // cached parameter index by name
-	// Enable type check in Scan methods
+	// Enable type check in Scan methods (default true)
 	CheckTypeMismatch bool
+	// Tell if the stmt should be cached (default false)
+	Cacheable bool
 }
 
 // Compile an SQL statement and optionally bind values.
@@ -109,7 +111,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
-			s.Finalize()
+			s.finalize()
 			return nil, err
 		}
 	}
@@ -880,6 +882,12 @@ func (s *Stmt) Busy() bool {
 // Destroy a prepared statement
 // (See http://sqlite.org/c3ref/finalize.html)
 func (s *Stmt) Finalize() error {
+	if s.Cacheable {
+		return s.c.stmtCache.release(s)
+	}
+	return s.finalize()
+}
+func (s *Stmt) finalize() error {
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
 		return s.error(rv)

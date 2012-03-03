@@ -40,7 +40,7 @@ func (c *Conn) Databases() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var databases map[string]string = make(map[string]string)
 	var name, file string
 	err = s.Select(func(s *Stmt) (err error) {
@@ -63,7 +63,7 @@ func (c *Conn) Tables() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var tables []string = make([]string, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		name, _ := s.ScanText(0)
@@ -95,7 +95,7 @@ func (c *Conn) Columns(table string) ([]Column, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var columns []Column = make([]Column, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		c := Column{}
@@ -148,7 +148,7 @@ func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var fks = make(map[int]*ForeignKey)
 	var id, seq int
 	var ref, from, to string
@@ -185,7 +185,7 @@ func (c *Conn) Indexes(table string) ([]Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var indexes []Index = make([]Index, 0, 5)
 	err = s.Select(func(s *Stmt) (err error) {
 		i := Index{}
@@ -208,7 +208,7 @@ func (c *Conn) IndexColumns(index string) ([]Column, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer s.Finalize()
+	defer s.finalize()
 	var columns []Column = make([]Column, 0, 5)
 	err = s.Select(func(s *Stmt) (err error) {
 		c := Column{}
