@@ -163,7 +163,7 @@ func (s *Stmt) Insert(args ...interface{}) (int64, error) {
 
 // The callback function is invoked for each result row coming out of the statement.
 //
-//  s, err := c.Prepare(...)
+//  s, err := db.Prepare(...)
 //	// TODO error handling
 //  defer s.Finalize()
 //  err = s.Select(func(s *Stmt) error {

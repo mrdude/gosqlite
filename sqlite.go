@@ -184,6 +184,7 @@ func (c *Conn) LastError() error {
 type Conn struct {
 	db              *C.sqlite3
 	Filename        string
+	stmtCache       *Cache
 	authorizer      *sqliteAuthorizer
 	busyHandler     *sqliteBusyHandler
 	profile         *sqliteProfile
@@ -264,7 +265,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
 	}
-	return &Conn{db: db, Filename: filename}, nil
+	return &Conn{db: db, Filename: filename, stmtCache: newCache()}, nil
 }
 
 // Set a busy timeout
@@ -461,6 +462,9 @@ func (c *Conn) Close() error {
 	if c.db == nil {
 		return nil
 	}
+
+	c.stmtCache.flush()
+
 	// Dangling statements
 	stmt := C.sqlite3_next_stmt(c.db, nil)
 	for stmt != nil {
