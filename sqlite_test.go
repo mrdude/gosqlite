@@ -25,7 +25,7 @@ func open(t *testing.T) *Conn {
 
 func createTable(db *Conn, t *testing.T) {
 	err := db.Exec("DROP TABLE IF EXISTS test;" +
-		"CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+		"CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
 		" float_num REAL, int_num INTEGER, a_string TEXT); -- bim")
 	checkNoError(t, err, "error creating table: %s")
 }

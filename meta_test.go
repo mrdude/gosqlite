@@ -74,8 +74,8 @@ func TestColumn(t *testing.T) {
 	if !column.Pk {
 		t.Errorf("Expecting primary key flag to be true")
 	}
-	if !column.Autoinc {
-		t.Errorf("Expecting autoinc flag to be true")
+	if column.Autoinc {
+		t.Errorf("Expecting autoinc flag to be false")
 	}
 }
 
@@ -83,8 +83,8 @@ func TestForeignKeys(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 
-	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY);" +
-		"CREATE TABLE child (id INTEGER PRIMARY KEY, parentId INTEGER, " +
+	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY NOT NULL);" +
+		"CREATE TABLE child (id INTEGER PRIMARY KEY NOT NULL, parentId INTEGER, " +
 		"FOREIGN KEY (parentId) REFERENCES parent(id));")
 	checkNoError(t, err, "error creating tables: %s")
 	fks, err := db.ForeignKeys("child")

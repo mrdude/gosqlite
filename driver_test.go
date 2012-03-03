@@ -7,7 +7,7 @@ import (
 
 const (
 	ddl = "DROP TABLE IF EXISTS test;" +
-		"CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+		"CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
 		" name TEXT);"
 	dml = "INSERT INTO test (name) values ('Bart');" +
 		"INSERT INTO test (name) values ('Lisa');" +

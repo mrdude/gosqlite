@@ -7,7 +7,7 @@ import (
 
 func fill(db *Conn, n int) {
 	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, float_num REAL, int_num INTEGER, a_string TEXT)")
+	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, float_num REAL, int_num INTEGER, a_string TEXT)")
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
 
 	db.Begin()
@@ -88,7 +88,7 @@ func BenchmarkNamedInsert(b *testing.B) {
 	db, _ := Open("")
 	defer db.Close()
 	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT," +
+	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
 		" float_num REAL, int_num INTEGER, a_string TEXT)")
 	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string)" +
 		" VALUES (:f, :i, :s)")
