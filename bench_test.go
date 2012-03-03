@@ -22,17 +22,19 @@ func BenchmarkValuesScan(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	fill(db, 1000)
+	fill(db, 1)
+
+	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
 
 		values := make([]interface{}, 3)
-		for Must(cs.Next()) {
+		if Must(cs.Next()) {
 			cs.ScanValues(values)
 		}
-		cs.Finalize()
+		cs.Reset()
 	}
 }
 
@@ -40,20 +42,22 @@ func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	fill(db, 1000)
+	fill(db, 1)
+
+	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
 
 		var fnum float64
 		var inum int64
 		var sstr string
 
-		for Must(cs.Next()) {
+		if Must(cs.Next()) {
 			cs.Scan(&fnum, &inum, &sstr)
 		}
-		cs.Finalize()
+		cs.Reset()
 	}
 }
 
@@ -61,20 +65,22 @@ func BenchmarkNamedScan(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	fill(db, 1000)
+	fill(db, 1)
+
+	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
 
 		var fnum float64
 		var inum int64
 		var sstr string
 
-		for Must(cs.Next()) {
+		if Must(cs.Next()) {
 			cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr)
 		}
-		cs.Finalize()
+		cs.Reset()
 	}
 }
 
