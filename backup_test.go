@@ -18,7 +18,7 @@ func TestBackup(t *testing.T) {
 	cbs := make(chan BackupStatus)
 	go func() {
 		for {
-			s := <- cbs
+			s := <-cbs
 			t.Logf("Backup progress %#v\n", s)
 		}
 	}()
