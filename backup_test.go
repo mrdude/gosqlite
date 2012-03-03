@@ -17,9 +17,11 @@ func TestBackup(t *testing.T) {
 
 	cbs := make(chan BackupStatus)
 	go func() {
-		s := <- cbs
-		t.Logf("Backup progress %#v\n", s)
+		for {
+			s := <- cbs
+			t.Logf("Backup progress %#v\n", s)
+		}
 	}()
-	err = bck.Run(100, 0, cbs)
+	err = bck.Run(10, 0, cbs)
 	checkNoError(t, err, "couldn't do backup: %#v")
 }

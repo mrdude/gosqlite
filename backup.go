@@ -22,8 +22,10 @@ import (
 //	// check err
 //	cbs := make(chan sqlite.BackupStatus)
 //	go func() {
-//		s := <- cbs
-//		// report progress
+//		for {
+//			s := <- cbs
+//			// report progress
+//		}
 //	}()
 //	err = bck.Run(100, 250000, cbs)
 //	check(err)
