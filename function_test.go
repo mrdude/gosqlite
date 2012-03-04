@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func half(ctx *Context, nArg int) {
+func half(ctx *ScalarContext, nArg int) {
 	nt := ctx.NumericType(0)
 	if nt == Integer || nt == Float {
 		ctx.ResultDouble(ctx.Double(0) / 2)
@@ -32,7 +32,7 @@ func TestScalarFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
-func re(ctx *Context, nArg int) {
+func re(ctx *ScalarContext, nArg int) {
 	ad := ctx.GetAuxData(0)
 	var re *regexp.Regexp
 	if ad == nil {
@@ -89,21 +89,21 @@ func TestRegexpFunction(t *testing.T) {
 	}
 }
 
-func sumStep(ctx *Context, nArg int) {
+func sumStep(ctx *AggregateContext, nArg int) {
 	nt := ctx.NumericType(0)
 	if nt == Integer || nt == Float {
 		var sum int64
 		var ok bool
-		if sum, ok = (ctx.AggregateContext).(int64); !ok {
+		if sum, ok = (ctx.Aggregate).(int64); !ok {
 			sum = 0
 		}
 		sum += ctx.Int64(0)
-		ctx.AggregateContext = sum
+		ctx.Aggregate = sum
 	}
 }
 
-func sumFinal(ctx *Context) {
-	if sum, ok := (ctx.AggregateContext).(int64); ok {
+func sumFinal(ctx *AggregateContext) {
+	if sum, ok := (ctx.Aggregate).(int64); ok {
 		ctx.ResultInt64(sum)
 	} else {
 		ctx.ResultNull()
@@ -143,13 +143,13 @@ func BenchmarkLike(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	randomFill(db, 1000)
+	randomFill(db, 1)
+	cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
 		Must(cs.Next())
-		cs.Finalize()
+		cs.Reset()
 	}
 }
 
@@ -157,14 +157,14 @@ func BenchmarkHalf(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	randomFill(db, 1000)
+	randomFill(db, 1)
+	cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
 	db.CreateScalarFunction("half", 1, nil, half, nil)
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
 		Must(cs.Next())
-		cs.Finalize()
+		cs.Reset()
 	}
 }
 
@@ -172,13 +172,13 @@ func BenchmarkRegexp(b *testing.B) {
 	b.StopTimer()
 	db, _ := Open("")
 	defer db.Close()
-	randomFill(db, 1000)
+	randomFill(db, 1)
+	cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp  '(?i)\\blisa\\b'")
 	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp  '(?i)\\blisa\\b'")
 		Must(cs.Next())
-		cs.Finalize()
+		cs.Reset()
 	}
 }

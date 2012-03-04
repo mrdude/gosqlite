@@ -11,7 +11,7 @@ import (
 func TestInterrupt(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	db.CreateScalarFunction("interrupt", 0, nil, func(ctx *Context, nArg int) {
+	db.CreateScalarFunction("interrupt", 0, nil, func(ctx *ScalarContext, nArg int) {
 		db.Interrupt()
 		ctx.ResultText("ok")
 	}, nil)
