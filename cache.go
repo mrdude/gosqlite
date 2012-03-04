@@ -56,7 +56,7 @@ func (c *cache) release(s *Stmt) error {
 	}
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.l.InsertBefore(s, c.l.Front())
+	c.l.PushFront(s)
 	for c.l.Len() > c.maxSize {
 		v := c.l.Remove(c.l.Back())
 		if s, ok := v.(*Stmt); ok {
