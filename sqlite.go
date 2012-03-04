@@ -184,7 +184,7 @@ func (c *Conn) LastError() error {
 type Conn struct {
 	db              *C.sqlite3
 	Filename        string
-	stmtCache       *Cache
+	stmtCache       *cache
 	authorizer      *sqliteAuthorizer
 	busyHandler     *sqliteBusyHandler
 	profile         *sqliteProfile

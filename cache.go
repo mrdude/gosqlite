@@ -15,24 +15,24 @@ const (
 )
 
 // Like http://www.sqlite.org/tclsqlite.html#cache
-type Cache struct {
+type cache struct {
 	m       sync.Mutex
 	l       *list.List
 	maxSize int // Cache turned off when maxSize <= 0
 }
 
-func newCache() *Cache {
+func newCache() *cache {
 	return newCacheSize(defaultCacheSize)
 }
-func newCacheSize(maxSize int) *Cache {
+func newCacheSize(maxSize int) *cache {
 	if maxSize <= 0 {
-		return &Cache{maxSize: maxSize}
+		return &cache{maxSize: maxSize}
 	}
-	return &Cache{l: list.New(), maxSize: maxSize}
+	return &cache{l: list.New(), maxSize: maxSize}
 }
 
-// TODO To be called in Conn#Prepare
-func (c *Cache) find(sql string) *Stmt {
+// To be called in Conn#CacheOrPrepare
+func (c *cache) find(sql string) *Stmt {
 	if c.maxSize <= 0 {
 		return nil
 	}
@@ -50,8 +50,8 @@ func (c *Cache) find(sql string) *Stmt {
 }
 
 // To be called in Stmt#Finalize
-func (c *Cache) release(s *Stmt) error {
-	if c.maxSize <= 0 || len(s.tail) > 0 {
+func (c *cache) release(s *Stmt) error {
+	if c.maxSize <= 0 || len(s.tail) > 0 || s.Busy() {
 		return s.finalize()
 	}
 	c.m.Lock()
@@ -67,8 +67,8 @@ func (c *Cache) release(s *Stmt) error {
 }
 
 // Finalize and free the cached prepared statements
-// (To be called in Conn#Close)
-func (c *Cache) flush() {
+// To be called in Conn#Close
+func (c *cache) flush() {
 	if c.maxSize <= 0 {
 		return
 	}

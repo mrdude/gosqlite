@@ -118,6 +118,26 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	return s, nil
 }
 
+// Like Prepare but first look in the Stmt cache.
+func (c *Conn) CacheOrPrepare(cmd string, args ...interface{}) (*Stmt, error) {
+	s := c.stmtCache.find(cmd)
+	if s != nil {
+		if len(args) > 0 {
+			err := s.Bind(args...)
+			if err != nil {
+				s.finalize() // don't put it back in the cache
+				return nil, err
+			}
+		}
+		return s, nil
+	}
+	s, err := c.Prepare(cmd, args...)
+	if s != nil {
+		s.Cacheable = true
+	}
+	return s, err
+}
+
 // One-step statement execution.
 // Don't use it with SELECT or anything that returns data.
 // The Stmt is reset at each call.
