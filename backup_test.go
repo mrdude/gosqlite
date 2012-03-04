@@ -33,7 +33,7 @@ func TestBackupMisuse(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 
-	bck, err := NewBackup(db, "main", db, "main")
+	bck, err := NewBackup(db, "", db, "")
 	if bck != nil || err == nil {
 		t.Error("source and destination must be distinct")
 	}
@@ -41,4 +41,5 @@ func TestBackupMisuse(t *testing.T) {
 	if err == nil {
 		t.Error("Misuse expected")
 	}
+	bck.Status()
 }

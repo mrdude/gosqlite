@@ -33,6 +33,9 @@ import (
 //
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
 func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backup, error) {
+	if dst == nil || src == nil {
+		return nil, errors.New("nil sqlite backup source or destination")
+	}
 	dname := C.CString(dstDbName)
 	sname := C.CString(srcDbName)
 	defer C.free(unsafe.Pointer(dname))
@@ -73,6 +76,9 @@ type BackupStatus struct {
 // Return the number of pages still to be backed up and the total number of pages in the source database file.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
 func (b *Backup) Status() BackupStatus {
+	if b == nil {
+		return BackupStatus{}
+	}
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
 }
 
