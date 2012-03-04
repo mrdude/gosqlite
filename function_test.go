@@ -32,10 +32,13 @@ func TestScalarFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
+var reused bool
+
 func re(ctx *ScalarContext, nArg int) {
 	ad := ctx.GetAuxData(0)
 	var re *regexp.Regexp
 	if ad == nil {
+		reused = false
 		//println("Compile")
 		var err error
 		re, err = regexp.Compile(ctx.Text(0))
@@ -45,6 +48,7 @@ func re(ctx *ScalarContext, nArg int) {
 		}
 		ctx.SetAuxData(0, re)
 	} else {
+		reused = true
 		//println("Reuse")
 		var ok bool
 		if re, ok = ad.(*regexp.Regexp); !ok {
@@ -71,6 +75,7 @@ func TestRegexpFunction(t *testing.T) {
 	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer s.Finalize()
+
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
@@ -79,6 +84,10 @@ func TestRegexpFunction(t *testing.T) {
 	if i != 1 {
 		t.Errorf("Expected %d but got %d", 1, i)
 	}
+	if reused {
+		t.Errorf("unexpected reused state")
+	}
+
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
@@ -86,6 +95,9 @@ func TestRegexpFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't scan result: %s")
 	if i != 0 {
 		t.Errorf("Expected %d but got %d", 0, i)
+	}
+	if !reused {
+		t.Errorf("unexpected reused state")
 	}
 }
 
@@ -158,8 +170,8 @@ func BenchmarkHalf(b *testing.B) {
 	db, _ := Open("")
 	defer db.Close()
 	randomFill(db, 1)
-	cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
 	db.CreateScalarFunction("half", 1, nil, half, nil)
+	cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -173,8 +185,8 @@ func BenchmarkRegexp(b *testing.B) {
 	db, _ := Open("")
 	defer db.Close()
 	randomFill(db, 1)
-	cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp  '(?i)\\blisa\\b'")
 	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+	cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp '(?i)\\blisa\\b'")
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {

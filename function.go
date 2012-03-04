@@ -71,7 +71,8 @@ type Context struct {
 }
 type ScalarContext struct {
 	Context
-	ad map[int]interface{} // Function Auxiliary Data
+	ad  map[int]interface{} // Function Auxiliary Data
+	udf *sqliteFunction
 }
 type AggregateContext struct {
 	Context
@@ -308,25 +309,22 @@ type FinalFunction func(ctx *AggregateContext)
 type DestroyFunctionData func(pApp interface{})
 
 type sqliteFunction struct {
-	scalar   ScalarFunction
-	step     StepFunction
-	final    FinalFunction
-	d        DestroyFunctionData
-	pApp     interface{}
-	contexts map[*C.sqlite3_context]*AggregateContext
+	scalar     ScalarFunction
+	step       StepFunction
+	final      FinalFunction
+	d          DestroyFunctionData
+	pApp       interface{}
+	scalarCtxs map[*ScalarContext]bool
+	aggrCtxs   map[*AggregateContext]bool
 }
-
-// To prevent Context from being gced
-// TODO Retry to put this in the sqliteFunction
-var contexts map[*C.sqlite3_context]*ScalarContext = make(map[*C.sqlite3_context]*ScalarContext)
 
 //export goXAuxDataDestroy
 func goXAuxDataDestroy(ad unsafe.Pointer) {
 	c := (*ScalarContext)(ad)
 	if c != nil {
-		delete(contexts, c.sc)
+		delete(c.udf.scalarCtxs, c)
 	}
-	//	fmt.Printf("Contexts: %v\n", contexts)
+	//	fmt.Printf("Contexts: %v\n", c.udf.scalarCtxs)
 }
 
 //export goXFunc
@@ -337,9 +335,10 @@ func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 	if c == nil {
 		c = new(ScalarContext)
 		c.sc = (*C.sqlite3_context)(scp)
+		c.udf = udf
 		C.goSqlite3SetAuxdata(c.sc, 0, unsafe.Pointer(c))
 		// To make sure it is not cged
-		contexts[c.sc] = c
+		udf.scalarCtxs[c] = true
 	}
 	c.argv = (**C.sqlite3_value)(argv)
 	udf.scalar(c, argc)
@@ -359,7 +358,7 @@ func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 			c.sc = (*C.sqlite3_context)(scp)
 			*(*unsafe.Pointer)(cp) = unsafe.Pointer(c)
 			// To make sure it is not cged
-			udf.contexts[c.sc] = c
+			udf.aggrCtxs[c] = true
 		} else {
 			c = (*AggregateContext)(p)
 		}
@@ -378,12 +377,12 @@ func goXFinal(scp, udfp unsafe.Pointer) {
 		p := *(*unsafe.Pointer)(cp)
 		if p != nil {
 			c := (*AggregateContext)(p)
-			delete(udf.contexts, c.sc)
+			delete(udf.aggrCtxs, c)
 			c.sc = (*C.sqlite3_context)(scp)
 			udf.final(c)
 		}
 	}
-	//	fmt.Printf("Contexts: %v\n", udf.contexts)
+	//	fmt.Printf("Contexts: %v\n", udf.aggrCtxts)
 }
 
 //export goXDestroy
@@ -407,7 +406,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{f, nil, nil, d, pApp, nil}
+	udf := &sqliteFunction{f, nil, nil, d, pApp, make(map[*ScalarContext]bool), nil}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}
@@ -429,7 +428,7 @@ func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp inter
 		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{nil, step, final, d, pApp, make(map[*C.sqlite3_context]*AggregateContext)}
+	udf := &sqliteFunction{nil, step, final, d, pApp, nil, make(map[*AggregateContext]bool)}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}
