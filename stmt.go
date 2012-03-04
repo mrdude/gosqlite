@@ -902,12 +902,18 @@ func (s *Stmt) Busy() bool {
 // Destroy a prepared statement
 // (See http://sqlite.org/c3ref/finalize.html)
 func (s *Stmt) Finalize() error {
+	if s == nil {
+		return errors.New("nil sqlite statement")
+	}
 	if s.Cacheable {
 		return s.c.stmtCache.release(s)
 	}
 	return s.finalize()
 }
 func (s *Stmt) finalize() error {
+	if s == nil {
+		return errors.New("nil sqlite statement")
+	}
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
 		return s.error(rv)

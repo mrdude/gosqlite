@@ -48,7 +48,6 @@ func TestBlobMisuse(t *testing.T) {
 	defer db.Close()
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", 0)
-	//t.Logf("%#v", err)
 	if bw != nil || err == nil {
 		t.Errorf("error expected")
 	}

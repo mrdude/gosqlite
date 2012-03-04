@@ -370,3 +370,31 @@ func TestScanNull(t *testing.T) {
 		t.Errorf("Expected nil but got %p\n", ps)
 	}
 }
+
+func TestCloseTwice(t *testing.T) {
+	db := open(t)
+	s, err := db.Prepare("SELECT 1")
+	checkNoError(t, err, "prepare error: %s")
+	err = s.Finalize()
+	checkNoError(t, err, "finalize error: %s")
+	err = s.Finalize()
+	checkNoError(t, err, "finalize error: %s")
+	err = db.Close()
+	checkNoError(t, err, "close error: %s")
+	err = db.Close()
+	checkNoError(t, err, "close error: %s")
+}
+
+func TestStmtMisuse(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("MISUSE")
+	if s != nil || err == nil {
+		t.Error("error expected")
+	}
+	err = s.Finalize()
+	if err == nil {
+		t.Error("error expected")
+	}
+}
