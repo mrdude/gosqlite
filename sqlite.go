@@ -313,7 +313,7 @@ func (c *Conn) EnableExtendedResultCodes(b bool) error {
 //
 func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	for len(cmd) > 0 {
-		s, err := c.Prepare(cmd)
+		s, err := c.prepare(cmd)
 		if err != nil {
 			return err
 		} else if s.stmt == nil {
@@ -345,7 +345,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 
 // Return true if the specified query returns at least one row.
 func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
-	s, err := c.CacheOrPrepare(query, args...)
+	s, err := c.Prepare(query, args...)
 	if err != nil {
 		return false, err
 	}
@@ -359,7 +359,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 // Use it with SELECT that returns only one row with only one column.
 // Returns io.EOF when there is no row.
 func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) error {
-	s, err := c.CacheOrPrepare(query, args...)
+	s, err := c.Prepare(query, args...)
 	if err != nil {
 		return err
 	}
@@ -447,7 +447,7 @@ func (c *Conn) Rollback() error {
 }
 
 func (c *Conn) exec(cmd string) error {
-	s, err := c.Prepare(cmd)
+	s, err := c.prepare(cmd)
 	if err != nil {
 		return err
 	}

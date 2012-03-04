@@ -18,7 +18,7 @@ func TestDisabledCache(t *testing.T) {
 	db.SetCacheSize(0)
 	checkCacheSize(t, db, 0, 0)
 
-	s, err := db.CacheOrPrepare("SELECT 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "couldn't prepare stmt: %#v")
 	if !s.Cacheable {
 		t.Error("expected cacheable stmt")
@@ -36,7 +36,7 @@ func TestEnabledCache(t *testing.T) {
 	db.SetCacheSize(10)
 	checkCacheSize(t, db, 0, 10)
 
-	s, err := db.CacheOrPrepare("SELECT 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "couldn't prepare stmt: %#v")
 	if !s.Cacheable {
 		t.Error("expected cacheable stmt")
@@ -46,7 +46,7 @@ func TestEnabledCache(t *testing.T) {
 	checkNoError(t, err, "couldn't finalize stmt: %#v")
 	checkCacheSize(t, db, 1, 10)
 
-	ns, err := db.CacheOrPrepare("SELECT 1")
+	ns, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "couldn't prepare stmt: %#v")
 	checkCacheSize(t, db, 0, 10)
 
@@ -65,7 +65,7 @@ func BenchmarkDisabledCache(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		s, _ := db.CacheOrPrepare("SELECT 1, 'test', 3.14 UNION SELECT 2, 'exp', 2.71")
+		s, _ := db.Prepare("SELECT 1, 'test', 3.14 UNION SELECT 2, 'exp', 2.71")
 		s.Finalize()
 	}
 
@@ -81,7 +81,7 @@ func BenchmarkEnabledCache(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		s, _ := db.CacheOrPrepare("SELECT 1, 'test', 3.14 UNION SELECT 2, 'exp', 2.71")
+		s, _ := db.Prepare("SELECT 1, 'test', 3.14 UNION SELECT 2, 'exp', 2.71")
 		s.Finalize()
 	}
 

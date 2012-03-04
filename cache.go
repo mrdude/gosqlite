@@ -31,7 +31,7 @@ func newCacheSize(maxSize int) *cache {
 	return &cache{l: list.New(), maxSize: maxSize}
 }
 
-// To be called in Conn#CacheOrPrepare
+// To be called in Conn#Prepare
 func (c *cache) find(sql string) *Stmt {
 	if c.maxSize <= 0 {
 		return nil

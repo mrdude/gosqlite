@@ -36,7 +36,7 @@ import "unsafe"
 
 // Executes pragma 'database_list'
 func (c *Conn) Databases() (map[string]string, error) {
-	s, err := c.Prepare("PRAGMA database_list")
+	s, err := c.prepare("PRAGMA database_list")
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *Conn) Databases() (map[string]string, error) {
 // Selects tables (no view) from 'sqlite_master' and filters system tables out.
 // TODO Make possible to specified the database name (main.sqlite_master)
 func (c *Conn) Tables() ([]string, error) {
-	s, err := c.Prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
+	s, err := c.prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ type Column struct {
 // Executes pragma 'table_info'
 // TODO Make possible to specify the database-name (PRAGMA %Q.table_info(%Q))
 func (c *Conn) Columns(table string) ([]Column, error) {
-	s, err := c.Prepare(Mprintf("PRAGMA table_info(%Q)", table))
+	s, err := c.prepare(Mprintf("PRAGMA table_info(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ type ForeignKey struct {
 // Executes pragma 'foreign_key_list'
 // TODO Make possible to specify the database-name (PRAGMA %Q.foreign_key_list(%Q))
 func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
-	s, err := c.Prepare(Mprintf("PRAGMA foreign_key_list(%Q)", table))
+	s, err := c.prepare(Mprintf("PRAGMA foreign_key_list(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ type Index struct {
 // Executes pragma 'index_list'
 // TODO Make possible to specify the database-name (PRAGMA %Q.index_list(%Q))
 func (c *Conn) Indexes(table string) ([]Index, error) {
-	s, err := c.Prepare(Mprintf("PRAGMA index_list(%Q)", table))
+	s, err := c.prepare(Mprintf("PRAGMA index_list(%Q)", table))
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (c *Conn) Indexes(table string) ([]Index, error) {
 // Executes pragma 'index_info'
 // Only Column.Cid and Column.Name are specified. All other fields are unspecifed.
 func (c *Conn) IndexColumns(index string) ([]Column, error) {
-	s, err := c.Prepare(Mprintf("PRAGMA index_info(%Q)", index))
+	s, err := c.prepare(Mprintf("PRAGMA index_info(%Q)", index))
 	if err != nil {
 		return nil, err
 	}

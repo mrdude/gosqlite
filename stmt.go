@@ -82,16 +82,7 @@ type Stmt struct {
 	Cacheable bool
 }
 
-// Compile an SQL statement and optionally bind values.
-// Example:
-//	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
-//	if err != nil {
-//		...
-//	}
-//	defer stmt.Finalize()
-//
-// (See sqlite3_prepare_v2: http://sqlite.org/c3ref/prepare.html)
-func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
+func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	if c == nil {
 		return nil, errors.New("nil sqlite database")
 	}
@@ -118,8 +109,17 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	return s, nil
 }
 
-// Like Prepare but first look in the Stmt cache.
-func (c *Conn) CacheOrPrepare(cmd string, args ...interface{}) (*Stmt, error) {
+// First look in the statement cache or compile the SQL statement.
+// And optionally bind values.
+// Example:
+//	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
+//	if err != nil {
+//		...
+//	}
+//	defer stmt.Finalize()
+//
+// (See sqlite3_prepare_v2: http://sqlite.org/c3ref/prepare.html)
+func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	s := c.stmtCache.find(cmd)
 	if s != nil {
 		if len(args) > 0 {
@@ -131,7 +131,7 @@ func (c *Conn) CacheOrPrepare(cmd string, args ...interface{}) (*Stmt, error) {
 		}
 		return s, nil
 	}
-	s, err := c.Prepare(cmd, args...)
+	s, err := c.prepare(cmd, args...)
 	if s != nil {
 		s.Cacheable = true
 	}
