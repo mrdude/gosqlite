@@ -24,4 +24,21 @@ func TestBackup(t *testing.T) {
 	}()
 	err = bck.Run(10, 0, cbs)
 	checkNoError(t, err, "couldn't do backup: %#v")
+
+	err = bck.Close()
+	checkNoError(t, err, "couldn't close backup twice: %#v")
+}
+
+func TestBackupMisuse(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	bck, err := NewBackup(db, "main", db, "main")
+	if bck != nil || err == nil {
+		t.Error("source and destination must be distinct")
+	}
+	err = bck.Run(10, 0, nil)
+	if err == nil {
+		t.Error("Misuse expected")
+	}
 }
