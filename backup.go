@@ -11,6 +11,7 @@ package sqlite
 import "C"
 
 import (
+	"errors"
 	"time"
 	"unsafe"
 )
@@ -54,7 +55,7 @@ type Backup struct {
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
 func (b *Backup) Step(npage int) error {
 	if b == nil {
-		return ErrMisuse
+		return errors.New("nil sqlite backup")
 	}
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
 	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked { // TODO Trace busy/locked errors
@@ -105,7 +106,7 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
 func (b *Backup) Close() error {
 	if b == nil {
-		return ErrMisuse
+		return errors.New("nil sqlite backup")
 	}
 	rv := C.sqlite3_backup_finish(b.sb)
 	if rv != C.SQLITE_OK {
