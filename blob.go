@@ -93,6 +93,9 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 // Close a BLOB handle
 // (See http://sqlite.org/c3ref/blob_close.html)
 func (r *BlobReader) Close() error {
+	if r == nil {
+		return errors.New("nil sqlite blob reader")
+	}
 	rv := C.sqlite3_blob_close(r.bl)
 	if rv != C.SQLITE_OK {
 		return r.c.error(rv)

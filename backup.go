@@ -76,9 +76,6 @@ type BackupStatus struct {
 // Return the number of pages still to be backed up and the total number of pages in the source database file.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
 func (b *Backup) Status() BackupStatus {
-	if b == nil {
-		return BackupStatus{}
-	}
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
 }
 

@@ -41,5 +41,4 @@ func TestBackupMisuse(t *testing.T) {
 	if err == nil {
 		t.Error("Misuse expected")
 	}
-	bck.Status()
 }
