@@ -26,6 +26,10 @@ Using the native sqlite3_column_x implies:
  - loosy conversion when types mismatch (select cast('M' as int); --> 0),
  - NULL value can be returned only for **type, otherwise a default value (0, false, "") is returned.
 
+SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
+- ConfigLog function
+- or `export SQLITE_LOG=1`
+
 Misc:
 Conn#Exists
 Conn#OneValue

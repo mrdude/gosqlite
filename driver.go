@@ -8,10 +8,17 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"io"
+	"log"
+	"os"
 )
 
 func init() {
 	sql.Register("sqlite3", &Driver{})
+	if os.Getenv("SQLITE_LOG") != "" {
+		ConfigLog(func(d interface{}, err error, msg string) {
+			log.Printf("%s: %s, %s\n", d, err, msg)
+		}, "SQLITE")
+	}
 }
 
 type Driver struct {

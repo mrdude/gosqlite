@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-func init() {
-	//ConfigLog(log, "LOG")
-}
-
 func trace(d interface{}, sql string) {
 	if t, ok := d.(*testing.T); ok {
 		t.Logf("TRACE: %s\n", sql)
@@ -66,14 +62,6 @@ func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) 
 		t.Logf("UPD: %d, %s.%s.%d\n", a, dbName, tableName, rowId)
 	} else {
 		fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowId)
-	}
-}
-
-func log(d interface{}, err error, msg string) {
-	if t, ok := d.(*testing.T); ok {
-		t.Logf("%s: %s\n", err, msg)
-	} else {
-		fmt.Printf("%s: %s, %s\n", d, err, msg)
 	}
 }
 
