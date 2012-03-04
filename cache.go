@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultCacheSize = 0
+	defaultCacheSize = 10
 )
 
 // Like http://www.sqlite.org/tclsqlite.html#cache

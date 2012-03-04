@@ -56,7 +56,7 @@ func (c *connImpl) RowsAffected() (int64, error) {
 }
 
 func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
-	s, err := c.c.Prepare(query)
+	s, err := c.c.CacheOrPrepare(query)
 	if err != nil {
 		return nil, err
 	}

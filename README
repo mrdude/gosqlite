@@ -6,6 +6,7 @@ This binding implements the "database/sql/driver" interface.
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
 Conn#Prepare can optionnaly #Bind as well.
+Conn#CacheOrPrepare can reused already prepared Stmt.
 Conn#Close ensures that all dangling statements are finalized.
 Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
 Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
@@ -81,11 +82,16 @@ Conn#CreateScalarFunction
 Conn#CreateAggregateFunction
 
 $ go test -test.bench '.*'
-BenchmarkValuesScan	  500000	      4658 ns/op
-BenchmarkScan	  	  500000	      4324 ns/op
-BenchmarkNamedScan	  200000	      9221 ns/op
-BenchmarkInsert	      500000	      6088 ns/op
-BenchmarkNamedInsert  500000	      6726 ns/op
-BenchmarkLike	     1000000	      2508 ns/op
-BenchmarkHalf	      500000	      4811 ns/op
-BenchmarkRegexp	      500000	      6170 ns/op
+BenchmarkValuesScan 500000  4658 ns/op
+BenchmarkScan       500000   324 ns/op
+BenchmarkNamedScan  200000  9221 ns/op
+
+BenchmarkInsert       500000  6088 ns/op
+BenchmarkNamedInsert  500000  6726 ns/op
+
+BenchmarkDisabledCache   100000  19235 ns/op
+BenchmarkEnabledCache   1000000   1133 ns/op
+
+BenchmarkLike   1000000  2508 ns/op
+BenchmarkHalf    500000  4811 ns/op
+BenchmarkRegexp  500000  6170 ns/op

@@ -345,22 +345,28 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 
 // Return true if the specified query returns at least one row.
 func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
-	s, err := c.Prepare(query, args...)
+	s, err := c.CacheOrPrepare(query, args...)
 	if err != nil {
 		return false, err
 	}
-	defer s.finalize()
+	defer func() {
+		s.Reset()
+		s.Finalize()
+	}()
 	return s.Next()
 }
 
 // Use it with SELECT that returns only one row with only one column.
 // Returns io.EOF when there is no row.
 func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) error {
-	s, err := c.Prepare(query, args...)
+	s, err := c.CacheOrPrepare(query, args...)
 	if err != nil {
 		return err
 	}
-	defer s.finalize()
+	defer func() {
+		s.Reset()
+		s.Finalize()
+	}()
 	b, err := s.Next()
 	if err != nil {
 		return err
