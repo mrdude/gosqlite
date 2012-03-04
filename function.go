@@ -305,6 +305,7 @@ type sqliteFunction struct {
 	final      FinalFunction
 	d          DestroyFunctionData
 	pApp       interface{}
+	contexts   map[*C.sqlite3_context]*Context
 }
 
 // To prevent Context from being gced
@@ -350,7 +351,7 @@ func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 			c.sc = (*C.sqlite3_context)(scp)
 			*(*unsafe.Pointer)(cp) = unsafe.Pointer(c)
 			// To make sure it is not cged
-			contexts[c.sc] = c
+			udf.contexts[c.sc] = c
 		} else {
 			c = (*Context)(p)
 		}
@@ -369,7 +370,7 @@ func goXFinal(scp, udfp unsafe.Pointer) {
 		p := *(*unsafe.Pointer)(cp)
 		if p != nil {
 			c := (*Context)(p)
-			delete(contexts, c.sc)
+			delete(udf.contexts, c.sc)
 			c.sc = (*C.sqlite3_context)(scp)
 			udf.final(c)
 		}
@@ -398,7 +399,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{f, nil, d, pApp}
+	udf := &sqliteFunction{f, nil, d, pApp, nil}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}
@@ -420,7 +421,7 @@ func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp inter
 		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{step, final, d, pApp}
+	udf := &sqliteFunction{step, final, d, pApp, make(map[*C.sqlite3_context]*Context)}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}
