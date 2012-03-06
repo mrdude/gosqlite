@@ -73,9 +73,9 @@ func (e *ConnError) Filename() string {
 
 func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often redundant...
 	if len(e.details) > 0 {
-		return fmt.Sprintf("%s: %s (%s)", e.code.Error(), e.msg, e.details)
+		return fmt.Sprintf("%s; %s (%s)", e.code.Error(), e.msg, e.details)
 	} else if len(e.msg) > 0 {
-		return fmt.Sprintf("%s: %s", e.code.Error(), e.msg)
+		return fmt.Sprintf("%s; %s", e.code.Error(), e.msg)
 	}
 	return e.code.Error()
 }
@@ -319,9 +319,6 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 		} else if s.stmt == nil {
 			// this happens for a comment or white-space
 			cmd = s.tail
-			if err = s.finalize(); err != nil {
-				return err
-			}
 			continue
 		}
 		err = s.Exec(args...)
