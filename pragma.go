@@ -52,3 +52,9 @@ func (c *Conn) SchemaVersion() (int, error) {
 	}
 	return version, nil
 }
+
+// (See http://sqlite.org/pragma.html#pragma_recursive_triggers)
+// TODO Make possible to specify the database-name (PRAGMA %Q.recursive_triggers=%)
+func (c *Conn) SetRecursiveTriggers(on bool) error {
+	return c.exec(fmt.Sprintf("PRAGMA recursive_triggers=%t", on))
+}
