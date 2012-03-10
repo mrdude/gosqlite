@@ -27,7 +27,8 @@ type connImpl struct {
 	c *Conn
 }
 type stmtImpl struct {
-	s *Stmt
+	s           *Stmt
+	columnNames []string // cache
 }
 
 func (d *Driver) Open(name string) (driver.Conn, error) {
@@ -67,7 +68,7 @@ func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &stmtImpl{s}, nil
+	return &stmtImpl{s, nil}, nil
 }
 
 func (c *connImpl) Close() error {
@@ -134,7 +135,10 @@ func (s *stmtImpl) bind(args []driver.Value) error {
 
 // TODO Cache result?
 func (s *stmtImpl) Columns() []string {
-	return s.s.ColumnNames()
+	if s.columnNames == nil {
+		s.columnNames = s.s.ColumnNames()
+	}
+	return s.columnNames
 }
 
 func (s *stmtImpl) Next(dest []driver.Value) error {
