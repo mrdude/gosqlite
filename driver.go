@@ -27,6 +27,9 @@ type connImpl struct {
 	c *Conn
 }
 type stmtImpl struct {
+	s *Stmt
+}
+type rowsImpl struct {
 	s           *Stmt
 	columnNames []string // cache
 }
@@ -68,7 +71,7 @@ func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &stmtImpl{s, nil}, nil
+	return &stmtImpl{s}, nil
 }
 
 func (c *connImpl) Close() error {
@@ -121,7 +124,7 @@ func (s *stmtImpl) Query(args []driver.Value) (driver.Rows, error) {
 	if err := s.bind(args); err != nil {
 		return nil, err
 	}
-	return s, nil
+	return &rowsImpl{s.s, nil}, nil
 }
 
 func (s *stmtImpl) bind(args []driver.Value) error {
@@ -133,16 +136,15 @@ func (s *stmtImpl) bind(args []driver.Value) error {
 	return nil
 }
 
-// TODO Cache result?
-func (s *stmtImpl) Columns() []string {
-	if s.columnNames == nil {
-		s.columnNames = s.s.ColumnNames()
+func (r *rowsImpl) Columns() []string {
+	if r.columnNames == nil {
+		r.columnNames = r.s.ColumnNames()
 	}
-	return s.columnNames
+	return r.columnNames
 }
 
-func (s *stmtImpl) Next(dest []driver.Value) error {
-	ok, err := s.s.Next()
+func (r *rowsImpl) Next(dest []driver.Value) error {
+	ok, err := r.s.Next()
 	if err != nil {
 		return err
 	}
@@ -150,7 +152,11 @@ func (s *stmtImpl) Next(dest []driver.Value) error {
 		return io.EOF
 	}
 	for i := range dest {
-		dest[i] = s.s.ScanValue(i)
+		dest[i] = r.s.ScanValue(i)
 	}
 	return nil
+}
+
+func (r *rowsImpl) Close() error {
+	return r.s.Reset()
 }
