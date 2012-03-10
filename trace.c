@@ -4,12 +4,14 @@
 
 #include <sqlite3.h>
 #include <stdlib.h>
+//#include "_cgo_export.h"
 
 extern void goXTrace(void *udp, const char *sql);
 
 void goSqlite3Trace(sqlite3 *db, void *udp) {
 	sqlite3_trace(db, goXTrace, udp);
 }
+
 extern void goXProfile(void *udp, const char *sql, sqlite3_uint64 nanoseconds);
 
 void goSqlite3Profile(sqlite3 *db, void *udp) {
