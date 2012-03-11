@@ -39,6 +39,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.BusyTimeout(500)
 	return &connImpl{c}, nil
 }
 
