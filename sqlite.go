@@ -443,6 +443,21 @@ func (c *Conn) Rollback() error {
 	return c.exec("ROLLBACK")
 }
 
+// (See http://sqlite.org/lang_savepoint.html)
+func (c *Conn) Savepoint(name string) error {
+	return c.exec(Mprintf("SAVEPOINT %Q", name))
+}
+
+// (See http://sqlite.org/lang_savepoint.html)
+func (c *Conn) ReleaseSavepoint(name string) error {
+	return c.exec(Mprintf("RELEASE %Q", name))
+}
+
+// (See http://sqlite.org/lang_savepoint.html)
+func (c *Conn) RollbackSavepoint(name string) error {
+	return c.exec(Mprintf("ROLLBACK TO SAVEPOINT %Q", name))
+}
+
 func (c *Conn) exec(cmd string) error {
 	s, err := c.prepare(cmd)
 	if err != nil {

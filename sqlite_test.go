@@ -76,6 +76,15 @@ func TestTransaction(t *testing.T) {
 	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
 }
 
+func TestSavepoint(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	checkNoError(t, db.Savepoint("1"), "Error while creating savepoint: %s")
+	checkNoError(t, db.Savepoint("2"), "Error while creating savepoint: %s")
+	checkNoError(t, db.RollbackSavepoint("2"), "Error while creating savepoint: %s")
+	checkNoError(t, db.ReleaseSavepoint("1"), "Error while creating savepoint: %s")
+}
+
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer db.Close()
