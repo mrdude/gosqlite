@@ -102,7 +102,5 @@ func TestBusyHandler(t *testing.T) {
 
 	_, err = db2.SchemaVersion()
 	checkNoError(t, err, "couldn't query schema version: %#v")
-	if !called {
-		t.Fatalf("Busy handler not called!")
-	}
+	assert(t, "busy handler not called!", called)
 }

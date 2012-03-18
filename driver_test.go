@@ -57,14 +57,10 @@ func TestSqlDml(t *testing.T) {
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
 	checkNoError(t, err, "Error while calling LastInsertId: %s")
-	if id != 2 {
-		t.Errorf("Expected %d got %d LastInsertId", 2, id)
-	}
+	assertEquals(t, "expected %d got %d LastInsertId", int64(2), id)
 	changes, err := result.RowsAffected()
 	checkNoError(t, err, "Error while calling RowsAffected: %s")
-	if changes != 0 {
-		t.Errorf("Expected %d got %d RowsAffected", 0, changes)
-	}
+	assertEquals(t, "expected %d got %d RowsAffected", int64(0), changes)
 }
 
 func TestSqlInsert(t *testing.T) {
@@ -74,14 +70,10 @@ func TestSqlInsert(t *testing.T) {
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
 	checkNoError(t, err, "Error while calling LastInsertId: %s")
-	if id != 1 {
-		t.Errorf("Expected %d got %d LastInsertId", 2, id)
-	}
+	assertEquals(t, "expected %d got %d LastInsertId", int64(1), id)
 	changes, err := result.RowsAffected()
 	checkNoError(t, err, "Error while calling RowsAffected: %s")
-	if changes != 1 {
-		t.Errorf("Expected %d got %d RowsAffected", 0, changes)
-	}
+	assertEquals(t, "expected %d got %d RowsAffected", int64(1), changes)
 }
 
 func TestSqlExecWithIllegalCmd(t *testing.T) {

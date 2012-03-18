@@ -31,18 +31,12 @@ func TestTables(t *testing.T) {
 
 	tables, err := db.Tables()
 	checkNoError(t, err, "error looking for tables: %s")
-	if len(tables) != 0 {
-		t.Errorf("Expected no table but got %d\n", len(tables))
-	}
+	assertEquals(t, "expected %d table but got %d", 0, len(tables))
 	createTable(db, t)
 	tables, err = db.Tables()
 	checkNoError(t, err, "error looking for tables: %s")
-	if len(tables) != 1 {
-		t.Errorf("Expected one table but got %d\n", len(tables))
-	}
-	if tables[0] != "test" {
-		t.Errorf("Wrong table name: 'test' <> %s\n", tables[0])
-	}
+	assertEquals(t, "expected %d table but got %d", 1, len(tables))
+	assertEquals(t, "wrong table name: %q <> %q", "test", tables[0])
 }
 
 func TestColumns(t *testing.T) {
@@ -56,9 +50,7 @@ func TestColumns(t *testing.T) {
 		t.Fatalf("Expected 4 columns <> %d", len(columns))
 	}
 	column := columns[2]
-	if column.Name != "int_num" {
-		t.Errorf("Wrong column name: 'int_num' <> %s", column.Name)
-	}
+	assertEquals(t, "wrong column name: %q <> %q", "int_num", column.Name)
 }
 
 func TestColumn(t *testing.T) {
@@ -68,15 +60,9 @@ func TestColumn(t *testing.T) {
 
 	column, err := db.Column("", "test", "id")
 	checkNoError(t, err, "error getting column metadata: %s")
-	if column.Name != "id" {
-		t.Errorf("Wrong column name: 'id' <> %s", column.Name)
-	}
-	if !column.Pk {
-		t.Errorf("Expecting primary key flag to be true")
-	}
-	if column.Autoinc {
-		t.Errorf("Expecting autoinc flag to be false")
-	}
+	assertEquals(t, "wrong column name: %q <> %q", "id", column.Name)
+	assert(t, "expecting primary key flag to be true", column.Pk)
+	assert(t, "expecting autoinc flag to be false", !column.Autoinc)
 }
 
 func TestForeignKeys(t *testing.T) {
@@ -90,11 +76,11 @@ func TestForeignKeys(t *testing.T) {
 	fks, err := db.ForeignKeys("child")
 	checkNoError(t, err, "error listing FKs: %s")
 	if len(fks) != 1 {
-		t.Fatalf("Expected 1 FK <> %d", len(fks))
+		t.Fatalf("expected 1 FK <> %d", len(fks))
 	}
 	fk := fks[0]
 	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
-		t.Errorf("Unexpected FK data: %#v", fk)
+		t.Errorf("unexpected FK data: %#v", fk)
 	}
 }
 
@@ -110,20 +96,14 @@ func TestIndexes(t *testing.T) {
 		t.Fatalf("Expected one index <> %d", len(indexes))
 	}
 	index := indexes[0]
-	if index.Name != "test_index" {
-		t.Errorf("Wrong index name: 'test_index' <> %s", index.Name)
-	}
-	if index.Unique {
-		t.Errorf("Index 'test_index' is not unique")
-	}
+	assertEquals(t, "wrong index name: %q <> %q", "test_index", index.Name)
+	assert(t, "index 'test_index' is not unique", !index.Unique)
 
 	columns, err := db.IndexColumns("test_index")
 	checkNoError(t, err, "error listing index columns: %s")
 	if len(columns) != 1 {
-		t.Fatalf("Expected one column <> %d", len(columns))
+		t.Fatalf("expected one column <> %d", len(columns))
 	}
 	column := columns[0]
-	if column.Name != "a_string" {
-		t.Errorf("Wrong column name: 'a_string' <> %s", column.Name)
-	}
+	assertEquals(t, "Wrong column name: %q <> %q", "a_string", column.Name)
 }

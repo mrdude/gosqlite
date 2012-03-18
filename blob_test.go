@@ -36,9 +36,7 @@ func TestBlob(t *testing.T) {
 	content = make([]byte, size)
 	n, err = br.Read(content)
 	checkNoError(t, err, "blob read error: %s")
-	if n != 10 {
-		t.Fatalf("Expected 10 bytes but got %d", n)
-	}
+	assertEquals(t, "expected %d bytes but got %d", 10, n)
 	//fmt.Printf("%#v\n", content)
 	br.Close()
 }
@@ -48,11 +46,7 @@ func TestBlobMisuse(t *testing.T) {
 	defer db.Close()
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", 0)
-	if bw != nil || err == nil {
-		t.Errorf("error expected")
-	}
+	assert(t, "error expected", bw == nil && err != nil)
 	err = bw.Close()
-	if err == nil {
-		t.Errorf("error expected")
-	}
+	assert(t, "error expected", err != nil)
 }

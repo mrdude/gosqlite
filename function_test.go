@@ -25,9 +25,7 @@ func TestScalarFunction(t *testing.T) {
 	var d float64
 	err = db.OneValue("select half(6)", &d)
 	checkNoError(t, err, "couldn't retrieve result: %s")
-	if d != 3.0 {
-		t.Errorf("Expected %f but got %f", 3.0, d)
-	}
+	assertEquals(t, "Expected %f but got %f", 3.0, d)
 	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
@@ -81,24 +79,16 @@ func TestRegexpFunction(t *testing.T) {
 	}
 	i, _, err := s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
-	if i != 1 {
-		t.Errorf("Expected %d but got %d", 1, i)
-	}
-	if reused {
-		t.Errorf("unexpected reused state")
-	}
+	assertEquals(t, "expected %d but got %d", 1, i)
+	assert(t, "unexpected reused state", !reused)
 
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	i, _, err = s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
-	if i != 0 {
-		t.Errorf("Expected %d but got %d", 0, i)
-	}
-	if !reused {
-		t.Errorf("unexpected reused state")
-	}
+	assertEquals(t, "expected %d but got %d", 0, i)
+	assert(t, "unexpected reused state", reused)
 }
 
 func sumStep(ctx *AggregateContext, nArg int) {
@@ -131,9 +121,7 @@ func TestSumFunction(t *testing.T) {
 	var i int
 	err = db.OneValue("select mysum(i) from (select 2 as i union all select 2)", &i)
 	checkNoError(t, err, "couldn't execute statement: %s")
-	if i != 4 {
-		t.Errorf("Expected %d but got %v", 4, i)
-	}
+	assertEquals(t, "expected %d but got %v", 4, i)
 }
 
 func randomFill(db *Conn, n int) {

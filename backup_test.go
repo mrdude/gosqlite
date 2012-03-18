@@ -34,11 +34,7 @@ func TestBackupMisuse(t *testing.T) {
 	defer db.Close()
 
 	bck, err := NewBackup(db, "", db, "")
-	if bck != nil || err == nil {
-		t.Error("source and destination must be distinct")
-	}
+	assert(t, "source and destination must be distinct", bck == nil && err != nil)
 	err = bck.Run(10, 0, nil)
-	if err == nil {
-		t.Error("Misuse expected")
-	}
+	assert(t, "misuse expected", err != nil)
 }

@@ -48,9 +48,7 @@ func TestEnableFKey(t *testing.T) {
 	b := Must(db.IsFKeyEnabled())
 	if !b {
 		b = Must(db.EnableFKey(true))
-		if !b {
-			t.Error("cannot enabled FK")
-		}
+		assert(t, "cannot enabled FK", b)
 	}
 }
 
@@ -89,13 +87,9 @@ func TestExists(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 	b := Must(db.Exists("SELECT 1 where 1 = 0"))
-	if b {
-		t.Error("No row expected")
-	}
+	assert(t, "No row expected", !b)
 	b = Must(db.Exists("SELECT 1 where 1 = 1"))
-	if !b {
-		t.Error("One row expected")
-	}
+	assert(t, "One row expected", b)
 }
 
 func TestInsert(t *testing.T) {
@@ -107,43 +101,31 @@ func TestInsert(t *testing.T) {
 		ierr := db.Exec("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)", float64(i)*float64(3.14), i, "hello")
 		checkNoError(t, ierr, "insert error: %s")
 		c := db.Changes()
-		if c != 1 {
-			t.Errorf("insert error: %d but got 1", c)
-		}
+		assertEquals(t, "insert error: expected %d changes but got %d", 1, c)
 	}
 	checkNoError(t, db.Commit(), "Error: %s")
 
 	lastId := db.LastInsertRowid()
-	if lastId != 1000 {
-		t.Errorf("last insert row id error: %d but got 1000", lastId)
-	}
+	assertEquals(t, "last insert row id error: expected %d but got %d", int64(1000), lastId)
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
 
 	paramCount := cs.BindParameterCount()
-	if paramCount != 0 {
-		t.Errorf("bind parameter count error: %d but got 0", paramCount)
-	}
+	assertEquals(t, "bind parameter count error: expected %d but got %d", 0, paramCount)
 	columnCount := cs.ColumnCount()
-	if columnCount != 1 {
-		t.Errorf("column count error: %d but got 1", columnCount)
-	}
+	assertEquals(t, "column count error: expected %d but got %d", 1, columnCount)
 
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
 	var i int
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
-	if i != 1000 {
-		t.Errorf("count should be 1000, but it is %d", i)
-	}
+	assertEquals(t, "count should be %d, but it is %d", 1000, i)
 	if Must(cs.Next()) {
 		t.Fatal("Only one row expected")
 	}
-	if cs.Busy() {
-		t.Error("Statement not reset")
-	}
+	assert(t, "Statement not reset", !cs.Busy())
 }
 
 func TestInsertWithStatement(t *testing.T) {
@@ -157,101 +139,67 @@ func TestInsertWithStatement(t *testing.T) {
 	}
 	defer s.Finalize()
 
-	if s.ReadOnly() {
-		t.Errorf("update statement should not be readonly")
-	}
+	assert(t, "update statement should not be readonly", !s.ReadOnly())
 
 	paramCount := s.BindParameterCount()
-	if paramCount != 3 {
-		t.Errorf("bind parameter count error: %d but got 3", paramCount)
-	}
+	assertEquals(t, "bind parameter count error: expected %d but got %d", 3, paramCount)
 	firstParamName, berr := s.BindParameterName(1)
-	if firstParamName != ":f" {
-		t.Errorf("bind parameter name error: %s but got ':f' (%s)", firstParamName, berr)
-	}
+	checkNoError(t, berr, "error binding: %s")
+	assertEquals(t, "bind parameter name error: expected %s but got %s", ":f", firstParamName /*, berr*/)
 	lastParamIndex, berr := s.BindParameterIndex(":s")
-	if lastParamIndex != 3 {
-		t.Errorf("bind parameter name error: %d but got 3 (%s)", lastParamIndex, berr)
-	}
+	checkNoError(t, berr, "error binding: %s")
+	assertEquals(t, "bind parameter index error: expected %d but got %d", 3, lastParamIndex /*, berr*/)
+	columnCount := s.ColumnCount()
+	assertEquals(t, "column count error: expected %d but got %d", 0, columnCount)
 
 	db.Begin()
 	for i := 0; i < 1000; i++ {
 		c, ierr := s.ExecDml(float64(i)*float64(3.14), i, "hello")
 		checkNoError(t, ierr, "insert error: %s")
-		if c != 1 {
-			t.Errorf("insert error: %d but got 1", c)
-		}
-		if s.Busy() {
-			t.Errorf("Statement not reset")
-		}
+		assertEquals(t, "insert error: expected %d changes but got %d", 1, c)
+		assert(t, "Statement not reset", !s.Busy())
 	}
 
 	checkNoError(t, db.Commit(), "Error: %s")
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer cs.Finalize()
-	if !cs.ReadOnly() {
-		t.Errorf("select statement should be readonly")
-	}
+	assert(t, "select statement should be readonly", cs.ReadOnly())
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
 	var i int
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
-	if i != 1000 {
-		t.Errorf("count should be 1000, but it is %d", i)
-	}
+	assertEquals(t, "count should be %d, but it is %d", 1000, i)
 
 	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test where a_string like ? ORDER BY int_num LIMIT 2", "hel%")
 	defer rs.Finalize()
-	columnCount := rs.ColumnCount()
-	if columnCount != 3 {
-		t.Errorf("column count error: %d but got 3", columnCount)
-	}
+	columnCount = rs.ColumnCount()
+	assertEquals(t, "column count error: expected %d but got %d", 3, columnCount)
 	secondColumnName := rs.ColumnName(1)
-	if secondColumnName != "int_num" {
-		t.Errorf("column name error: %s but got 'int_num'", secondColumnName)
-	}
+	assertEquals(t, "column name error: expected %s but got %s", "int_num", secondColumnName)
 
 	if Must(rs.Next()) {
 		var fnum float64
 		var inum int64
 		var sstr string
 		rs.Scan(&fnum, &inum, &sstr)
-		if fnum != 0 {
-			t.Errorf("Expected 0 but got %f\n", fnum)
-		}
-		if inum != 0 {
-			t.Errorf("Expected 0 but got %d\n", inum)
-		}
-		if sstr != "hello" {
-			t.Errorf("Expected 'hello' but got %s\n", sstr)
-		}
+		assertEquals(t, "expected %f but got %f", float64(0), fnum)
+		assertEquals(t, "expected %d but got %d", int64(0), inum)
+		assertEquals(t, "expected %q but got %q", "hello", sstr)
 	}
 	if Must(rs.Next()) {
 		var fnum float64
 		var inum int64
 		var sstr string
 		rs.NamedScan("a_string", &sstr, "float_num", &fnum, "int_num", &inum)
-		if fnum != 3.14 {
-			t.Errorf("Expected 3.14 but got %f\n", fnum)
-		}
-		if inum != 1 {
-			t.Errorf("Expected 1 but got %d\n", inum)
-		}
-		if sstr != "hello" {
-			t.Errorf("Expected 'hello' but got %s\n", sstr)
-		}
+		assertEquals(t, "expected %f but got %f", float64(3.14), fnum)
+		assertEquals(t, "expected %d but got %d", int64(1), inum)
+		assertEquals(t, "expected %q but got %q", "hello", sstr)
 	}
-	if 999 != rs.Status(STMTSTATUS_FULLSCAN_STEP, false) {
-		t.Errorf("Expected full scan")
-	}
-	if 1 != rs.Status(STMTSTATUS_SORT, false) {
-		t.Errorf("Expected one sort")
-	}
-	if 0 != rs.Status(STMTSTATUS_AUTOINDEX, false) {
-		t.Errorf("Expected no auto index")
-	}
+	assert(t, "expected full scan", 999 == rs.Status(STMTSTATUS_FULLSCAN_STEP, false))
+	assert(t, "expected one sort", 1 == rs.Status(STMTSTATUS_SORT, false))
+	assert(t, "expected no auto index", 0 == rs.Status(STMTSTATUS_AUTOINDEX, false))
 }
 
 func TestScanColumn(t *testing.T) {
@@ -266,23 +214,14 @@ func TestScanColumn(t *testing.T) {
 	}
 	var i1, i2, i3 int
 	null := Must(s.ScanByIndex(0, &i1))
-	if null {
-		t.Errorf("Expected not null value")
-	} else if i1 != 1 {
-		t.Errorf("Expected 1 but got %d\n", i1)
-	}
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %d but got %d", 1, i1)
 	null = Must(s.ScanByIndex(1, &i2))
-	if !null {
-		t.Errorf("Expected null value")
-	} else if i2 != 0 {
-		t.Errorf("Expected 0 but got %d\n", i2)
-	}
+	assert(t, "expected null value", null)
+	assertEquals(t, "expected %d but got %d", 0, i2)
 	null = Must(s.ScanByIndex(2, &i3))
-	if null {
-		t.Errorf("Expected not null value")
-	} else if i3 != 0 {
-		t.Errorf("Expected 0 but got %d\n", i3)
-	}
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %d but got %d", 0, i3)
 }
 
 func TestNamedScanColumn(t *testing.T) {
@@ -297,23 +236,14 @@ func TestNamedScanColumn(t *testing.T) {
 	}
 	var i1, i2, i3 int
 	null := Must(s.ScanByName("i1", &i1))
-	if null {
-		t.Errorf("Expected not null value")
-	} else if i1 != 1 {
-		t.Errorf("Expected 1 but got %d\n", i1)
-	}
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %d but got %d", 1, i1)
 	null = Must(s.ScanByName("i2", &i2))
-	if !null {
-		t.Errorf("Expected null value")
-	} else if i2 != 0 {
-		t.Errorf("Expected 0 but got %d\n", i2)
-	}
+	assert(t, "expected null value", null)
+	assertEquals(t, "expected %d but got %d", 0, i2)
 	null = Must(s.ScanByName("i3", &i3))
-	if null {
-		t.Errorf("Expected not null value")
-	} else if i3 != 0 {
-		t.Errorf("Expected 0 but got %d\n", i3)
-	}
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %d but got %d", 0, i3)
 }
 
 func TestScanCheck(t *testing.T) {
@@ -329,15 +259,9 @@ func TestScanCheck(t *testing.T) {
 	var i int
 	_, err = s.ScanByIndex(0, &i)
 	if serr, ok := err.(*StmtError); ok {
-		if serr.Filename() != "" {
-			t.Errorf("Expected '' but got '%s'", serr.Filename())
-		}
-		if serr.Code() != ErrSpecific {
-			t.Errorf("Expected %s but got %s", ErrSpecific, serr.Code())
-		}
-		if serr.SQL() != s.SQL() {
-			t.Errorf("Expected %s but got %s", s.SQL(), serr.SQL())
-		}
+		assertEquals(t, "expected %q but got %q", "", serr.Filename())
+		assertEquals(t, "expected %q but got %q", ErrSpecific, serr.Code())
+		assertEquals(t, "expected %q but got %q", s.SQL(), serr.SQL())
 	} else {
 		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
 	}
@@ -366,18 +290,12 @@ func TestScanNull(t *testing.T) {
 	}
 	var pi *int
 	null := Must(s.ScanByIndex(0, &pi))
-	if !null {
-		t.Errorf("Expected null value")
-	} else if pi != nil {
-		t.Errorf("Expected nil but got %p\n", pi)
-	}
+	assert(t, "expected null value", null)
+	assertEquals(t, "expected nil (%p) but got %p", (*int)(nil), pi)
 	var ps *string
 	null = Must(s.ScanByIndex(0, &ps))
-	if !null {
-		t.Errorf("Expected null value")
-	} else if ps != nil {
-		t.Errorf("Expected nil but got %p\n", ps)
-	}
+	assert(t, "expected null value", null)
+	assertEquals(t, "expected nil (%p) but got %p", (*string)(nil), ps)
 }
 
 func TestCloseTwice(t *testing.T) {
@@ -399,11 +317,18 @@ func TestStmtMisuse(t *testing.T) {
 	defer db.Close()
 
 	s, err := db.Prepare("MISUSE")
-	if s != nil || err == nil {
-		t.Error("error expected")
-	}
+	assert(t, "error expected", s == nil && err != nil)
 	err = s.Finalize()
-	if err == nil {
-		t.Error("error expected")
+	assert(t, "error expected", err != nil)
+}
+
+func assertEquals(t *testing.T, format string, expected, actual interface{}) {
+	if expected != actual {
+		t.Errorf(format, expected, actual)
+	}
+}
+func assert(t *testing.T, msg string, actual bool) {
+	if !actual {
+		t.Error(msg)
 	}
 }
