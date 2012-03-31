@@ -149,6 +149,7 @@ func BenchmarkLike(b *testing.B) {
 	defer db.Close()
 	randomFill(db, 1)
 	cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -164,6 +165,7 @@ func BenchmarkHalf(b *testing.B) {
 	randomFill(db, 1)
 	db.CreateScalarFunction("half", 1, nil, half, nil)
 	cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -179,6 +181,7 @@ func BenchmarkRegexp(b *testing.B) {
 	randomFill(db, 1)
 	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 	cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp '(?i)\\blisa\\b'")
+	defer cs.Finalize()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
