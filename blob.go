@@ -29,28 +29,11 @@ type BlobReadWriter struct {
 }
 
 // Zeroblobs are used to reserve space for a BLOB that is later written.
-//
-// Example:
-//	s, err := db.Prepare("INSERT INTO test VALUES (?)")
-//	// check err
-//	defer s.Finalize()
-//	err = s.Exec(ZeroBlobLength(10))
-//	// check err
 type ZeroBlobLength int
 
 // Open a BLOB for incremental I/O
-// Example:
-//	br, err := db.NewBlobReader("db_name", "table_name", "column_name", rowid)
-//  // check err
-//	defer br.Close()
-//	size, err := br.Size()
-//  // check err
-//	content = make([]byte, size)
-//	n, err = br.Read(content)
-//  // check err
 //
 // (See http://sqlite.org/c3ref/blob_open.html)
-// TODO A real 'incremental' example...
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
 	bl, err := c.blob_open(db, table, column, row, false)
 	if err != nil {

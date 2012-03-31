@@ -18,18 +18,6 @@ import (
 
 // Backup/Copy the content of one database (source) to another (destination).
 // The database name is "main", "temp", or the name specified in an ATTACH statement.
-// Example:
-//	bck, err := sqlite.NewBackup(dst, "main", src, "main")
-//	// check err
-//	cbs := make(chan sqlite.BackupStatus)
-//	go func() {
-//		for {
-//			s := <- cbs
-//			// report progress
-//		}
-//	}()
-//	err = bck.Run(100, 250000, cbs)
-//	check(err)
 //
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
 func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backup, error) {
@@ -97,6 +85,9 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 	if err != Done {
 		b.Close()
 	} else {
+		if c != nil {
+			c <- b.Status()
+		}
 		err = b.Close()
 	}
 	if err != nil && err != Done {

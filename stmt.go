@@ -111,13 +111,6 @@ func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 
 // First look in the statement cache or compile the SQL statement.
 // And optionally bind values.
-// Example:
-//	stmt, err := db.Prepare("SELECT 1 where 1 = ?", 1)
-//	if err != nil {
-//		...
-//	}
-//	defer stmt.Finalize()
-//
 // (See sqlite3_prepare_v2: http://sqlite.org/c3ref/prepare.html)
 func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	s := c.stmtCache.find(cmd)
@@ -448,21 +441,7 @@ func (s *Stmt) ColumnType(index int) Type {
 	return Type(C.sqlite3_column_type(s.stmt, C.int(index)))
 }
 
-// Scan result values from a query by name (name1, value1, ...)
-// Example:
-//	stmt, err := db.Prepare("SELECT 1 as id, 'test' as name")
-//	// TODO error handling
-//	defer stmt.Finalize()
-//	var id int
-//	var name string
-//  err = s.Select(func(s *Stmt) (err error) {
-//		if err = stmt.NamedScan("name", &name, "id", &id); err != nil {
-//			return
-//      }
-//		fmt.Println(id, name)
-//  	return
-//  })
-//	// TODO error handling
+// Scan result values from a query by name (name1, value1, ...).
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
@@ -489,21 +468,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 	return nil
 }
 
-// Scan result values from a query
-// Example:
-//	stmt, err := db.Prepare("SELECT 1, 'test'")
-//	// TODO error handling
-//	defer stmt.Finalize()
-//	var id int
-//	var name string
-//  err = s.Select(func(s *Stmt) error {
-//		if err = stmt.Scan(&id, &name); err != nil {
-//			return
-//      }
-//		fmt.Println(id, name)
-//  	return
-//  })
-//	// TODO error handling
+// Scan result values from a query.
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // To avoid NULL conversion, arg type must be **T

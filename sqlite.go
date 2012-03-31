@@ -3,31 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Package sqlite provides access to the SQLite library, version 3.
-//
-// Simple example:
-//	db, err := sqlite.Open("/path/to/db")
-//	if err != nil {
-//		...
-//	}
-//	defer db.Close()
-//  err = db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL UNIQUE); -- ... and other ddls separated by semi-colon")
-//  ...
-//  ins, err := db.Prepare("INSERT INTO test (name) VALUES (?)")
-//  if err != nil {
-//    ...
-//	}
-//	defer ins.Finalize()
-//  rowId, err := ins.Insert("Bart")
-//  ...
-//	s, err := db.Prepare("SELECT name from test WHERE name like ?", "%a%")
-//  ...
-//  defer s.Finalize()
-//  var name string
-//  err = s.Select(func(s *Stmt) (err error) {
-//		err = s.Scan(&name)
-//      ...
-//		fmt.Printf("%s\n", name)
-//	})
 package sqlite
 
 /*
@@ -221,13 +196,6 @@ const (
 // ":memory:" for memory db
 // "" for temp file db
 //
-// Example:
-//	db, err := sqlite.Open(":memory:")
-//	if err != nil {
-//		...
-//	}
-//	defer db.Close()
-//
 // (See sqlite3_open_v2: http://sqlite.org/c3ref/open.html)
 func Open(filename string, flags ...OpenFlag) (*Conn, error) {
 	return OpenVfs(filename, "", flags...)
@@ -307,10 +275,6 @@ func (c *Conn) EnableExtendedResultCodes(b bool) error {
 
 // Prepare and execute one parameterized statement or many statements (separated by semi-colon).
 // Don't use it with SELECT or anything that returns data.
-//
-// Example:
-//	err := db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL); -- ...")
-//
 func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	for len(cmd) > 0 {
 		s, err := c.prepare(cmd)
