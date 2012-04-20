@@ -78,7 +78,7 @@ type Stmt struct {
 	params             map[string]int // cached parameter index by name
 	// Enable type check in Scan methods (default true)
 	CheckTypeMismatch bool
-	// Tell if the stmt should be cached (default false)
+	// Tell if the stmt should be cached (default true)
 	Cacheable bool
 }
 
@@ -203,6 +203,17 @@ func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error, args ...interface{
 		}
 	}
 	return nil
+}
+
+// Args are for scanning (not binding).
+// Returns false if there is no matching row.
+func (s *Stmt) SelectOneRow(args ...interface{}) (bool, error) {
+	if ok, err := s.Next(); err != nil {
+		return false, err
+	} else if !ok {
+		return false, nil
+	}
+	return true, s.Scan(args...)
 }
 
 // Number of SQL parameters
@@ -881,6 +892,7 @@ func (s *Stmt) finalize() error {
 	}
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
+		Log(int(rv), "error while finalizing Stmt")
 		return s.error(rv)
 	}
 	s.stmt = nil
