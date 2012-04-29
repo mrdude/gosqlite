@@ -22,7 +22,7 @@ const (
 )
 
 func sqlOpen(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", "")
+	db, err := sql.Open("sqlite3", ":memory:")
 	checkNoError(t, err, "Error opening database: %s")
 	return db
 }

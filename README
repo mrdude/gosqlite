@@ -3,6 +3,8 @@ Yet another SQLite binding based on:
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
 This binding implements the "database/sql/driver" interface.
 
+See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).
+
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
 Conn#Prepare can optionnaly #Bind as well.
@@ -44,7 +46,7 @@ Conn#GetAutocommit
 Conn#EnableLoadExtension/LoadExtension
 Conn#IntegrityCheck
 
-Stmt#Insert/ExecDml/Select
+Stmt#Insert/ExecDml/Select/SelectOneRow
 Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)
 Stmt#ClearBindings
 Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)

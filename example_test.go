@@ -16,7 +16,7 @@ func check(err error) {
 }
 
 func Example() {
-	db, err := sqlite.Open("") // path to db or "" for temp db
+	db, err := sqlite.Open(":memory:") // path to db or "" for temp db
 	check(err)
 	defer db.Close()
 	err = db.Exec("CREATE TABLE test(id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL UNIQUE); -- ... and other ddls separated by semi-colon")
@@ -44,12 +44,12 @@ func ExampleOpen() {
 	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
-	fmt.Printf("db path: %q\n", db.Filename)
-	// Output: db path: ":memory:"
+	fmt.Printf("db path: %q\n", db.Filename("main"))
+	// Output: db path: ""
 }
 
 func ExampleConn_Exec() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
 
@@ -62,7 +62,7 @@ func ExampleConn_Exec() {
 }
 
 func ExampleStmt_ExecDml() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
 	err = db.Exec("CREATE TABLE test (content TEXT); INSERT INTO test VALUES ('Go'); INSERT INTO test VALUES ('SQLite')")
@@ -78,7 +78,7 @@ func ExampleStmt_ExecDml() {
 }
 
 func ExampleStmt_Insert() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
 	err = db.Exec("CREATE TABLE test (content TEXT)")
@@ -99,7 +99,7 @@ func ExampleStmt_Insert() {
 }
 
 func ExampleStmt_NamedScan() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
 
@@ -121,7 +121,7 @@ func ExampleStmt_NamedScan() {
 }
 
 func ExampleStmt_Scan() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	defer db.Close()
 
@@ -143,10 +143,10 @@ func ExampleStmt_Scan() {
 }
 
 func ExampleNewBackup() {
-	dst, err := sqlite.Open("")
+	dst, err := sqlite.Open(":memory:")
 	check(err)
 	defer dst.Close()
-	src, err := sqlite.Open("")
+	src, err := sqlite.Open(":memory:")
 	check(err)
 	defer src.Close()
 	err = src.Exec("CREATE TABLE test (content BLOB); INSERT INTO test VALUES (zeroblob(100))")
@@ -172,7 +172,7 @@ func ExampleNewBackup() {
 }
 
 func ExampleConn_NewBlobReader() {
-	db, err := sqlite.Open("")
+	db, err := sqlite.Open(":memory:")
 	check(err)
 	err = db.Exec("CREATE TABLE test (content BLOB); INSERT INTO test VALUES (zeroblob(10))")
 	check(err)

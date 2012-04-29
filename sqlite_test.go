@@ -18,7 +18,7 @@ func checkNoError(t *testing.T, err error, format string) {
 }
 
 func open(t *testing.T) *Conn {
-	db, err := Open("", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX)
+	db, err := Open(":memory:", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX)
 	checkNoError(t, err, "couldn't open database file: %s")
 	if db == nil {
 		t.Fatal("opened database is nil")

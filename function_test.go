@@ -21,10 +21,9 @@ func half(ctx *ScalarContext, nArg int) {
 }
 
 func TestScalarFunction(t *testing.T) {
-	db, err := Open("")
-	checkNoError(t, err, "couldn't open database file: %s")
+	db := open(t)
 	defer db.Close()
-	err = db.CreateScalarFunction("half", 1, nil, half, nil)
+	err := db.CreateScalarFunction("half", 1, nil, half, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var d float64
 	err = db.OneValue("select half(6)", &d)
@@ -69,10 +68,9 @@ func reDestroy(ad interface{}) {
 }
 
 func TestRegexpFunction(t *testing.T) {
-	db, err := Open("")
-	checkNoError(t, err, "couldn't open database file: %s")
+	db := open(t)
 	defer db.Close()
-	err = db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+	err := db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
 	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
@@ -117,10 +115,9 @@ func sumFinal(ctx *AggregateContext) {
 }
 
 func TestSumFunction(t *testing.T) {
-	db, err := Open("")
-	checkNoError(t, err, "couldn't open database file: %s")
+	db := open(t)
 	defer db.Close()
-	err = db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
+	err := db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var i int
 	err = db.OneValue("select mysum(i) from (select 2 as i union all select 2)", &i)
@@ -145,7 +142,7 @@ func randomFill(db *Conn, n int) {
 
 func BenchmarkLike(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
 	cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
@@ -160,7 +157,7 @@ func BenchmarkLike(b *testing.B) {
 
 func BenchmarkHalf(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
 	db.CreateScalarFunction("half", 1, nil, half, nil)
@@ -176,7 +173,7 @@ func BenchmarkHalf(b *testing.B) {
 
 func BenchmarkRegexp(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
 	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)

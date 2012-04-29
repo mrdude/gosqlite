@@ -63,7 +63,7 @@ func TestEnabledCache(t *testing.T) {
 }
 
 func BenchmarkDisabledCache(b *testing.B) {
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	db.SetCacheSize(0)
 
@@ -79,7 +79,7 @@ func BenchmarkDisabledCache(b *testing.B) {
 }
 
 func BenchmarkEnabledCache(b *testing.B) {
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	db.SetCacheSize(10)
 

@@ -24,7 +24,7 @@ func fill(db *Conn, n int) {
 
 func BenchmarkValuesScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	fill(db, 1)
 
@@ -44,7 +44,7 @@ func BenchmarkValuesScan(b *testing.B) {
 
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	fill(db, 1)
 
@@ -67,7 +67,7 @@ func BenchmarkScan(b *testing.B) {
 
 func BenchmarkNamedScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	fill(db, 1)
 
@@ -89,13 +89,13 @@ func BenchmarkNamedScan(b *testing.B) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	fill(db, b.N)
 }
 
 func BenchmarkNamedInsert(b *testing.B) {
-	db, _ := Open("")
+	db, _ := Open(":memory:")
 	defer db.Close()
 	db.Exec("DROP TABLE IF EXISTS test")
 	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +

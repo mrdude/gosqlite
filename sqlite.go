@@ -43,7 +43,7 @@ func (e *ConnError) ExtendedCode() int {
 
 // Return Database file name from which the error comes from.
 func (e *ConnError) Filename() string {
-	return e.c.Filename
+	return e.c.Filename("main")
 }
 
 func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often redundant...
@@ -158,7 +158,6 @@ func (c *Conn) LastError() error {
 // Database connection handle
 type Conn struct {
 	db              *C.sqlite3
-	Filename        string
 	stmtCache       *cache
 	authorizer      *sqliteAuthorizer
 	busyHandler     *sqliteBusyHandler
@@ -233,7 +232,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
 	}
-	return &Conn{db: db, Filename: filename, stmtCache: newCache()}, nil
+	return &Conn{db: db, stmtCache: newCache()}, nil
 }
 
 // Set a busy timeout
@@ -271,6 +270,24 @@ func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, error) {
 // (See http://sqlite.org/c3ref/extended_result_codes.html)
 func (c *Conn) EnableExtendedResultCodes(b bool) error {
 	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)))
+}
+
+// (See http://sqlite.org/c3ref/db_readonly.html)
+func (c *Conn) Readonly(dbName string) (bool, error) {
+	cname := C.CString(dbName)
+	defer C.free(unsafe.Pointer(cname))
+	rv := C.sqlite3_db_readonly(c.db, cname)
+	if rv == -1 {
+		return false, c.error(C.SQLITE_ERROR, fmt.Sprintf("%q is not the name of a database", dbName))
+	}
+	return rv == 1, nil
+}
+
+// (See http://sqlite.org/c3ref/db_filename.html)
+func (c *Conn) Filename(dbName string) string {
+	cname := C.CString(dbName)
+	defer C.free(unsafe.Pointer(cname))
+	return C.GoString(C.sqlite3_db_filename(c.db, cname))
 }
 
 // Prepare and execute one parameterized statement or many statements (separated by semi-colon).
