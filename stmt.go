@@ -675,7 +675,7 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 	case Blob:
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
 	default:
 		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
 	}
@@ -792,7 +792,7 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 		isNull = true
 	} else {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
 	}
 	return
 }

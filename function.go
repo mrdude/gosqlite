@@ -237,7 +237,7 @@ func (c *Context) Blob(i int) (value []byte) {
 	p := C.my_value_blob(c.argv, C.int(i))
 	if p != nil {
 		n := C.my_value_bytes(c.argv, C.int(i))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[0:n]
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
 	}
 	return
 }
