@@ -125,4 +125,6 @@ func TestColumnMetadata(t *testing.T) {
 	assertEquals(t, "wrong table name: %q <> %q", "sqlite_master", tableName)
 	originName := s.ColumnOriginName(0)
 	assertEquals(t, "wrong origin name: %q <> %q", "name", originName)
+	declType := s.ColumnDeclaredType(0)
+	assertEquals(t, "wrong declared type: %q <> %q", "text", declType)
 }

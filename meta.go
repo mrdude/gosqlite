@@ -165,6 +165,12 @@ func (s *Stmt) ColumnOriginName(index int) string {
 	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index)))
 }
 
+// The left-most column is column 0
+// (See http://www.sqlite.org/c3ref/column_decltype.html)
+func (s *Stmt) ColumnDeclaredType(index int) string {
+	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
+}
+
 // See Conn.ForeignKeys
 type ForeignKey struct {
 	Table string
