@@ -9,10 +9,11 @@ import (
 )
 
 // Check database integrity
+// Database name is optional
 // (See http://www.sqlite.org/pragma.html#pragma_integrity_check
 // and http://www.sqlite.org/pragma.html#pragma_quick_check)
 // TODO Make possible to specify the database-name (PRAGMA %Q.integrity_check(.))
-func (c *Conn) IntegrityCheck(max int, quick bool) error {
+func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 	var pragma string
 	if quick {
 		pragma = "quick"
@@ -30,23 +31,23 @@ func (c *Conn) IntegrityCheck(max int, quick bool) error {
 	return nil
 }
 
+// Database name is optional
 // Returns the text encoding used by the main database
 // (See http://sqlite.org/pragma.html#pragma_encoding)
-// TODO Make possible to specify the database-name (PRAGMA %Q.encoding)
-func (c *Conn) Encoding() (string, error) {
+func (c *Conn) Encoding(dbName string) (string, error) {
 	var encoding string
-	err := c.OneValue("PRAGMA encoding", &encoding)
+	err := c.OneValue(pragma(dbName, "PRAGMA encoding", "PRAGMA %Q.encoding"), &encoding)
 	if err != nil {
 		return "", err
 	}
 	return encoding, nil
 }
 
+// Database name is optional
 // (See http://sqlite.org/pragma.html#pragma_schema_version)
-// TODO Make possible to specify the database-name (PRAGMA %Q.schema_version)
-func (c *Conn) SchemaVersion() (int, error) {
+func (c *Conn) SchemaVersion(dbName string) (int, error) {
 	var version int
-	err := c.OneValue("PRAGMA schema_version", &version)
+	err := c.OneValue(pragma(dbName, "PRAGMA schema_version", "PRAGMA %Q.schema_version"), &version)
 	if err != nil {
 		return -1, err
 	}
@@ -57,4 +58,11 @@ func (c *Conn) SchemaVersion() (int, error) {
 // TODO Make possible to specify the database-name (PRAGMA %Q.recursive_triggers=%)
 func (c *Conn) SetRecursiveTriggers(on bool) error {
 	return c.exec(fmt.Sprintf("PRAGMA recursive_triggers=%t", on))
+}
+
+func pragma(dbName, unqualified, qualified string) string {
+	if len(dbName) == 0 {
+		return unqualified
+	}
+	return Mprintf(qualified, dbName)
 }

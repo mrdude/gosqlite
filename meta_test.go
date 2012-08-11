@@ -33,11 +33,11 @@ func TestTables(t *testing.T) {
 	db := open(t)
 	defer db.Close()
 
-	tables, err := db.Tables()
+	tables, err := db.Tables("")
 	checkNoError(t, err, "error looking for tables: %s")
 	assertEquals(t, "expected %d table but got %d", 0, len(tables))
 	createTable(db, t)
-	tables, err = db.Tables()
+	tables, err = db.Tables("main")
 	checkNoError(t, err, "error looking for tables: %s")
 	assertEquals(t, "expected %d table but got %d", 1, len(tables))
 	assertEquals(t, "wrong table name: %q <> %q", "test", tables[0])
@@ -48,7 +48,7 @@ func TestColumns(t *testing.T) {
 	defer db.Close()
 	createTable(db, t)
 
-	columns, err := db.Columns("test")
+	columns, err := db.Columns("", "test")
 	checkNoError(t, err, "error listing columns: %s")
 	if len(columns) != 4 {
 		t.Fatalf("Expected 4 columns <> %d", len(columns))
@@ -77,7 +77,7 @@ func TestForeignKeys(t *testing.T) {
 		"CREATE TABLE child (id INTEGER PRIMARY KEY NOT NULL, parentId INTEGER, " +
 		"FOREIGN KEY (parentId) REFERENCES parent(id));")
 	checkNoError(t, err, "error creating tables: %s")
-	fks, err := db.ForeignKeys("child")
+	fks, err := db.ForeignKeys("", "child")
 	checkNoError(t, err, "error listing FKs: %s")
 	if len(fks) != 1 {
 		t.Fatalf("expected 1 FK <> %d", len(fks))
@@ -94,7 +94,7 @@ func TestIndexes(t *testing.T) {
 	createTable(db, t)
 	createIndex(db, t)
 
-	indexes, err := db.Indexes("test")
+	indexes, err := db.Indexes("", "test")
 	checkNoError(t, err, "error listing indexes: %s")
 	if len(indexes) != 1 {
 		t.Fatalf("Expected one index <> %d", len(indexes))
@@ -103,7 +103,7 @@ func TestIndexes(t *testing.T) {
 	assertEquals(t, "wrong index name: %q <> %q", "test_index", index.Name)
 	assert(t, "index 'test_index' is not unique", !index.Unique)
 
-	columns, err := db.IndexColumns("test_index")
+	columns, err := db.IndexColumns("", "test_index")
 	checkNoError(t, err, "error listing index columns: %s")
 	if len(columns) != 1 {
 		t.Fatalf("expected one column <> %d", len(columns))

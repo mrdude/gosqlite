@@ -42,7 +42,7 @@ type Backup struct {
 	dst, src *Conn
 }
 
-// Copy up to N pages between the source and destination databases
+// Step copies up to N pages between the source and destination databases
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
 func (b *Backup) Step(npage int) error {
 	if b == nil {
@@ -61,7 +61,7 @@ type BackupStatus struct {
 	PageCount int
 }
 
-// Return the number of pages still to be backed up and the total number of pages in the source database file.
+// Status returns the number of pages still to be backed up and the total number of pages in the source database file.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
 func (b *Backup) Status() BackupStatus {
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
@@ -96,7 +96,7 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 	return nil
 }
 
-// Finish/stop the backup
+// Close finishes/stops the backup
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
 func (b *Backup) Close() error {
 	if b == nil {

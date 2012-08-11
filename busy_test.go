@@ -51,7 +51,7 @@ func TestDefaultBusy(t *testing.T) {
 	checkNoError(t, db1.BeginTransaction(EXCLUSIVE), "couldn't begin transaction: %s")
 	defer db1.Rollback()
 
-	_, err := db2.SchemaVersion()
+	_, err := db2.SchemaVersion("")
 	if err == nil {
 		t.Fatalf("Expected lock but got %v", err)
 	}
@@ -75,7 +75,7 @@ func TestBusyTimeout(t *testing.T) {
 		//join <- true
 	}()
 
-	_, err := db2.SchemaVersion()
+	_, err := db2.SchemaVersion("")
 	checkNoError(t, err, "couldn't query schema version: %#v")
 	//<- join
 }
@@ -104,7 +104,7 @@ func TestBusyHandler(t *testing.T) {
 		db1.Rollback()
 	}()
 
-	_, err = db2.SchemaVersion()
+	_, err = db2.SchemaVersion("")
 	checkNoError(t, err, "couldn't query schema version: %#v")
 	assert(t, "busy handler not called!", called)
 }

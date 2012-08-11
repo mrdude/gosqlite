@@ -21,6 +21,7 @@ func init() {
 	}
 }
 
+// Adapter to database/sql/driver
 type Driver struct {
 }
 type connImpl struct {

@@ -86,7 +86,7 @@ func (c *cache) flush() {
 	}
 }
 
-// Return (current, max) sizes.
+// CacheSize returns (current, max) sizes.
 // Cache is turned off when max size is 0
 func (c *Conn) CacheSize() (int, int) {
 	if c.stmtCache.maxSize <= 0 {
@@ -95,6 +95,7 @@ func (c *Conn) CacheSize() (int, int) {
 	return c.stmtCache.l.Len(), c.stmtCache.maxSize
 }
 
+// SetCacheSize sets the size of prepared statements cache.
 // Cache is turned off (and flushed) when size <= 0
 func (c *Conn) SetCacheSize(size int) {
 	stmtCache := c.stmtCache

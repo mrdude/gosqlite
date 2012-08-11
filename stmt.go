@@ -311,7 +311,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		cstr := C.CString(value)
 		rv = C.my_bind_text(s.stmt, i, cstr, C.int(len(value)))
 		C.free(unsafe.Pointer(cstr))
-		//rv = C.my_bind_text(s.stmt, i, *((**C.char)(unsafe.Pointer(&value))), C.int(len(value)))
+		//rv = C.my_bind_text(s.stmt, i, (*C.char)(unsafe.Pointer(&value)), C.int(len(value)))
 	case int:
 		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
 	case int64:

@@ -12,6 +12,9 @@ package sqlite
 static char *my_mprintf(char *zFormat, char *arg) {
 	return sqlite3_mprintf(zFormat, arg);
 }
+static char *my_mprintf2(char *zFormat, char *arg1, char *arg2) {
+	return sqlite3_mprintf(zFormat, arg1, arg2);
+}
 
 // just to get ride of warning
 static int my_table_column_metadata(
@@ -57,9 +60,14 @@ func (c *Conn) Databases() (map[string]string, error) {
 }
 
 // Selects tables (no view) from 'sqlite_master' and filters system tables out.
-// TODO Make possible to specified the database name (main.sqlite_master)
-func (c *Conn) Tables() ([]string, error) {
-	s, err := c.prepare("SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'")
+func (c *Conn) Tables(dbName string) ([]string, error) {
+	var sql string
+	if len(dbName) == 0 {
+		sql = "SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%'"
+	} else {
+		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%%'", dbName)
+	}
+	s, err := c.prepare(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +97,14 @@ type Column struct {
 }
 
 // Executes pragma 'table_info'
-// TODO Make possible to specify the database-name (PRAGMA %Q.table_info(%Q))
-func (c *Conn) Columns(table string) ([]Column, error) {
-	s, err := c.prepare(Mprintf("PRAGMA table_info(%Q)", table))
+func (c *Conn) Columns(dbName, table string) ([]Column, error) {
+	var pragma string
+	if len(dbName) == 0 {
+		pragma = Mprintf("PRAGMA table_info(%Q)", table)
+	} else {
+		pragma = Mprintf2("PRAGMA %Q.table_info(%Q)", dbName, table)
+	}
+	s, err := c.prepare(pragma)
 	if err != nil {
 		return nil, err
 	}
@@ -142,9 +155,14 @@ type ForeignKey struct {
 }
 
 // Executes pragma 'foreign_key_list'
-// TODO Make possible to specify the database-name (PRAGMA %Q.foreign_key_list(%Q))
-func (c *Conn) ForeignKeys(table string) (map[int]*ForeignKey, error) {
-	s, err := c.prepare(Mprintf("PRAGMA foreign_key_list(%Q)", table))
+func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
+	var pragma string
+	if len(dbName) == 0 {
+		pragma = Mprintf("PRAGMA foreign_key_list(%Q)", table)
+	} else {
+		pragma = Mprintf2("PRAGMA %Q.foreign_key_list(%Q)", dbName, table)
+	}
+	s, err := c.prepare(pragma)
 	if err != nil {
 		return nil, err
 	}
@@ -179,9 +197,14 @@ type Index struct {
 }
 
 // Executes pragma 'index_list'
-// TODO Make possible to specify the database-name (PRAGMA %Q.index_list(%Q))
-func (c *Conn) Indexes(table string) ([]Index, error) {
-	s, err := c.prepare(Mprintf("PRAGMA index_list(%Q)", table))
+func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
+	var pragma string
+	if len(dbName) == 0 {
+		pragma = Mprintf("PRAGMA index_list(%Q)", table)
+	} else {
+		pragma = Mprintf2("PRAGMA %Q.index_list(%Q)", dbName, table)
+	}
+	s, err := c.prepare(pragma)
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +226,14 @@ func (c *Conn) Indexes(table string) ([]Index, error) {
 
 // Executes pragma 'index_info'
 // Only Column.Cid and Column.Name are specified. All other fields are unspecifed.
-func (c *Conn) IndexColumns(index string) ([]Column, error) {
-	s, err := c.prepare(Mprintf("PRAGMA index_info(%Q)", index))
+func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
+	var pragma string
+	if len(dbName) == 0 {
+		pragma = Mprintf("PRAGMA index_info(%Q)", index)
+	} else {
+		pragma = Mprintf2("PRAGMA %Q.index_info(%Q)", dbName, index)
+	}
+	s, err := c.prepare(pragma)
 	if err != nil {
 		return nil, err
 	}
@@ -231,6 +260,17 @@ func Mprintf(format string, arg string) string {
 	ca := C.CString(arg)
 	defer C.free(unsafe.Pointer(ca))
 	zSQL := C.my_mprintf(cf, ca)
+	defer C.sqlite3_free(unsafe.Pointer(zSQL))
+	return C.GoString(zSQL)
+}
+func Mprintf2(format string, arg1, arg2 string) string {
+	cf := C.CString(format)
+	defer C.free(unsafe.Pointer(cf))
+	ca1 := C.CString(arg1)
+	defer C.free(unsafe.Pointer(ca1))
+	ca2 := C.CString(arg2)
+	defer C.free(unsafe.Pointer(ca2))
+	zSQL := C.my_mprintf2(cf, ca1, ca2)
 	defer C.sqlite3_free(unsafe.Pointer(zSQL))
 	return C.GoString(zSQL)
 }
