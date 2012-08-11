@@ -111,3 +111,18 @@ func TestIndexes(t *testing.T) {
 	column := columns[0]
 	assertEquals(t, "Wrong column name: %q <> %q", "a_string", column.Name)
 }
+
+func TestColumnMetadata(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	s, err := db.Prepare("SELECT name AS table_name FROM sqlite_master")
+	check(err)
+	defer s.Finalize()
+
+	databaseName := s.ColumnDatabaseName(0)
+	assertEquals(t, "wrong database name: %q <> %q", "main", databaseName)
+	tableName := s.ColumnTableName(0)
+	assertEquals(t, "wrong table name: %q <> %q", "sqlite_master", tableName)
+	originName := s.ColumnOriginName(0)
+	assertEquals(t, "wrong origin name: %q <> %q", "name", originName)
+}

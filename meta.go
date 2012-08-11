@@ -147,6 +147,24 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 		autoinc == 1, C.GoString(zCollSeq)}, nil
 }
 
+// The left-most column is column 0
+// (See http://www.sqlite.org/c3ref/column_database_name.html)
+func (s *Stmt) ColumnDatabaseName(index int) string {
+	return C.GoString(C.sqlite3_column_database_name(s.stmt, C.int(index)))
+}
+
+// The left-most column is column 0
+// (See http://www.sqlite.org/c3ref/column_database_name.html)
+func (s *Stmt) ColumnTableName(index int) string {
+	return C.GoString(C.sqlite3_column_table_name(s.stmt, C.int(index)))
+}
+
+// The left-most column is column 0
+// (See http://www.sqlite.org/c3ref/column_database_name.html)
+func (s *Stmt) ColumnOriginName(index int) string {
+	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index)))
+}
+
 // See Conn.ForeignKeys
 type ForeignKey struct {
 	Table string
