@@ -56,6 +56,16 @@ func TestEnableFKey(t *testing.T) {
 	}
 }
 
+func TestEnableTriggers(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	b := Must(db.AreTriggersEnabled())
+	if !b {
+		b = Must(db.EnableTriggers(true))
+		assert(t, "cannot enabled triggers", b)
+	}
+}
+
 func TestEnableExtendedResultCodes(t *testing.T) {
 	db := open(t)
 	defer db.Close()

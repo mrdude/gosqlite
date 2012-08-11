@@ -247,7 +247,7 @@ func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
 func (c *Conn) EnableFKey(b bool) (bool, error) {
-	return c.queryOrSetEnableFKey(btocint(b))
+	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_FKEY, btocint(b))
 }
 
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
@@ -255,9 +255,25 @@ func (c *Conn) EnableFKey(b bool) (bool, error) {
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
 func (c *Conn) IsFKeyEnabled() (bool, error) {
-	return c.queryOrSetEnableFKey(-1)
+	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_FKEY, -1)
 }
-func (c *Conn) queryOrSetEnableFKey(i C.int) (bool, error) {
+
+// Enable or disable triggers
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, b)
+//
+// (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
+func (c *Conn) EnableTriggers(b bool) (bool, error) {
+	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_TRIGGER, btocint(b))
+}
+
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, -1)
+//
+// (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
+func (c *Conn) AreTriggersEnabled() (bool, error) {
+	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_TRIGGER, -1)
+}
+
+func (c *Conn) queryOrSetEnableDbConfig(key, i C.int) (bool, error) {
 	var ok C.int
 	rv := C.my_db_config(c.db, C.SQLITE_DBCONFIG_ENABLE_FKEY, i, &ok)
 	if rv == C.SQLITE_OK {
