@@ -20,6 +20,7 @@ static void my_log(int iErrCode, char *msg) {
 }
 
 int goSqlite3ConfigLog(void *udp);
+int goSqlite3ConfigThreadMode(int mode);
 */
 import "C"
 
@@ -296,6 +297,23 @@ func ConfigLog(f Logger, udp interface{}) error {
 		logger = &sqliteLogger{f, udp}
 		rv = C.goSqlite3ConfigLog(unsafe.Pointer(logger))
 	}
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	return Errno(rv)
+}
+
+type ThreadMode int
+
+const (
+	SINGLETHREAD ThreadMode = C.SQLITE_CONFIG_SINGLETHREAD
+	MULTITHREAD  ThreadMode = C.SQLITE_CONFIG_MULTITHREAD
+	SERIALIZED   ThreadMode = C.SQLITE_CONFIG_SERIALIZED
+)
+
+// (See sqlite3_config(SQLITE_CONFIG_SINGLETHREAD|SQLITE_CONFIG_MULTITHREAD|SQLITE_CONFIG_SERIALIZED): http://sqlite.org/c3ref/config.html)
+func ConfigThreadMode(mode ThreadMode) error {
+	rv := C.goSqlite3ConfigThreadMode(C.int(mode))
 	if rv == C.SQLITE_OK {
 		return nil
 	}

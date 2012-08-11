@@ -10,6 +10,13 @@ import (
 	"testing"
 )
 
+func init() {
+	err := ConfigThreadMode(SERIALIZED)
+	if err != nil {
+		panic(fmt.Sprintf("cannot change thread mode: '%s'", err))
+	}
+}
+
 func trace(d interface{}, sql string) {
 	if t, ok := d.(*testing.T); ok {
 		t.Logf("TRACE: %s\n", sql)
