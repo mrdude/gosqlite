@@ -11,9 +11,13 @@ import (
 )
 
 func init() {
-	err := ConfigThreadMode(SERIALIZED)
+	err := ConfigThreadingMode(SERIALIZED)
 	if err != nil {
-		panic(fmt.Sprintf("cannot change thread mode: '%s'", err))
+		panic(fmt.Sprintf("cannot change threading mode: '%s'", err))
+	}
+	err = ConfigMemStatus(true)
+	if err != nil {
+		panic(fmt.Sprintf("cannot activate mem status: '%s'", err))
 	}
 }
 

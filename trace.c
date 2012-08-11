@@ -49,3 +49,7 @@ int goSqlite3ConfigLog(void *udp) {
 int goSqlite3ConfigThreadMode(int mode) {
 	return sqlite3_config(mode);
 }
+
+int goSqlite3Config(int op, int mode) {
+	return sqlite3_config(op, mode);
+}
