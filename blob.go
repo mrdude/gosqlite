@@ -134,3 +134,11 @@ func (r *BlobReader) Reopen(rowid int64) error {
 	r.ReadOffset = 0
 	return nil
 }
+
+func (w *BlobReadWriter) Reopen(rowid int64) error {
+	if err := w.BlobReader.Reopen(rowid); err != nil {
+		return err
+	}
+	w.WriteOffset = 0
+	return nil
+}

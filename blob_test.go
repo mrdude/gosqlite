@@ -37,10 +37,15 @@ func TestBlob(t *testing.T) {
 	defer br.Close()
 	size, err := br.Size()
 	checkNoError(t, err, "blob size error: %s")
+
 	content = make([]byte, size)
-	n, err = br.Read(content)
+	n, err = br.Read(content[:5])
 	checkNoError(t, err, "blob read error: %s")
-	assertEquals(t, "expected %d bytes but got %d", 10, n)
+	assertEquals(t, "expected %d bytes but got %d", 5, n)
+
+	n, err = br.Read(content[5:])
+	checkNoError(t, err, "blob read error: %s")
+	assertEquals(t, "expected %d bytes but got %d", 5, n)
 	//fmt.Printf("%#v\n", content)
 	br.Close()
 }
