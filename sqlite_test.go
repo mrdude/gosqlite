@@ -18,7 +18,7 @@ func checkNoError(t *testing.T, err error, format string) {
 }
 
 func open(t *testing.T) *Conn {
-	db, err := Open(":memory:", OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX)
+	db, err := Open(":memory:", OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "couldn't open database file: %s")
 	if db == nil {
 		t.Fatal("opened database is nil")
@@ -211,9 +211,9 @@ func TestInsertWithStatement(t *testing.T) {
 		assertEquals(t, "expected %d but got %d", int64(1), inum)
 		assertEquals(t, "expected %q but got %q", "hello", sstr)
 	}
-	assert(t, "expected full scan", 999 == rs.Status(STMTSTATUS_FULLSCAN_STEP, false))
-	assert(t, "expected one sort", 1 == rs.Status(STMTSTATUS_SORT, false))
-	assert(t, "expected no auto index", 0 == rs.Status(STMTSTATUS_AUTOINDEX, false))
+	assert(t, "expected full scan", 999 == rs.Status(StmtStatusFullScanStep, false))
+	assert(t, "expected one sort", 1 == rs.Status(StmtStatusSort, false))
+	assert(t, "expected no auto index", 0 == rs.Status(StmtStatusAutoIndex, false))
 }
 
 func TestScanColumn(t *testing.T) {

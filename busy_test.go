@@ -36,9 +36,9 @@ func TestInterrupt(t *testing.T) {
 func openTwoConnSameDb(t *testing.T) (*os.File, *Conn, *Conn) {
 	f, err := ioutil.TempFile("", "gosqlite-test")
 	checkNoError(t, f.Close(), "couldn't close temp file: %s")
-	db1, err := Open(f.Name(), OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX)
+	db1, err := Open(f.Name(), OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "couldn't open database file: %s")
-	db2, err := Open(f.Name(), OPEN_READWRITE, OPEN_CREATE, OPEN_FULLMUTEX)
+	db2, err := Open(f.Name(), OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "couldn't open database file: %s")
 	return f, db1, db2
 }
@@ -48,7 +48,7 @@ func TestDefaultBusy(t *testing.T) {
 	defer os.Remove(f.Name())
 	defer db1.Close()
 	defer db2.Close()
-	checkNoError(t, db1.BeginTransaction(EXCLUSIVE), "couldn't begin transaction: %s")
+	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 	defer db1.Rollback()
 
 	_, err := db2.SchemaVersion("")
@@ -65,7 +65,7 @@ func TestBusyTimeout(t *testing.T) {
 	defer os.Remove(f.Name())
 	defer db1.Close()
 	defer db2.Close()
-	checkNoError(t, db1.BeginTransaction(EXCLUSIVE), "couldn't begin transaction: %s")
+	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 
 	//join := make(chan bool)
 	checkNoError(t, db2.BusyTimeout(500), "couldn't set busy timeout: %s")
@@ -96,7 +96,7 @@ func TestBusyHandler(t *testing.T) {
 		return true
 	}, &called)
 
-	checkNoError(t, db1.BeginTransaction(EXCLUSIVE), "couldn't begin transaction: %s")
+	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 
 	go func() {
 		time.Sleep(time.Millisecond)

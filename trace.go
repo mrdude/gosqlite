@@ -85,48 +85,48 @@ func (c *Conn) Profile(f Profiler, udp interface{}) {
 type Auth int
 
 const (
-	AUTH_OK     Auth = C.SQLITE_OK
-	AUTH_DENY   Auth = C.SQLITE_DENY
-	AUTH_IGNORE Auth = C.SQLITE_IGNORE
+	AuthOk     Auth = C.SQLITE_OK
+	AuthDeny   Auth = C.SQLITE_DENY
+	AuthIgnore Auth = C.SQLITE_IGNORE
 )
 
 // Authorizer action codes
 type Action int
 
 const (
-	CREATE_INDEX        Action = C.SQLITE_CREATE_INDEX
-	CREATE_TABLE        Action = C.SQLITE_CREATE_TABLE
-	CREATE_TEMP_INDEX   Action = C.SQLITE_CREATE_TEMP_INDEX
-	CREATE_TEMP_TABLE   Action = C.SQLITE_CREATE_TEMP_TABLE
-	CREATE_TEMP_TRIGGER Action = C.SQLITE_CREATE_TEMP_TRIGGER
-	CREATE_TEMP_VIEW    Action = C.SQLITE_CREATE_TEMP_VIEW
-	CREATE_TRIGGER      Action = C.SQLITE_CREATE_TRIGGER
-	CREATE_VIEW         Action = C.SQLITE_CREATE_VIEW
-	DELETE              Action = C.SQLITE_DELETE
-	DROP_INDEX          Action = C.SQLITE_DROP_INDEX
-	DROP_TABLE          Action = C.SQLITE_DROP_TABLE
-	DROP_TEMP_INDEX     Action = C.SQLITE_DROP_TEMP_INDEX
-	DROP_TEMP_TABLE     Action = C.SQLITE_DROP_TEMP_TABLE
-	DROP_TEMP_TRIGGER   Action = C.SQLITE_DROP_TEMP_TRIGGER
-	DROP_TEMP_VIEW      Action = C.SQLITE_DROP_TEMP_VIEW
-	DROP_TRIGGER        Action = C.SQLITE_DROP_TRIGGER
-	DROP_VIEW           Action = C.SQLITE_DROP_VIEW
-	INSERT              Action = C.SQLITE_INSERT
-	PRAGMA              Action = C.SQLITE_PRAGMA
-	READ                Action = C.SQLITE_READ
-	SELECT              Action = C.SQLITE_SELECT
-	TRANSACTION         Action = C.SQLITE_TRANSACTION
-	UPDATE              Action = C.SQLITE_UPDATE
-	ATTACH              Action = C.SQLITE_ATTACH
-	DETACH              Action = C.SQLITE_DETACH
-	ALTER_TABLE         Action = C.SQLITE_ALTER_TABLE
-	REINDEX             Action = C.SQLITE_REINDEX
-	ANALYZE             Action = C.SQLITE_ANALYZE
-	CREATE_VTABLE       Action = C.SQLITE_CREATE_VTABLE
-	DROP_VTABLE         Action = C.SQLITE_DROP_VTABLE
-	FUNCTION            Action = C.SQLITE_FUNCTION
-	SAVEPOINT           Action = C.SQLITE_SAVEPOINT
-	COPY                Action = C.SQLITE_COPY
+	CreateIndex       Action = C.SQLITE_CREATE_INDEX
+	CreateTable       Action = C.SQLITE_CREATE_TABLE
+	CreateTempIndex   Action = C.SQLITE_CREATE_TEMP_INDEX
+	CreateTempTable   Action = C.SQLITE_CREATE_TEMP_TABLE
+	CreateTempTrigger Action = C.SQLITE_CREATE_TEMP_TRIGGER
+	CreateTempView    Action = C.SQLITE_CREATE_TEMP_VIEW
+	CreateTrigger     Action = C.SQLITE_CREATE_TRIGGER
+	CreateView        Action = C.SQLITE_CREATE_VIEW
+	Delete            Action = C.SQLITE_DELETE
+	DropIndex         Action = C.SQLITE_DROP_INDEX
+	DropTable         Action = C.SQLITE_DROP_TABLE
+	DropTempIndex     Action = C.SQLITE_DROP_TEMP_INDEX
+	DropTempTable     Action = C.SQLITE_DROP_TEMP_TABLE
+	DropTempTrigger   Action = C.SQLITE_DROP_TEMP_TRIGGER
+	DropTempView      Action = C.SQLITE_DROP_TEMP_VIEW
+	DropTrigger       Action = C.SQLITE_DROP_TRIGGER
+	DropView          Action = C.SQLITE_DROP_VIEW
+	Insert            Action = C.SQLITE_INSERT
+	Pragma            Action = C.SQLITE_PRAGMA
+	Read              Action = C.SQLITE_READ
+	Select            Action = C.SQLITE_SELECT
+	Transaction       Action = C.SQLITE_TRANSACTION
+	Update            Action = C.SQLITE_UPDATE
+	Attach            Action = C.SQLITE_ATTACH
+	Detach            Action = C.SQLITE_DETACH
+	AlterTable        Action = C.SQLITE_ALTER_TABLE
+	Reindex           Action = C.SQLITE_REINDEX
+	Analyze           Action = C.SQLITE_ANALYZE
+	CreateVTable      Action = C.SQLITE_CREATE_VTABLE
+	DropVTable        Action = C.SQLITE_DROP_VTABLE
+	Function          Action = C.SQLITE_FUNCTION
+	Savepoint         Action = C.SQLITE_SAVEPOINT
+	Copy              Action = C.SQLITE_COPY
 )
 
 // See Conn.SetAuthorizer
@@ -218,9 +218,9 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
 type StmtStatus int
 
 const (
-	STMTSTATUS_FULLSCAN_STEP StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
-	STMTSTATUS_SORT          StmtStatus = C.SQLITE_STMTSTATUS_SORT
-	STMTSTATUS_AUTOINDEX     StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
+	StmtStatusFullScanStep StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
+	StmtStatusSort         StmtStatus = C.SQLITE_STMTSTATUS_SORT
+	StmtStatusAutoIndex    StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
 )
 
 // Return the value of a status counter for a prepared statement
@@ -307,9 +307,9 @@ func ConfigLog(f Logger, udp interface{}) error {
 type ThreadingMode int
 
 const (
-	SINGLETHREAD ThreadingMode = C.SQLITE_CONFIG_SINGLETHREAD
-	MULTITHREAD  ThreadingMode = C.SQLITE_CONFIG_MULTITHREAD
-	SERIALIZED   ThreadingMode = C.SQLITE_CONFIG_SERIALIZED
+	SingleThread ThreadingMode = C.SQLITE_CONFIG_SINGLETHREAD
+	MultiThread  ThreadingMode = C.SQLITE_CONFIG_MULTITHREAD
+	Serialized   ThreadingMode = C.SQLITE_CONFIG_SERIALIZED
 )
 
 // Alters threading mode

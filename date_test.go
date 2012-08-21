@@ -11,7 +11,7 @@ import (
 )
 
 func TestJulianDay(t *testing.T) {
-	utc := JulianDayToUTC(JULIAN_DAY)
+	utc := JulianDayToUTC(2440587.5)
 	if utc.Unix() != 0 {
 		t.Errorf("Error, expecting %d got %d", 0, utc.Unix())
 	}

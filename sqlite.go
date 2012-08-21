@@ -181,14 +181,14 @@ func Version() string {
 type OpenFlag int
 
 const (
-	OPEN_READONLY     OpenFlag = C.SQLITE_OPEN_READONLY
-	OPEN_READWRITE    OpenFlag = C.SQLITE_OPEN_READWRITE
-	OPEN_CREATE       OpenFlag = C.SQLITE_OPEN_CREATE
-	OPEN_URI          OpenFlag = C.SQLITE_OPEN_URI
-	OPEN_NOMUTEX      OpenFlag = C.SQLITE_OPEN_NOMUTEX
-	OPEN_FULLMUTEX    OpenFlag = C.SQLITE_OPEN_FULLMUTEX
-	OPEN_SHAREDCACHE  OpenFlag = C.SQLITE_OPEN_SHAREDCACHE
-	OPEN_PRIVATECACHE OpenFlag = C.SQLITE_OPEN_PRIVATECACHE
+	OpenReadOnly     OpenFlag = C.SQLITE_OPEN_READONLY
+	OpenReadWrite    OpenFlag = C.SQLITE_OPEN_READWRITE
+	OpenCreate       OpenFlag = C.SQLITE_OPEN_CREATE
+	OpenUri          OpenFlag = C.SQLITE_OPEN_URI
+	OpenNoMutex      OpenFlag = C.SQLITE_OPEN_NOMUTEX
+	OpenFullMutex    OpenFlag = C.SQLITE_OPEN_FULLMUTEX
+	OpenSharedCache  OpenFlag = C.SQLITE_OPEN_SHAREDCACHE
+	OpenPrivateCache OpenFlag = C.SQLITE_OPEN_PRIVATECACHE
 )
 
 // Open a new database connection.
@@ -406,22 +406,22 @@ func (c *Conn) GetAutocommit() bool {
 type TransactionType int
 
 const (
-	DEFERRED  TransactionType = 0
-	IMMEDIATE TransactionType = 1
-	EXCLUSIVE TransactionType = 2
+	Deferred  TransactionType = 0
+	Immediate TransactionType = 1
+	Exclusive TransactionType = 2
 )
 
 // Begin transaction in deferred mode
 func (c *Conn) Begin() error {
-	return c.BeginTransaction(DEFERRED)
+	return c.BeginTransaction(Deferred)
 }
 
 func (c *Conn) BeginTransaction(t TransactionType) error {
-	if t == DEFERRED {
+	if t == Deferred {
 		return c.exec("BEGIN")
-	} else if t == IMMEDIATE {
+	} else if t == Immediate {
 		return c.exec("BEGIN IMMEDIATE")
-	} else if t == EXCLUSIVE {
+	} else if t == Exclusive {
 		return c.exec("BEGIN EXCLUSIVE")
 	}
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))

@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	err := ConfigThreadingMode(SERIALIZED)
+	err := ConfigThreadingMode(Serialized)
 	if err != nil {
 		panic(fmt.Sprintf("cannot change threading mode: '%s'", err))
 	}
@@ -35,7 +35,7 @@ func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName st
 	} else {
 		fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
 	}
-	return AUTH_OK
+	return AuthOk
 }
 
 func profile(d interface{}, sql string, nanoseconds uint64) {
