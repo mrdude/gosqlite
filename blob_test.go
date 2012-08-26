@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	. "github.com/gwenn/gosqlite"
+	"io"
 	"testing"
 )
 
@@ -31,6 +32,7 @@ func TestBlob(t *testing.T) {
 	content := []byte("Clob")
 	n, err := bw.Write(content)
 	checkNoError(t, err, "blob write error: %s")
+	bw.Close()
 
 	br, err := db.NewBlobReader("main", "test", "content", rowid)
 	checkNoError(t, err, "blob open error: %s")
@@ -38,7 +40,7 @@ func TestBlob(t *testing.T) {
 	size, err := br.Size()
 	checkNoError(t, err, "blob size error: %s")
 
-	content = make([]byte, size)
+	content = make([]byte, size+5)
 	n, err = br.Read(content[:5])
 	checkNoError(t, err, "blob read error: %s")
 	assertEquals(t, "expected %d bytes but got %d", 5, n)
@@ -47,6 +49,9 @@ func TestBlob(t *testing.T) {
 	checkNoError(t, err, "blob read error: %s")
 	assertEquals(t, "expected %d bytes but got %d", 5, n)
 	//fmt.Printf("%#v\n", content)
+
+	n, err = br.Read(content[10:])
+	assert(t, "error expected", n == 0 && err == io.EOF)
 	br.Close()
 }
 
