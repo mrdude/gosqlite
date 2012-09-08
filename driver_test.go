@@ -124,3 +124,22 @@ func TestSqlPrepare(t *testing.T) {
 	_, err = stmt.Exec("Bart")
 	checkNoError(t, err, "Error while executing stmt: %s")
 }
+
+func TestRowsWithStmtClosed(t *testing.T) {
+	db := sqlCreate(ddl+dml, t)
+	defer db.Close()
+
+	stmt, err := db.Prepare(query)
+	checkNoError(t, err, "Error while preparing stmt: %s")
+	//defer stmt.Close()
+
+	rows, err := stmt.Query("%")
+	stmt.Close()
+	defer rows.Close()
+	var id int
+	var name string
+	for rows.Next() {
+		err = rows.Scan(&id, &name)
+		checkNoError(t, err, "Error while scanning: %s")
+	}
+}

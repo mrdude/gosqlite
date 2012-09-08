@@ -7,6 +7,7 @@ package sqlite
 import (
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -28,10 +29,12 @@ type connImpl struct {
 	c *Conn
 }
 type stmtImpl struct {
-	s *Stmt
+	s            *Stmt
+	rowsRef      bool // true if there is a rowsImpl associated to this statement that has not been closed.
+	pendingClose bool
 }
 type rowsImpl struct {
-	s           *Stmt
+	s           *stmtImpl
 	columnNames []string // cache
 }
 
@@ -73,7 +76,7 @@ func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &stmtImpl{s}, nil
+	return &stmtImpl{s: s}, nil
 }
 
 func (c *connImpl) Close() error {
@@ -95,6 +98,10 @@ func (c *connImpl) Rollback() error {
 }
 
 func (s *stmtImpl) Close() error {
+	if s.rowsRef { // Currently, it never happens because the sql.Stmt doesn't call driver.Stmt in this case
+		s.pendingClose = true
+		return nil
+	}
 	return s.s.Finalize()
 }
 
@@ -123,10 +130,14 @@ func (s *stmtImpl) RowsAffected() (int64, error) {
 }
 
 func (s *stmtImpl) Query(args []driver.Value) (driver.Rows, error) {
+	if s.rowsRef {
+		return nil, errors.New("Previously returned Rows still not closed")
+	}
 	if err := s.bind(args); err != nil {
 		return nil, err
 	}
-	return &rowsImpl{s.s, nil}, nil
+	s.rowsRef = true
+	return &rowsImpl{s, nil}, nil
 }
 
 func (s *stmtImpl) bind(args []driver.Value) error {
@@ -140,13 +151,13 @@ func (s *stmtImpl) bind(args []driver.Value) error {
 
 func (r *rowsImpl) Columns() []string {
 	if r.columnNames == nil {
-		r.columnNames = r.s.ColumnNames()
+		r.columnNames = r.s.s.ColumnNames()
 	}
 	return r.columnNames
 }
 
 func (r *rowsImpl) Next(dest []driver.Value) error {
-	ok, err := r.s.Next()
+	ok, err := r.s.s.Next()
 	if err != nil {
 		return err
 	}
@@ -154,11 +165,21 @@ func (r *rowsImpl) Next(dest []driver.Value) error {
 		return io.EOF
 	}
 	for i := range dest {
-		dest[i] = r.s.ScanValue(i)
+		value := r.s.s.ScanValue(i)
+		switch value := value.(type) {
+		case string: // "All string values must be converted to []byte."
+			dest[i] = []byte(value)
+		default:
+			dest[i] = value
+		}
 	}
 	return nil
 }
 
 func (r *rowsImpl) Close() error {
-	return r.s.Reset()
+	r.s.rowsRef = false
+	if r.s.pendingClose {
+		return r.s.Close()
+	}
+	return r.s.s.Reset()
 }
