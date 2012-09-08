@@ -336,6 +336,20 @@ func TestStmtMisuse(t *testing.T) {
 	assert(t, "error expected", err != nil)
 }
 
+func TestOpenSameMemoryDb(t *testing.T) {
+	db1, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
+	checkNoError(t, err, "open error: %s")
+	defer db1.Close()
+	err = db1.Exec("CREATE TABLE test (data TEXT)")
+	checkNoError(t, err, "exec error: %s")
+
+	db2, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
+	checkNoError(t, err, "open error: %s")
+	defer db2.Close()
+	_, err = db2.Exists("SELECT 1 from test")
+	checkNoError(t, err, "exists error: %s")
+}
+
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {
 	if expected != actual {
 		t.Errorf(format, expected, actual)
