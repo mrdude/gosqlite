@@ -37,7 +37,8 @@ import "C"
 
 import "unsafe"
 
-// Executes pragma 'database_list'
+// Databases returns one couple (name, file) for each database attached to the current database connection.
+// (See http://www.sqlite.org/pragma.html#pragma_database_list)
 func (c *Conn) Databases() (map[string]string, error) {
 	s, err := c.prepare("PRAGMA database_list")
 	if err != nil {
@@ -59,7 +60,8 @@ func (c *Conn) Databases() (map[string]string, error) {
 	return databases, nil
 }
 
-// Selects tables (no view) from 'sqlite_master' and filters system tables out.
+// Tables returns tables (no view) from 'sqlite_master' and filters system tables out.
+// TODO create Views method to return views...
 func (c *Conn) Tables(dbName string) ([]string, error) {
 	var sql string
 	if len(dbName) == 0 {
@@ -96,7 +98,9 @@ type Column struct {
 	CollSeq   string
 }
 
-// Executes pragma 'table_info'
+// Columns returns a description for each column in the named table.
+// Column.Autoinc and Column.CollSeq are left unspecified.
+// (See http://www.sqlite.org/pragma.html#pragma_table_info)
 func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	var pragma string
 	if len(dbName) == 0 {
@@ -124,7 +128,8 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	return columns, nil
 }
 
-// Extract metadata about a column of a table
+// Column extracts metadata about a column of a table
+// Column.Cid and Column.DfltValue are left unspecified.
 // (See http://sqlite.org/c3ref/table_column_metadata.html)
 func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	var zDbName *C.char
@@ -147,25 +152,32 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 		autoinc == 1, C.GoString(zCollSeq)}, nil
 }
 
-// The left-most column is column 0
+// ColumnDatabaseName returns the database
+// that is the origin of a particular result column in SELECT statement.
+// The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
 func (s *Stmt) ColumnDatabaseName(index int) string {
 	return C.GoString(C.sqlite3_column_database_name(s.stmt, C.int(index)))
 }
 
-// The left-most column is column 0
+// ColumnTableName returns the original un-aliased table name
+// that is the origin of a particular result column in SELECT statement.
+// The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
 func (s *Stmt) ColumnTableName(index int) string {
 	return C.GoString(C.sqlite3_column_table_name(s.stmt, C.int(index)))
 }
 
-// The left-most column is column 0
+// ColumnOriginName returns the original un-aliased table column name
+// that is the origin of a particular result column in SELECT statement.
+// The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
 func (s *Stmt) ColumnOriginName(index int) string {
 	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index)))
 }
 
-// The left-most column is column 0
+// ColumnDeclaredType returns the declared type of the table column of a particular result column in SELECT statement. If the result column is an expression or subquery, then a NULL pointer is returned.
+// The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_decltype.html)
 func (s *Stmt) ColumnDeclaredType(index int) string {
 	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
@@ -178,7 +190,8 @@ type ForeignKey struct {
 	To    []string
 }
 
-// Executes pragma 'foreign_key_list'
+// ForeignKeys returns one description for each foreign key that references a column in the argument table.
+// (See http://www.sqlite.org/pragma.html#pragma_foreign_key_list)
 func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
 	var pragma string
 	if len(dbName) == 0 {
@@ -220,7 +233,8 @@ type Index struct {
 	Unique bool
 }
 
-// Executes pragma 'index_list'
+// Indexes returns one description for each index associated with the given table.
+// (See http://www.sqlite.org/pragma.html#pragma_index_list)
 func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
 	var pragma string
 	if len(dbName) == 0 {
@@ -248,8 +262,9 @@ func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
 	return indexes, nil
 }
 
-// Executes pragma 'index_info'
+// IndexColumns returns one description for each column in the named index.
 // Only Column.Cid and Column.Name are specified. All other fields are unspecifed.
+// (See http://www.sqlite.org/pragma.html#pragma_index_info)
 func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	var pragma string
 	if len(dbName) == 0 {
@@ -277,6 +292,8 @@ func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	return columns, nil
 }
 
+// Mprintf is like fmt.Printf but implements some additional formatting options
+// that are useful for constructing SQL statements.
 // (See http://sqlite.org/c3ref/mprintf.html)
 func Mprintf(format string, arg string) string {
 	cf := C.CString(format)
@@ -287,6 +304,10 @@ func Mprintf(format string, arg string) string {
 	defer C.sqlite3_free(unsafe.Pointer(zSQL))
 	return C.GoString(zSQL)
 }
+
+// Mprintf2 is like fmt.Printf but implements some additional formatting options
+// that are useful for constructing SQL statements.
+// (See http://sqlite.org/c3ref/mprintf.html)
 func Mprintf2(format string, arg1, arg2 string) string {
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))

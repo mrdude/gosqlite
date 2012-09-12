@@ -170,7 +170,7 @@ type Conn struct {
 	udfs            map[string]*sqliteFunction
 }
 
-// Run-time library version number
+// Version returns the run-time library version number
 // (See http://sqlite.org/c3ref/libversion.html)
 func Version() string {
 	p := C.sqlite3_libversion()
@@ -191,7 +191,7 @@ const (
 	OpenPrivateCache OpenFlag = C.SQLITE_OPEN_PRIVATECACHE
 )
 
-// Open a new database connection.
+// Open opens a new database connection.
 // ":memory:" for memory db
 // "" for temp file db
 //
@@ -200,7 +200,7 @@ func Open(filename string, flags ...OpenFlag) (*Conn, error) {
 	return OpenVfs(filename, "", flags...)
 }
 
-// Open a new database with a specified virtual file system.
+// OpenVfs opens a new database with a specified virtual file system.
 func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) {
 	if C.sqlite3_threadsafe() == 0 {
 		return nil, errors.New("sqlite library was not compiled for thread-safe operation")
@@ -235,7 +235,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	return &Conn{db: db, stmtCache: newCache()}, nil
 }
 
-// Set a busy timeout
+// BusyTimeout sets a busy timeout.
 // (See http://sqlite.org/c3ref/busy_timeout.html)
 func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
 	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)))
@@ -258,7 +258,7 @@ func (c *Conn) IsFKeyEnabled() (bool, error) {
 	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_FKEY, -1)
 }
 
-// Enable or disable triggers
+// EnableTriggers enables or disables triggers.
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, b)
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
@@ -266,6 +266,7 @@ func (c *Conn) EnableTriggers(b bool) (bool, error) {
 	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_TRIGGER, btocint(b))
 }
 
+// AreTriggersEnabled checks if triggers are enabled.
 // Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, -1)
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
@@ -370,7 +371,7 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	return s.Scan(value)
 }
 
-// Count the number of rows modified.
+// Changes counts the number of rows modified.
 // If a separate thread makes changes on the same database connection while Changes() is running then the value returned is unpredictable and not meaningful.
 // (See http://sqlite.org/c3ref/changes.html)
 func (c *Conn) Changes() int {
@@ -411,11 +412,14 @@ const (
 	Exclusive TransactionType = 2
 )
 
-// Begin transaction in deferred mode
+// Begin begins a transaction in deferred mode.
+// (See http://www.sqlite.org/lang_transaction.html)
 func (c *Conn) Begin() error {
 	return c.BeginTransaction(Deferred)
 }
 
+// BeginTransaction begins a transaction of the specified type.
+// (See http://www.sqlite.org/lang_transaction.html)
 func (c *Conn) BeginTransaction(t TransactionType) error {
 	if t == Deferred {
 		return c.exec("BEGIN")
@@ -428,13 +432,13 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 	return nil
 }
 
-// Commit transaction
+// Commit commits transaction
 func (c *Conn) Commit() error {
 	// TODO Check autocommit?
 	return c.exec("COMMIT")
 }
 
-// Rollback transaction
+// Rollback rollbacks transaction
 func (c *Conn) Rollback() error {
 	// TODO Check autocommit?
 	return c.exec("ROLLBACK")
@@ -468,7 +472,7 @@ func (c *Conn) exec(cmd string) error {
 	return nil
 }
 
-// Close a database connection and any dangling statements.
+// Close closes a database connection and any dangling statements.
 // (See http://sqlite.org/c3ref/close.html)
 func (c *Conn) Close() error {
 	if c == nil {
@@ -526,7 +530,7 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 	return nil
 }
 
-// Enable or disable shared pager cache
+// EnableSharedCache enables or disables shared pager cache
 // (See http://sqlite.org/c3ref/enable_shared_cache.html)
 func EnableSharedCache(b bool) {
 	C.sqlite3_enable_shared_cache(btocint(b))

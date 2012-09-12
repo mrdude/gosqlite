@@ -16,7 +16,7 @@ import (
 	"unsafe"
 )
 
-// Backup/Copy the content of one database (source) to another (destination).
+// NewBackup initializes the backup/copy of the content of one database (source) to another (destination).
 // The database name is "main", "temp", or the name specified in an ATTACH statement.
 //
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
@@ -37,12 +37,13 @@ func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backu
 }
 
 // Online backup
+// (See http://sqlite.org/c3ref/backup.html)
 type Backup struct {
 	sb       *C.sqlite3_backup
 	dst, src *Conn
 }
 
-// Step copies up to N pages between the source and destination databases
+// Step copies up to N pages between the source and destination databases.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
 func (b *Backup) Step(npage int) error {
 	if b == nil {
@@ -67,6 +68,13 @@ func (b *Backup) Status() BackupStatus {
 	return BackupStatus{int(C.sqlite3_backup_remaining(b.sb)), int(C.sqlite3_backup_pagecount(b.sb))}
 }
 
+// Run starts the backup:
+//  - copying up to 'npage' pages between the source and destination at each step,
+//  - sleeping 'sleepNs' between steps,
+//  - notifying the caller of backup progress throw the channel 'c',
+//  - closing the backup when done or when an error happens.
+// Sleeping is disabled if 'sleepNs' is zero or negative.
+// Notification is disabled if 'c' is null.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount)
 func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) error {
 	var err error
@@ -96,7 +104,7 @@ func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) er
 	return nil
 }
 
-// Close finishes/stops the backup
+// Close finishes/stops the backup.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
 func (b *Backup) Close() error {
 	if b == nil {

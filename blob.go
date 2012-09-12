@@ -16,7 +16,7 @@ import (
 	"unsafe"
 )
 
-// Reader adapter to BLOB
+// io.ReadCloser adapter to BLOB
 type BlobReader struct {
 	c          *Conn
 	bl         *C.sqlite3_blob
@@ -24,7 +24,7 @@ type BlobReader struct {
 	ReadOffset int
 }
 
-// ReadWriter adapter to BLOB
+// io.ReadWriteCloser adapter to BLOB
 type BlobReadWriter struct {
 	BlobReader
 	WriteOffset int
@@ -33,7 +33,7 @@ type BlobReadWriter struct {
 // Zeroblobs are used to reserve space for a BLOB that is later written.
 type ZeroBlobLength int
 
-// NewBlobReader opens a BLOB for incremental I/O
+// NewBlobReader opens a BLOB for incremental I/O.
 //
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
@@ -44,7 +44,7 @@ func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, 
 	return &BlobReader{c, bl, -1, 0}, nil
 }
 
-// NewBlobReadWriter open a BLOB for incremental I/O
+// NewBlobReadWriter open a BLOB for incremental I/O.
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobReadWriter, error) {
 	bl, err := c.blob_open(db, table, column, row, true)
@@ -75,7 +75,7 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 	return bl, nil
 }
 
-// Close closes a BLOB handle
+// Close closes a BLOB handle.
 // (See http://sqlite.org/c3ref/blob_close.html)
 func (r *BlobReader) Close() error {
 	if r == nil {
@@ -89,7 +89,7 @@ func (r *BlobReader) Close() error {
 	return nil
 }
 
-// Read reads data from a BLOB incrementally
+// Read reads data from a BLOB incrementally.
 // (See http://sqlite.org/c3ref/blob_read.html)
 func (r *BlobReader) Read(v []byte) (int, error) {
 	if len(v) == 0 {
@@ -115,7 +115,7 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 	return n, nil
 }
 
-// Size returns the size of an opened BLOB
+// Size returns the size of an opened BLOB.
 // (See http://sqlite.org/c3ref/blob_bytes.html)
 func (r *BlobReader) Size() (int, error) {
 	if r.bl == nil {
@@ -127,7 +127,7 @@ func (r *BlobReader) Size() (int, error) {
 	return r.size, nil
 }
 
-// Write writes data into a BLOB incrementally
+// Write writes data into a BLOB incrementally.
 // (See http://sqlite.org/c3ref/blob_write.html)
 func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	if len(v) == 0 {
@@ -155,7 +155,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	return n, err
 }
 
-// Reopen moves a BLOB handle to a new row
+// Reopen moves a BLOB handle to a new row.
 // (See http://sqlite.org/c3ref/blob_reopen.html)
 func (r *BlobReader) Reopen(rowid int64) error {
 	rv := C.sqlite3_blob_reopen(r.bl, C.sqlite3_int64(rowid))
@@ -167,6 +167,8 @@ func (r *BlobReader) Reopen(rowid int64) error {
 	return nil
 }
 
+// Reopen moves a BLOB handle to a new row.
+// (See http://sqlite.org/c3ref/blob_reopen.html)
 func (w *BlobReadWriter) Reopen(rowid int64) error {
 	if err := w.BlobReader.Reopen(rowid); err != nil {
 		return err

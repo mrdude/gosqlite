@@ -38,6 +38,10 @@ type rowsImpl struct {
 	columnNames []string // cache
 }
 
+// Open opens a new database connection.
+// ":memory:" for memory db
+// "" for temp file db
+// TODO How to specify open flags?
 func (d *Driver) Open(name string) (driver.Conn, error) {
 	c, err := Open(name)
 	if err != nil {

@@ -65,20 +65,26 @@ http://sqlite.org/c3ref/context_db_handle.html
 sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 */
 
+// Context common to scalar and aggregate function
 type Context struct {
 	sc   *C.sqlite3_context
 	argv **C.sqlite3_value
 }
+
+// Context associated to scalar function
 type ScalarContext struct {
 	Context
 	ad  map[int]interface{} // Function Auxiliary Data
 	udf *sqliteFunction
 }
+
+// Context associated to aggregate function
 type AggregateContext struct {
 	Context
 	Aggregate interface{}
 }
 
+// Result sets the result of an SQL function.
 func (c *Context) Result(r interface{}) {
 	switch r := r.(type) {
 	case nil:
@@ -110,7 +116,7 @@ func (c *Context) Result(r interface{}) {
 	}
 }
 
-// Set the result of an SQL function
+// ResultBool sets the result of an SQL function.
 func (c *Context) ResultBool(b bool) {
 	if b {
 		c.ResultInt(1)
@@ -119,7 +125,7 @@ func (c *Context) ResultBool(b bool) {
 	}
 }
 
-// Set the result of an SQL function
+// ResultBlob sets the result of an SQL function.
 // (See sqlite3_result_blob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultBlob(b []byte) {
 	var p *byte
@@ -129,13 +135,13 @@ func (c *Context) ResultBlob(b []byte) {
 	C.my_result_blob(c.sc, unsafe.Pointer(p), C.int(len(b)))
 }
 
-// Set the result of an SQL function
+// ResultDouble sets the result of an SQL function.
 // (See sqlite3_result_double, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultDouble(d float64) {
 	C.sqlite3_result_double(c.sc, C.double(d))
 }
 
-// Set the result of an SQL function
+// ResultError sets the result of an SQL function.
 // (See sqlite3_result_error, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultError(msg string) {
 	cs := C.CString(msg)
@@ -143,43 +149,43 @@ func (c *Context) ResultError(msg string) {
 	C.sqlite3_result_error(c.sc, cs, -1)
 }
 
-// Set the result of an SQL function
+// ResultErrorTooBig sets the result of an SQL function.
 // (See sqlite3_result_error_toobig, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorTooBig() {
 	C.sqlite3_result_error_toobig(c.sc)
 }
 
-// Set the result of an SQL function
+// ResultErrorNoMem sets the result of an SQL function.
 // (See sqlite3_result_error_nomem, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorNoMem() {
 	C.sqlite3_result_error_nomem(c.sc)
 }
 
-// Set the result of an SQL function
+// ResultErrorCode sets the result of an SQL function.
 // (See sqlite3_result_error_code, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultErrorCode(e Errno) {
 	C.sqlite3_result_error_code(c.sc, C.int(e))
 }
 
-// Set the result of an SQL function
+// ResultInt sets the result of an SQL function.
 // (See sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt(i int) {
 	C.sqlite3_result_int(c.sc, C.int(i))
 }
 
-// Set the result of an SQL function
+// ResultInt64 sets the result of an SQL function.
 // (See sqlite3_result_int64, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt64(i int64) {
 	C.sqlite3_result_int64(c.sc, C.sqlite3_int64(i))
 }
 
-// Set the result of an SQL function
+// ResultNull sets the result of an SQL function.
 // (See sqlite3_result_null, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultNull() {
 	C.sqlite3_result_null(c.sc)
 }
 
-// Set the result of an SQL function
+// ResultText sets the result of an SQL function.
 // (See sqlite3_result_text, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultText(s string) {
 	cs := C.CString(s)
@@ -187,27 +193,27 @@ func (c *Context) ResultText(s string) {
 	C.my_result_text(c.sc, cs, -1)
 }
 
-// Set the result of an SQL function
+// ResultValue sets the result of an SQL function.
 // The leftmost value is number 0.
 // (See sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultValue(i int) {
 	C.my_result_value(c.sc, c.argv, C.int(i))
 }
 
-// Set the result of an SQL function
+// ResultZeroblob sets the result of an SQL function.
 // (See sqlite3_result_zeroblob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultZeroblob(n ZeroBlobLength) {
 	C.sqlite3_result_zeroblob(c.sc, C.int(n))
 }
 
-// User data for functions
+// UserData returns the user data for functions.
 // (See http://sqlite.org/c3ref/user_data.html)
 func (c *Context) UserData() interface{} {
 	udf := (*sqliteFunction)(C.sqlite3_user_data(c.sc))
 	return udf.pApp
 }
 
-// Function auxiliary data
+// GetAuxData returns function auxiliary data.
 // (See sqlite3_get_auxdata, http://sqlite.org/c3ref/get_auxdata.html)
 func (c *ScalarContext) GetAuxData(n int) interface{} {
 	if len(c.ad) == 0 {
@@ -216,7 +222,7 @@ func (c *ScalarContext) GetAuxData(n int) interface{} {
 	return c.ad[n]
 }
 
-// Function auxiliary data
+// SetAuxData sets function auxiliary data.
 // No destructor is needed a priori
 // (See sqlite3_set_auxdata, http://sqlite.org/c3ref/get_auxdata.html)
 func (c *ScalarContext) SetAuxData(n int, ad interface{}) {
@@ -226,11 +232,13 @@ func (c *ScalarContext) SetAuxData(n int, ad interface{}) {
 	c.ad[n] = ad
 }
 
+// Bool obtains a SQL function parameter value.
 // The leftmost value is number 0.
 func (c *Context) Bool(i int) bool {
 	return c.Int(i) == 1
 }
 
+// Blob obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Blob(i int) (value []byte) {
@@ -242,24 +250,28 @@ func (c *Context) Blob(i int) (value []byte) {
 	return
 }
 
+// Double obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_double, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Double(i int) float64 {
 	return float64(C.my_value_double(c.argv, C.int(i)))
 }
 
+// Int obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_int, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Int(i int) int {
 	return int(C.my_value_int(c.argv, C.int(i)))
 }
 
+// Int64 obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_int64, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Int64(i int) int64 {
 	return int64(C.my_value_int64(c.argv, C.int(i)))
 }
 
+// Text obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_text, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Text(i int) string {
@@ -271,20 +283,21 @@ func (c *Context) Text(i int) string {
 	return C.GoStringN((*C.char)(unsafe.Pointer(p)), n)
 }
 
+// Type obtains a SQL function parameter value type.
 // The leftmost value is number 0.
-// SQL function parameter value type
 // (See sqlite3_value_type, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) Type(i int) Type {
 	return Type(C.my_value_type(c.argv, C.int(i)))
 }
 
+// NumericType obtains a SQL function parameter value numeric type (with possible conversion).
 // The leftmost value is number 0.
-// SQL function parameter value numeric type (with possible conversion)
 // (See sqlite3_value_numeric_type, http://sqlite.org/c3ref/value_blob.html)
 func (c *Context) NumericType(i int) Type {
 	return Type(C.my_value_numeric_type(c.argv, C.int(i)))
 }
 
+// Value obtains a SQL function parameter value depending on its type.
 func (c *Context) Value(i int) (value interface{}) {
 	switch c.Type(i) {
 	case Null:
@@ -393,7 +406,7 @@ func goXDestroy(pApp unsafe.Pointer) {
 	}
 }
 
-// Create or redefine SQL functions
+// CreateScalarFunction creates or redefines SQL scalar functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{}, f ScalarFunction, d DestroyFunctionData) error {
@@ -414,7 +427,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
 }
 
-// Create or redefine SQL functions
+// CreateAggregateFunction creates or redefines SQL aggregate functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{},

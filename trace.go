@@ -41,7 +41,7 @@ func goXTrace(udp unsafe.Pointer, sql *C.char) {
 	arg.f(arg.udp, C.GoString(sql))
 }
 
-// Register or clear a trace function.
+// Trace registers or clears a trace function.
 // (See sqlite3_trace, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Trace(f Tracer, udp interface{}) {
 	if f == nil {
@@ -68,7 +68,7 @@ func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 	arg.f(arg.udp, C.GoString(sql), uint64(nanoseconds))
 }
 
-// Register or clear a profile function.
+// Profile registers or clears a profile function.
 // (See sqlite3_profile, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Profile(f Profiler, udp interface{}) {
 	if f == nil {
@@ -144,7 +144,7 @@ func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.
 	return C.int(result)
 }
 
-// Set or clear the access authorization function.
+// SetAuthorizer sets or clears the access authorization function.
 // (See http://sqlite.org/c3ref/set_authorizer.html)
 func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
@@ -172,7 +172,7 @@ func goXBusy(udp unsafe.Pointer, count int) C.int {
 	return btocint(result)
 }
 
-// Register a callback to handle SQLITE_BUSY errors
+// BusyHandler registers a callback to handle SQLITE_BUSY errors.
 // (See http://sqlite.org/c3ref/busy_handler.html)
 func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
@@ -200,7 +200,7 @@ func goXProgress(udp unsafe.Pointer) C.int {
 	return btocint(result)
 }
 
-// Query progress callbacks
+// ProgressHandler registers or clears a query progress callback.
 // The progress callback will be invoked every numOps opcodes.
 // (See http://sqlite.org/c3ref/progress_handler.html)
 func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
@@ -223,37 +223,37 @@ const (
 	StmtStatusAutoIndex    StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
 )
 
-// Return the value of a status counter for a prepared statement
+// Status returns the value of a status counter for a prepared statement.
 // (See http://sqlite.org/c3ref/stmt_status.html)
 func (s *Stmt) Status(op StmtStatus, reset bool) int {
 	return int(C.sqlite3_stmt_status(s.stmt, C.int(op), btocint(reset)))
 }
 
-// Memory allocator statistics
+// MemoryUsed returns the number of bytes of memory currently outstanding (malloced but not freed).
 // (See sqlite3_memory_used: http://sqlite.org/c3ref/memory_highwater.html)
 func MemoryUsed() int64 {
 	return int64(C.sqlite3_memory_used())
 }
 
-// Memory allocator statistics
+// MemoryHighwater returns the maximum value of MemoryUsed() since the high-water mark was last reset.
 // (See sqlite3_memory_highwater: http://sqlite.org/c3ref/memory_highwater.html)
 func MemoryHighwater(reset bool) int64 {
 	return int64(C.sqlite3_memory_highwater(btocint(reset)))
 }
 
-// Limit on heap size
+// SoftHeapLimit returns the limit on heap size.
 // (See http://sqlite.org/c3ref/soft_heap_limit64.html)
 func SoftHeapLimit() int64 {
 	return SetSoftHeapLimit(-1)
 }
 
-// Impose a limit on heap size
+// SetSoftHeapLimit imposes a limit on heap size.
 // (See http://sqlite.org/c3ref/soft_heap_limit64.html)
 func SetSoftHeapLimit(n int64) int64 {
 	return int64(C.sqlite3_soft_heap_limit64(C.sqlite3_int64(n)))
 }
 
-// Determine if an SQL statement is complete
+// Complete determines if an SQL statement is complete.
 // (See http://sqlite.org/c3ref/complete.html)
 func Complete(sql string) bool {
 	cs := C.CString(sql)
@@ -261,7 +261,7 @@ func Complete(sql string) bool {
 	return C.sqlite3_complete(cs) != 0
 }
 
-// Error logging interface
+// Log writes a message into the error log established by ConfigLog method.
 // (See http://sqlite.org/c3ref/log.html)
 func Log(err /*Errno*/ int, msg string) {
 	cs := C.CString(msg)
@@ -286,7 +286,9 @@ func goXLog(udp unsafe.Pointer, err int, msg *C.char) {
 
 var logger *sqliteLogger
 
-// Configure the logger of the SQLite library
+// ConfigLog configures the logger of the SQLite library.
+// Only one logger can be registered at a time for the whole program.
+// The logger must be threadsafe.
 // (See sqlite3_config(SQLITE_CONFIG_LOG,...): http://sqlite.org/c3ref/config.html)
 func ConfigLog(f Logger, udp interface{}) error {
 	var rv C.int
@@ -312,7 +314,7 @@ const (
 	Serialized   ThreadingMode = C.SQLITE_CONFIG_SERIALIZED
 )
 
-// Alters threading mode
+// ConfigThreadingMode alters threading mode.
 // (See sqlite3_config(SQLITE_CONFIG_SINGLETHREAD|SQLITE_CONFIG_MULTITHREAD|SQLITE_CONFIG_SERIALIZED): http://sqlite.org/c3ref/config.html)
 func ConfigThreadingMode(mode ThreadingMode) error {
 	rv := C.goSqlite3ConfigThreadMode(C.int(mode))
@@ -322,7 +324,7 @@ func ConfigThreadingMode(mode ThreadingMode) error {
 	return Errno(rv)
 }
 
-// Enables or disables the collection of memory allocation statistics
+// ConfigMemStatus enables or disables the collection of memory allocation statistics.
 // (See sqlite3_config(SQLITE_CONFIG_MEMSTATUS): http://sqlite.org/c3ref/config.html)
 func ConfigMemStatus(b bool) error {
 	rv := C.goSqlite3Config(C.SQLITE_CONFIG_MEMSTATUS, btocint(b))
@@ -332,7 +334,7 @@ func ConfigMemStatus(b bool) error {
 	return Errno(rv)
 }
 
-// Enables or disables URI handling
+// ConfigUri enables or disables URI handling.
 // (See sqlite3_config(SQLITE_CONFIG_URI): http://sqlite.org/c3ref/config.html)
 func ConfigUri(b bool) error {
 	rv := C.goSqlite3Config(C.SQLITE_CONFIG_URI, btocint(b))
