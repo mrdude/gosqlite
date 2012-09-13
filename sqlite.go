@@ -36,12 +36,12 @@ func (e *ConnError) Code() Errno {
 	return e.code
 }
 
-// FIXME  it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method.
+// FIXME it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method.
 func (e *ConnError) ExtendedCode() int {
 	return int(C.sqlite3_extended_errcode(e.c.db))
 }
 
-// Return Database file name from which the error comes from.
+// Filename returns database file name from which the error comes from.
 func (e *ConnError) Filename() string {
 	return e.c.Filename("main")
 }
@@ -148,6 +148,8 @@ func (c *Conn) specificError(msg string, a ...interface{}) error {
 	return &ConnError{c: c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}
 }
 
+// LastError returns the error for the most recent failed sqlite3_* API call associated with a database connection.
+// (See http://sqlite.org/c3ref/errcode.html)
 func (c *Conn) LastError() error {
 	if c == nil {
 		return errors.New("nil sqlite database")
@@ -192,7 +194,7 @@ const (
 )
 
 // Open opens a new database connection.
-// ":memory:" for memory db
+// ":memory:" for memory db,
 // "" for temp file db
 //
 // (See sqlite3_open_v2: http://sqlite.org/c3ref/open.html)
@@ -241,8 +243,8 @@ func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
 	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)))
 }
 
-// Enable or disable the enforcement of foreign key constraints
-// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b)
+// EnableFKey enables or disables the enforcement of foreign key constraints.
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, b).
 // Another way is PRAGMA foreign_keys = boolean;
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
@@ -250,7 +252,8 @@ func (c *Conn) EnableFKey(b bool) (bool, error) {
 	return c.queryOrSetEnableDbConfig(C.SQLITE_DBCONFIG_ENABLE_FKEY, btocint(b))
 }
 
-// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1)
+// IsFKeyEnabled reports if the enforcement of foreign key constraints is enabled or not.
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, -1).
 // Another way is PRAGMA foreign_keys;
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
@@ -259,7 +262,7 @@ func (c *Conn) IsFKeyEnabled() (bool, error) {
 }
 
 // EnableTriggers enables or disables triggers.
-// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, b)
+// Calls sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, b).
 //
 // (See http://sqlite.org/c3ref/c_dbconfig_enable_fkey.html)
 func (c *Conn) EnableTriggers(b bool) (bool, error) {
@@ -283,12 +286,13 @@ func (c *Conn) queryOrSetEnableDbConfig(key, i C.int) (bool, error) {
 	return false, c.error(rv)
 }
 
-// Enable or disable the extended result codes feature of SQLite.
+// EnableExtendedResultCodes enables or disables the extended result codes feature of SQLite.
 // (See http://sqlite.org/c3ref/extended_result_codes.html)
 func (c *Conn) EnableExtendedResultCodes(b bool) error {
 	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)))
 }
 
+// Readonly determines if a database is read-only.
 // (See http://sqlite.org/c3ref/db_readonly.html)
 func (c *Conn) Readonly(dbName string) (bool, error) {
 	cname := C.CString(dbName)
@@ -300,6 +304,7 @@ func (c *Conn) Readonly(dbName string) (bool, error) {
 	return rv == 1, nil
 }
 
+// Filename returns the filename for a database connection.
 // (See http://sqlite.org/c3ref/db_filename.html)
 func (c *Conn) Filename(dbName string) string {
 	cname := C.CString(dbName)
@@ -307,7 +312,7 @@ func (c *Conn) Filename(dbName string) string {
 	return C.GoString(C.sqlite3_db_filename(c.db, cname))
 }
 
-// Prepare and execute one parameterized statement or many statements (separated by semi-colon).
+// Exec prepares and executes one parameterized statement or many statements (separated by semi-colon).
 // Don't use it with SELECT or anything that returns data.
 func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	for len(cmd) > 0 {
@@ -338,7 +343,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	return nil
 }
 
-// Return true if the specified query returns at least one row.
+// Exists returns true if the specified query returns at least one row.
 func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	s, err := c.Prepare(query, args...)
 	if err != nil {
@@ -351,7 +356,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	return s.Next()
 }
 
-// Use it with SELECT that returns only one row with only one column.
+// OneValue is used with SELECT that returns only one row with only one column.
 // Returns io.EOF when there is no row.
 func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) error {
 	s, err := c.Prepare(query, args...)
@@ -371,33 +376,33 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	return s.Scan(value)
 }
 
-// Changes counts the number of rows modified.
+// Changes returns the number of database rows that were changed or inserted or deleted by the most recently completed SQL statement on the database connection.
 // If a separate thread makes changes on the same database connection while Changes() is running then the value returned is unpredictable and not meaningful.
 // (See http://sqlite.org/c3ref/changes.html)
 func (c *Conn) Changes() int {
 	return int(C.sqlite3_changes(c.db))
 }
 
-// Total number of rows Modified
+// TotalChanges returns the number of row changes caused by INSERT, UPDATE or DELETE statements since the database connection was opened.
 // (See http://sqlite.org/c3ref/total_changes.html)
 func (c *Conn) TotalChanges() int {
 	return int(C.sqlite3_total_changes(c.db))
 }
 
-// Return the rowid of the most recent successful INSERT into the database.
+// LastInsertRowid returns the rowid of the most recent successful INSERT into the database.
 // If a separate thread performs a new INSERT on the same database connection while the LastInsertRowid() function is running and thus changes the last insert rowid, then the value returned by LastInsertRowid() is unpredictable and might not equal either the old or the new last insert rowid.
 // (See http://sqlite.org/c3ref/last_insert_rowid.html)
 func (c *Conn) LastInsertRowid() int64 {
 	return int64(C.sqlite3_last_insert_rowid(c.db))
 }
 
-// Interrupt a long-running query
+// Interrupt interrupts a long-running query.
 // (See http://sqlite.org/c3ref/interrupt.html)
 func (c *Conn) Interrupt() {
 	C.sqlite3_interrupt(c.db)
 }
 
-// Test for auto-commit mode
+// GetAutocommit tests for auto-commit mode.
 // (See http://sqlite.org/c3ref/get_autocommit.html)
 func (c *Conn) GetAutocommit() bool {
 	return C.sqlite3_get_autocommit(c.db) != 0
@@ -444,16 +449,19 @@ func (c *Conn) Rollback() error {
 	return c.exec("ROLLBACK")
 }
 
+// Savepoint starts a new transaction with a name.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) Savepoint(name string) error {
 	return c.exec(Mprintf("SAVEPOINT %Q", name))
 }
 
+// ReleaseSavepoint causes all savepoints back to and including the most recent savepoint with a matching name to be removed from the transaction stack.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) ReleaseSavepoint(name string) error {
 	return c.exec(Mprintf("RELEASE %Q", name))
 }
 
+// RollbackSavepoint reverts the state of the database back to what it was just before the corresponding SAVEPOINT.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) RollbackSavepoint(name string) error {
 	return c.exec(Mprintf("ROLLBACK TO SAVEPOINT %Q", name))
@@ -505,13 +513,13 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-// Enable or disable extension loading
+// EnableLoadExtension enables or disables extension loading.
 // (See http://sqlite.org/c3ref/enable_load_extension.html)
 func (c *Conn) EnableLoadExtension(b bool) {
 	C.sqlite3_enable_load_extension(c.db, btocint(b))
 }
 
-// Load an extension
+// LoadExtension loads an extension
 // (See http://sqlite.org/c3ref/load_extension.html)
 func (c *Conn) LoadExtension(file string, proc ...string) error {
 	cfile := C.CString(file)

@@ -69,10 +69,10 @@ func (b *Backup) Status() BackupStatus {
 }
 
 // Run starts the backup:
-//  - copying up to 'npage' pages between the source and destination at each step,
-//  - sleeping 'sleepNs' between steps,
-//  - notifying the caller of backup progress throw the channel 'c',
-//  - closing the backup when done or when an error happens.
+// - copying up to 'npage' pages between the source and destination at each step,
+// - sleeping 'sleepNs' between steps,
+// - notifying the caller of backup progress throw the channel 'c',
+// - closing the backup when done or when an error happens.
 // Sleeping is disabled if 'sleepNs' is zero or negative.
 // Notification is disabled if 'c' is null.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount)

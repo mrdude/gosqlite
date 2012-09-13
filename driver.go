@@ -39,7 +39,7 @@ type rowsImpl struct {
 }
 
 // Open opens a new database connection.
-// ":memory:" for memory db
+// ":memory:" for memory db,
 // "" for temp file db
 // TODO How to specify open flags?
 func (d *Driver) Open(name string) (driver.Conn, error) {

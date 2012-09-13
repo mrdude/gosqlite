@@ -33,7 +33,7 @@ type BlobReadWriter struct {
 // Zeroblobs are used to reserve space for a BLOB that is later written.
 type ZeroBlobLength int
 
-// NewBlobReader opens a BLOB for incremental I/O.
+// NewBlobReader opens a BLOB for incremental I/O in read-only mode.
 //
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
@@ -44,7 +44,7 @@ func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, 
 	return &BlobReader{c, bl, -1, 0}, nil
 }
 
-// NewBlobReadWriter open a BLOB for incremental I/O.
+// NewBlobReadWriter opens a BLOB for incremental I/O.
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobReadWriter, error) {
 	bl, err := c.blob_open(db, table, column, row, true)

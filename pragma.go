@@ -8,20 +8,20 @@ import (
 	"fmt"
 )
 
-// Check database integrity
-// Database name is optional
+// IntegrityCheck checks database integrity.
+// Database name is optional (default is 'main').
 // (See http://www.sqlite.org/pragma.html#pragma_integrity_check
 // and http://www.sqlite.org/pragma.html#pragma_quick_check)
-// TODO Make possible to specify the database-name (PRAGMA %Q.integrity_check(.))
 func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
-	var pragma string
+	var prefix string
 	if quick {
-		pragma = "quick"
+		prefix = "quick"
 	} else {
-		pragma = "integrity"
+		prefix = "integrity"
 	}
+	pragmaName = fmt.Sprintf("%s_check(%d)", prefix, max)
 	var msg string
-	err := c.OneValue(fmt.Sprintf("PRAGMA %s_check(%d)", pragma, max), &msg)
+	err := c.OneValue(pragma(dbName, pragmaName), &msg)
 	if err != nil {
 		return err
 	}
@@ -31,38 +31,40 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 	return nil
 }
 
-// Database name is optional
-// Returns the text encoding used by the main database
+// Encoding returns the text encoding used by the specified database.
+// Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_encoding)
 func (c *Conn) Encoding(dbName string) (string, error) {
 	var encoding string
-	err := c.OneValue(pragma(dbName, "PRAGMA encoding", "PRAGMA %Q.encoding"), &encoding)
+	err := c.OneValue(pragma(dbName, "encoding"), &encoding)
 	if err != nil {
 		return "", err
 	}
 	return encoding, nil
 }
 
-// Database name is optional
+// SchemaVersion gets the value of the schema-version.
+// Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_schema_version)
 func (c *Conn) SchemaVersion(dbName string) (int, error) {
 	var version int
-	err := c.OneValue(pragma(dbName, "PRAGMA schema_version", "PRAGMA %Q.schema_version"), &version)
+	err := c.OneValue(pragma(dbName, "schema_version"), &version)
 	if err != nil {
 		return -1, err
 	}
 	return version, nil
 }
 
+// SetRecursiveTriggers sets or clears the recursive trigger capability.
+// Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_recursive_triggers)
-// TODO Make possible to specify the database-name (PRAGMA %Q.recursive_triggers=%)
-func (c *Conn) SetRecursiveTriggers(on bool) error {
-	return c.exec(fmt.Sprintf("PRAGMA recursive_triggers=%t", on))
+func (c *Conn) SetRecursiveTriggers(dbName string, on bool) error {
+	return c.exec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t"), on))
 }
 
-func pragma(dbName, unqualified, qualified string) string {
+func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
-		return unqualified
+		return "PRAGMA " + pragmaName
 	}
-	return Mprintf(qualified, dbName)
+	return Mprintf("PRAGMA %Q."+pragmaName, dbName)
 }

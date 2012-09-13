@@ -128,7 +128,7 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	return columns, nil
 }
 
-// Column extracts metadata about a column of a table
+// Column extracts metadata about a column of a table.
 // Column.Cid and Column.DfltValue are left unspecified.
 // (See http://sqlite.org/c3ref/table_column_metadata.html)
 func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {

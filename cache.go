@@ -87,7 +87,7 @@ func (c *cache) flush() {
 }
 
 // CacheSize returns (current, max) sizes.
-// Cache is turned off when max size is 0
+// Prepared statements cache is turned off when max size is 0
 func (c *Conn) CacheSize() (int, int) {
 	if c.stmtCache.maxSize <= 0 {
 		return 0, 0
