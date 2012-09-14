@@ -19,7 +19,7 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 	} else {
 		prefix = "integrity"
 	}
-	pragmaName = fmt.Sprintf("%s_check(%d)", prefix, max)
+	pragmaName := fmt.Sprintf("%s_check(%d)", prefix, max)
 	var msg string
 	err := c.OneValue(pragma(dbName, pragmaName), &msg)
 	if err != nil {
@@ -59,7 +59,7 @@ func (c *Conn) SchemaVersion(dbName string) (int, error) {
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_recursive_triggers)
 func (c *Conn) SetRecursiveTriggers(dbName string, on bool) error {
-	return c.exec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t"), on))
+	return c.exec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t", on)))
 }
 
 func pragma(dbName, pragmaName string) string {
