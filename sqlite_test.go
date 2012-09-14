@@ -23,7 +23,9 @@ func open(t *testing.T) *Conn {
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
-	//db.Profile(profile, "PROFILE")
+	//db.Profile(profile, t)
+	//db.Trace(trace, t)
+	//db.SetAuthorizer(authorizer, t)
 	return db
 }
 

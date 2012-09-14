@@ -31,9 +31,9 @@ func trace(d interface{}, sql string) {
 
 func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth {
 	if t, ok := d.(*testing.T); ok {
-		t.Logf("AUTH: %d, %s, %s, %s, %s\n", action, arg1, arg2, dbName, triggerName)
+		t.Logf("AUTH: %s, %s, %s, %s, %s\n", action, arg1, arg2, dbName, triggerName)
 	} else {
-		fmt.Printf("%s: %d, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
+		fmt.Printf("%s: %s, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
 	}
 	return AuthOk
 }

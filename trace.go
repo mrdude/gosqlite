@@ -25,7 +25,10 @@ int goSqlite3Config(int op, int mode);
 */
 import "C"
 
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // See Conn.Trace
 type Tracer func(udp interface{}, sql string)
@@ -42,6 +45,7 @@ func goXTrace(udp unsafe.Pointer, sql *C.char) {
 }
 
 // Trace registers or clears a trace function.
+// Prepared statement placeholders are replaced/logged with their assigned values.
 // (See sqlite3_trace, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Trace(f Tracer, udp interface{}) {
 	if f == nil {
@@ -69,6 +73,7 @@ func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 }
 
 // Profile registers or clears a profile function.
+// Prepared statement placeholders are not logged with their assigned values.
 // (See sqlite3_profile, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Profile(f Profiler, udp interface{}) {
 	if f == nil {
@@ -128,6 +133,78 @@ const (
 	Savepoint         Action = C.SQLITE_SAVEPOINT
 	Copy              Action = C.SQLITE_COPY
 )
+
+func (a Action) String() string {
+	switch a {
+	case CreateIndex:
+		return "CreateIndex"
+	case CreateTable:
+		return "CreateTable"
+	case CreateTempIndex:
+		return "CreateTempIndex"
+	case CreateTempTable:
+		return "CreateTempTable"
+	case CreateTempTrigger:
+		return "CreateTempTrigger"
+	case CreateTempView:
+		return "CreateTempView"
+	case CreateTrigger:
+		return "CreateTrigger"
+	case CreateView:
+		return "CreateView"
+	case Delete:
+		return "Delete"
+	case DropIndex:
+		return "DropIndex"
+	case DropTable:
+		return "DropTable"
+	case DropTempIndex:
+		return "DropTempIndex"
+	case DropTempTable:
+		return "DropTempTable"
+	case DropTempTrigger:
+		return "DropTempTrigger"
+	case DropTempView:
+		return "DropTempView"
+	case DropTrigger:
+		return "DropTrigger"
+	case DropView:
+		return "DropView"
+	case Insert:
+		return "Insert"
+	case Pragma:
+		return "Pragma"
+	case Read:
+		return "Read"
+	case Select:
+		return "Select"
+	case Transaction:
+		return "Transaction"
+	case Update:
+		return "Update"
+	case Attach:
+		return "Attach"
+	case Detach:
+		return "Detach"
+	case AlterTable:
+		return "AlterTable"
+	case Reindex:
+		return "Reindex"
+	case Analyze:
+		return "Analyze"
+	case CreateVTable:
+		return "CreateVTable"
+	case DropVTable:
+		return "DropVTable"
+	case Function:
+		return "Function"
+	case Savepoint:
+		return "Savepoint"
+	case Copy:
+		return "Copy"
+	}
+	return fmt.Sprintf("Unknown Action: %d", a)
+}
 
 // See Conn.SetAuthorizer
 type Authorizer func(udp interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth
