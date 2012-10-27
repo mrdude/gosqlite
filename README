@@ -20,7 +20,7 @@ Stmt#ScanByIndex/ScanByName are added to test NULL value.
 
 Currently, the weak point of the binding is the *Scan* methods:
 The original implementation is using this strategy:
- - convert the stored value to a []byte by calling sqlite3_column_bytes,
+ - convert the stored value to a []byte by calling sqlite3_column_blob,
  - convert the bytes to the desired Go type with correct feedback in case of illegal conversion,
  - but apparently no support for NULL value.
 Using the native sqlite3_column_x implies:

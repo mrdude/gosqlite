@@ -158,6 +158,7 @@ func (c *Conn) LastError() error {
 }
 
 // Database connection handle
+// (See http://sqlite.org/c3ref/sqlite3.html)
 type Conn struct {
 	db              *C.sqlite3
 	stmtCache       *cache
@@ -501,7 +502,7 @@ func (c *Conn) Close() error {
 			Log(C.SQLITE_MISUSE, "Dangling statement (not finalize): \""+C.GoString(C.sqlite3_sql(stmt))+"\"")
 		}
 		C.sqlite3_finalize(stmt)
-		stmt = C.sqlite3_next_stmt(c.db, stmt)
+		stmt = C.sqlite3_next_stmt(c.db, nil)
 	}
 
 	rv := C.sqlite3_close(c.db)

@@ -17,6 +17,7 @@ import (
 )
 
 // io.ReadCloser adapter to BLOB
+// (See http://sqlite.org/c3ref/blob.html)
 type BlobReader struct {
 	c          *Conn
 	bl         *C.sqlite3_blob
