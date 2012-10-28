@@ -296,13 +296,16 @@ func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 // that are useful for constructing SQL statements.
 // (See http://sqlite.org/c3ref/mprintf.html)
 func Mprintf(format string, arg string) string {
+	zSQL := mPrintf(format, arg)
+	defer C.sqlite3_free(unsafe.Pointer(zSQL))
+	return C.GoString(zSQL)
+}
+func mPrintf(format, arg string) *C.char {
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))
 	ca := C.CString(arg)
 	defer C.free(unsafe.Pointer(ca))
-	zSQL := C.my_mprintf(cf, ca)
-	defer C.sqlite3_free(unsafe.Pointer(zSQL))
-	return C.GoString(zSQL)
+	return C.my_mprintf(cf, ca)
 }
 
 // Mprintf2 is like fmt.Printf but implements some additional formatting options

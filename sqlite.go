@@ -171,6 +171,7 @@ type Conn struct {
 	rollbackHook    *sqliteRollbackHook
 	updateHook      *sqliteUpdateHook
 	udfs            map[string]*sqliteFunction
+	modules         map[string]*sqliteModule
 }
 
 // Version returns the run-time library version number
