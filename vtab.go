@@ -17,15 +17,28 @@ import (
 	"unsafe"
 )
 
+type sqliteModule struct {
+	c      *Conn
+	name   string
+	module Module
+	vts    map[*sqliteVTab]bool
+}
+
 type sqliteVTab struct {
-	c    *Conn // TODO Useful?
-	vTab VTab
+	module *sqliteModule
+	vTab   VTab
+	vtcs   map[*sqliteVTabCursor]bool
+}
+
+type sqliteVTabCursor struct {
+	vTab       *sqliteVTab
+	vTabCursor VTabCursor
 }
 
 //export goMInit
 func goMInit(db, pClientData unsafe.Pointer, argc int, argv **C.char, pzErr **C.char, isCreate int) unsafe.Pointer {
-	udm := (*sqliteModule)(pClientData)
-	if udm.c.db != (*C.sqlite3)(db) {
+	m := (*sqliteModule)(pClientData)
+	if m.c.db != (*C.sqlite3)(db) {
 		*pzErr = mPrintf("%s", "Inconsistent db handles")
 		return nil
 	}
@@ -39,45 +52,84 @@ func goMInit(db, pClientData unsafe.Pointer, argc int, argv **C.char, pzErr **C.
 	var vTab VTab
 	var err error
 	if isCreate == 1 {
-		vTab, err = udm.module.Create(udm.c, args)
+		vTab, err = m.module.Create(m.c, args)
 	} else {
-		vTab, err = udm.module.Connect(udm.c, args)
+		vTab, err = m.module.Connect(m.c, args)
 	}
 
 	if err != nil {
 		*pzErr = mPrintf("%s", err.Error())
 		return nil
 	}
-	udt := &sqliteVTab{udm.c, vTab}
+	vt := &sqliteVTab{m, vTab, nil}
+	// prevents 'vt' from being gced
+	if m.vts == nil {
+		m.vts = make(map[*sqliteVTab]bool)
+	}
+	m.vts[vt] = true
 	*pzErr = nil
-	return unsafe.Pointer(udt)
+	return unsafe.Pointer(vt)
 }
 
-//export goMRelease
-func goMRelease(pVTab unsafe.Pointer, isDestroy int) *C.char {
-	udt := (*sqliteVTab)(pVTab)
+//export goVRelease
+func goVRelease(pVTab unsafe.Pointer, isDestroy int) *C.char {
+	vt := (*sqliteVTab)(pVTab)
 	var err error
 	if isDestroy == 1 {
-		err = udt.vTab.Destroy()
+		err = vt.vTab.Destroy()
 	} else {
-		err = udt.vTab.Disconnect()
+		err = vt.vTab.Disconnect()
 	}
 	if err != nil {
 		return mPrintf("%s", err.Error())
 	}
+	// TODO Check vt.vtcs is empty
+	vt.vtcs = nil
+	delete(vt.module.vts, vt)
+	return nil
+}
+
+//export goVOpen
+func goVOpen(pVTab unsafe.Pointer, pzErr **C.char) unsafe.Pointer {
+	vt := (*sqliteVTab)(pVTab)
+	vTabCursor, err := vt.vTab.Open()
+	if err != nil {
+		*pzErr = mPrintf("%s", err.Error())
+		return nil
+	}
+	// prevents 'vt' from being gced
+	vtc := &sqliteVTabCursor{vt, vTabCursor}
+	if vt.vtcs == nil {
+		vt.vtcs = make(map[*sqliteVTabCursor]bool)
+	}
+	vt.vtcs[vtc] = true
+	*pzErr = nil
+	return unsafe.Pointer(vtc)
+}
+
+//export goVClose
+func goVClose(pCursor unsafe.Pointer) *C.char {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	err := vtc.vTabCursor.Close()
+	if err != nil {
+		return mPrintf("%s", err.Error())
+	}
+	delete(vtc.vTab.vtcs, vtc)
 	return nil
 }
 
 //export goMDestroy
 func goMDestroy(pClientData unsafe.Pointer) {
-	udm := (*sqliteModule)(pClientData)
-	udm.module.Destroy()
-	delete(udm.c.modules, udm.name)
+	m := (*sqliteModule)(pClientData)
+	m.module.Destroy()
+	// TODO Check m.vts is empty
+	m.vts = nil
+	delete(m.c.modules, m.name)
 }
 
 //export goXNext
-func goXNext(cursor unsafe.Pointer) C.int {
-	//c := (*VTableCursor)(cursor)
+func goXNext(pCursor unsafe.Pointer) C.int {
+	//vtc := (*sqliteVTabCursor)(pCursor)
 	return 0
 }
 
@@ -124,10 +176,6 @@ type VTabCursor interface {
 	Rowid() (int64, error)            // See http://sqlite.org/vtab.html#xrowid
 }
 
-type vTabCursor struct {
-	base *C.sqlite3_vtab_cursor
-}
-
 // DeclareVTab declares the Schema of a virtual table.
 // (See http://sqlite.org/c3ref/declare_vtab.html)
 func (c *Conn) DeclareVTab(sql string) error {
@@ -136,19 +184,13 @@ func (c *Conn) DeclareVTab(sql string) error {
 	return c.error(C.sqlite3_declare_vtab(c.db, zSQL))
 }
 
-type sqliteModule struct {
-	c      *Conn
-	name   string
-	module Module
-}
-
 // CreateModule registers a virtual table implementation.
 // (See http://sqlite.org/c3ref/create_module.html)
 func (c *Conn) CreateModule(moduleName string, module Module) error {
 	mname := C.CString(moduleName)
 	defer C.free(unsafe.Pointer(mname))
 	// To make sure it is not gced, keep a reference in the connection.
-	udm := &sqliteModule{c, moduleName, module}
+	udm := &sqliteModule{c, moduleName, module, nil}
 	if len(c.modules) == 0 {
 		c.modules = make(map[string]*sqliteModule)
 	}
@@ -168,15 +210,15 @@ CreateModule(                       int sqlite3_create_module_v2(
 
 goModule                            sqlite3_module {
                                      |- int iVersion
-x                                    |- int (*xCreate)(sqlite3*, void *pAux, int argc, char **argv, sqlite3_vtab **ppVTab,
+goMInit                              |- int (*xCreate)(sqlite3*, void *pAux, int argc, char **argv, sqlite3_vtab **ppVTab,
                                              char **pzErr)
-x                                    |- int (*xConnect)(sqlite3*, void *pAux, int argc, char **argv, sqlite3_vtab **ppVTab,
+goMInit                              |- int (*xConnect)(sqlite3*, void *pAux, int argc, char **argv, sqlite3_vtab **ppVTab,
                                              char **pzErr)
 x                                    |- int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*)
-x                                    |- int (*xDisconnect)(sqlite3_vtab *pVTab)
-x                                    |- int (*xDestroy)(sqlite3_vtab *pVTab)
-x                                    |- int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
-x                                    |- int (*xClose)(sqlite3_vtab_cursor*)
+goVRelease                           |- int (*xDisconnect)(sqlite3_vtab *pVTab)
+goVRelease                           |- int (*xDestroy)(sqlite3_vtab *pVTab)
+goVOpen                              |- int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor)
+goVClose                             |- int (*xClose)(sqlite3_vtab_cursor*)
 x                                    |- int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr, int argc,
                                              sqlite3_value **argv)
 x                                    |- int (*xNext)(sqlite3_vtab_cursor*)
@@ -201,7 +243,7 @@ o                                    \- int (*xRollbackTo)(sqlite3_vtab *pVTab, 
                                      \- const char *zCreateTable
                                     )
 
-?                                   sqlite3_vtab { (Created by xCreate/xConnect)
+sqliteVTab                          sqlite3_vtab { (Created by xCreate/xConnect)
                                      |- const sqlite3_module *pModule
                                      |- int nRef
                                      |- char *zErrMsg

@@ -39,11 +39,12 @@ static int cXConnect(sqlite3 *db, void *pAux, int argc, const char *const*argv, 
 }
 
 static int cXBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *info) {
+  // TODO
 	return SQLITE_OK;
 }
 
 static int cXRelease(sqlite3_vtab *pVTab, int isDestroy) {
-  char *pzErr = goMRelease(((goVTab*)pVTab)->vTab, isDestroy);
+  char *pzErr = goVRelease(((goVTab*)pVTab)->vTab, isDestroy);
   if (pzErr) {
     if (pVTab->zErrMsg)
       sqlite3_free(pVTab->zErrMsg);
@@ -63,11 +64,34 @@ static int cXDestroy(sqlite3_vtab *pVTab) {
   return cXRelease(pVTab, 1);
 }
 
+typedef struct goVTabCursor goVTabCursor;
+
+struct goVTabCursor {
+  sqlite3_vtab_cursor base;
+  void *vTabCursor;
+};
+
 static int cXOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
-	return 0;
+  void *vTabCursor = goVOpen(((goVTab*)pVTab)->vTab, &(pVTab->zErrMsg));
+  goVTabCursor *pCursor = (goVTabCursor *)sqlite3_malloc(sizeof(goVTabCursor));
+  if (!pCursor) {
+    return SQLITE_NOMEM;
+  }
+  memset(pCursor, 0, sizeof(goVTabCursor));
+  pCursor->vTabCursor = vTabCursor;
+  *ppCursor = (sqlite3_vtab_cursor *)pCursor;
+	return SQLITE_OK;
 }
 static int cXClose(sqlite3_vtab_cursor *pCursor) {
-	return 0;
+  char *pzErr = goVClose(((goVTabCursor*)pCursor)->vTabCursor);
+  if (pzErr) {
+    if (pCursor->pVtab->zErrMsg)
+      sqlite3_free(pCursor->pVtab->zErrMsg);
+    pCursor->pVtab->zErrMsg = pzErr;
+    return SQLITE_ERROR;
+  }
+  sqlite3_free(pCursor);
+	return SQLITE_OK;
 }
 static int cXFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
 	return 0;
