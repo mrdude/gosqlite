@@ -5,7 +5,9 @@
 package sqlite_test
 
 import (
+	"fmt"
 	. "github.com/gwenn/gosqlite"
+	"strconv"
 	"testing"
 )
 
@@ -14,9 +16,12 @@ type testModule struct {
 }
 
 type testVTab struct {
+	eof bool
 }
 
 type testVTabCursor struct {
+	vTab *testVTab
+	pos  int64
 }
 
 func (m testModule) Create(c *Conn, args []string) (VTab, error) {
@@ -29,10 +34,10 @@ func (m testModule) Create(c *Conn, args []string) (VTab, error) {
 	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "2", args[4])
 	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "three", args[5])
 	c.DeclareVTab("CREATE TABLE x(test TEXT)")
-	return testVTab{}, nil
+	return &testVTab{}, nil
 }
 func (m testModule) Connect(c *Conn, args []string) (VTab, error) {
-	println("testVTab.Connect")
+	//println("testVTab.Connect")
 	return m.Create(c, args)
 }
 
@@ -40,46 +45,58 @@ func (m testModule) Destroy() {
 	//println("testModule.Destroy")
 }
 
-func (v testVTab) BestIndex() error {
-	println("testVTab.BestIndex")
+func (v *testVTab) BestIndex() error {
+	//fmt.Printf("testVTab.BestIndex: %v\n", v)
 	return nil
 }
-func (v testVTab) Disconnect() error {
-	//println("testVTab.Disconnect")
+func (v *testVTab) Disconnect() error {
+	//fmt.Printf("testVTab.Disconnect: %v\n", v)
 	return nil
 }
-func (v testVTab) Destroy() error {
-	//println("testVTab.Destroy")
+func (v *testVTab) Destroy() error {
+	//fmt.Printf("testVTab.Destroy: %v\n", v)
 	return nil
 }
-func (v testVTab) Open() (VTabCursor, error) {
-	//println("testVTab.Open")
-	return testVTabCursor{}, nil
+func (v *testVTab) Open() (VTabCursor, error) {
+	//fmt.Printf("testVTab.Open: %v\n", v)
+	return &testVTabCursor{v, 0}, nil
 }
 
-func (v testVTabCursor) Close() error {
-	//println("testVTabCursor.Close")
+func (vc *testVTabCursor) Close() error {
+	//fmt.Printf("testVTabCursor.Close: %v\n", vc)
 	return nil
 }
-func (v testVTabCursor) Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error {
-	println("testVTabCursor.Filter")
+func (vc *testVTabCursor) Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error {
+	//fmt.Printf("testVTabCursor.Filter: %v\n", vc)
+	vc.vTab.eof = false
+	return vc.Next()
+}
+func (vc *testVTabCursor) Next() error {
+	//fmt.Printf("testVTabCursor.Next: %v\n", vc)
+	if vc.vTab.eof {
+		return fmt.Errorf("Next() called after EOF!")
+	}
+	if vc.pos == 1 {
+		vc.vTab.eof = true
+	}
+	vc.pos++
 	return nil
 }
-func (v testVTabCursor) Next() error {
-	println("testVTabCursor.Next")
+func (vc *testVTabCursor) Eof() bool {
+	//fmt.Printf("testVTabCursor.Eof: %v\n", vc)
+	return vc.vTab.eof
+}
+func (vc *testVTabCursor) Column(c *Context, col int) error {
+	//fmt.Printf("testVTabCursor.Column(%d): %v\n", col, vc)
+	if col != 0 {
+		return fmt.Errorf("Column index out of bounds: %d", col)
+	}
+	c.ResultText(strconv.FormatInt(vc.pos, 10))
 	return nil
 }
-func (v testVTabCursor) Eof() bool {
-	println("testVTabCursor.Eof")
-	return true
-}
-func (v testVTabCursor) Column(c *Context, col int) error {
-	println("testVTabCursor.Column")
-	return nil
-}
-func (v testVTabCursor) Rowid() (int64, error) {
-	println("testVTabCursor.Rowid")
-	return 1, nil
+func (vc *testVTabCursor) Rowid() (int64, error) {
+	//fmt.Printf("testVTabCursor.Rowid: %v\n", vc)
+	return vc.pos, nil
 }
 
 func TestCreateModule(t *testing.T) {
@@ -89,11 +106,10 @@ func TestCreateModule(t *testing.T) {
 	checkNoError(t, err, "couldn't create module: %s")
 	err = db.Exec("CREATE VIRTUAL TABLE vtab USING test('1', 2, three)")
 	checkNoError(t, err, "couldn't create virtual table: %s")
-	//var value *string
-	//err = db.OneValue("SELECT * from vtab", &value)
-	//checkNoError(t, err, "couldn't select from virtual table: %s")
-	//assert(t, "Not null value expected", value != nil)
-	//assertEquals(t, "Expected '%s' but got '%s'", "test", *value)
+	var value string
+	err = db.OneValue("SELECT * from vtab", &value)
+	checkNoError(t, err, "couldn't select from virtual table: %s")
+	assertEquals(t, "Expected '%s' but got '%s'", "1", value)
 	err = db.Exec("DROP TABLE vtab")
 	checkNoError(t, err, "couldn't drop virtual table: %s")
 }
