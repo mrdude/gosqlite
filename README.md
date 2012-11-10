@@ -5,6 +5,7 @@ This binding implements the "database/sql/driver" interface.
 
 See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).
 
+<pre>
 Open supports flags.
 Conn#Exec handles multiple statements (separated by semicolons) properly.
 Conn#Prepare can optionnaly #Bind as well.
@@ -17,6 +18,7 @@ Stmt#Next returns a (bool, os.Error) couple like Reader#Read.
 Stmt#Scan uses native sqlite3_column_x methods.
 Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).
 Stmt#ScanByIndex/ScanByName are added to test NULL value.
+</pre>
 
 Currently, the weak point of the binding is the *Scan* methods:
 The original implementation is using this strategy:
@@ -32,6 +34,7 @@ SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
 - ConfigLog function
 - or `export SQLITE_LOG=1`
 
+<pre>
 Misc:
 Conn#Exists
 Conn#OneValue
@@ -101,3 +104,4 @@ BenchmarkEnabledCache   1000000   1133 ns/op
 BenchmarkLike   1000000  2508 ns/op
 BenchmarkHalf    500000  4811 ns/op
 BenchmarkRegexp  500000  6170 ns/op
+</pre>
