@@ -5,20 +5,18 @@ This binding implements the "database/sql/driver" interface.
 
 See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).
 
-<pre>
-Open supports flags.
-Conn#Exec handles multiple statements (separated by semicolons) properly.
-Conn#Prepare can optionnaly #Bind as well.
-Conn#Prepare can reuse already prepared Stmt.
-Conn#Close ensures that all dangling statements are finalized.
-Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.
-Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.
-Stmt#NamedBind can be used to bind by name.
-Stmt#Next returns a (bool, os.Error) couple like Reader#Read.
-Stmt#Scan uses native sqlite3_column_x methods.
-Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).
+Open supports flags.  
+Conn#Exec handles multiple statements (separated by semicolons) properly.  
+Conn#Prepare can optionnaly #Bind as well.  
+Conn#Prepare can reuse already prepared Stmt.  
+Conn#Close ensures that all dangling statements are finalized.  
+Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.  
+Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.  
+Stmt#NamedBind can be used to bind by name.  
+Stmt#Next returns a (bool, os.Error) couple like Reader#Read.  
+Stmt#Scan uses native sqlite3_column_x methods.  
+Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).  
 Stmt#ScanByIndex/ScanByName are added to test NULL value.
-</pre>
 
 Currently, the weak point of the binding is the *Scan* methods:
 The original implementation is using this strategy:
@@ -34,63 +32,63 @@ SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
 - ConfigLog function
 - or `export SQLITE_LOG=1`
 
-<pre>
-Misc:
-Conn#Exists
-Conn#OneValue
+Misc:  
+Conn#Exists  
+Conn#OneValue  
 
-Conn#OpenVfs
-Conn#EnableFkey/IsFKeyEnabled
-Conn#Changes/TotalChanges
-Conn#LastInsertRowid
-Conn#Interrupt
-Conn#Begin/BeginTransaction(type)/Commit/Rollback
-Conn#GetAutocommit
-Conn#EnableLoadExtension/LoadExtension
-Conn#IntegrityCheck
+Conn#OpenVfs  
+Conn#EnableFkey/IsFKeyEnabled  
+Conn#Changes/TotalChanges  
+Conn#LastInsertRowid  
+Conn#Interrupt  
+Conn#Begin/BeginTransaction(type)/Commit/Rollback  
+Conn#GetAutocommit  
+Conn#EnableLoadExtension/LoadExtension  
+Conn#IntegrityCheck  
 
-Stmt#Insert/ExecDml/Select/SelectOneRow
-Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)
-Stmt#ClearBindings
-Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)
-Stmt#ReadOnly
-Stmt#Busy
+Stmt#Insert/ExecDml/Select/SelectOneRow  
+Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)  
+Stmt#ClearBindings  
+Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)  
+Stmt#ReadOnly  
+Stmt#Busy  
 
-Blob:
-ZeroBlobLength
-Conn#NewBlobReader
-Conn#NewBlobReadWriter
+Blob:  
+ZeroBlobLength  
+Conn#NewBlobReader  
+Conn#NewBlobReadWriter  
 
-Meta:
-Conn#Databases
-Conn#Tables
-Conn#Columns
-Conn#ForeignKeys
-Conn#Indexes/IndexColumns
+Meta:  
+Conn#Databases  
+Conn#Tables  
+Conn#Columns  
+Conn#ForeignKeys  
+Conn#Indexes/IndexColumns  
 
-Time:
-JulianDay
-JulianDayToUTC
-JulianDayToLocalTime
+Time:  
+JulianDay  
+JulianDayToUTC  
+JulianDayToLocalTime  
 
-Trace:
-Conn#BusyHandler
-Conn#Profile
-Conn#ProgressHandler
-Conn#SetAuthorizer
-Conn#Trace
-Stmt#Status
+Trace:  
+Conn#BusyHandler  
+Conn#Profile  
+Conn#ProgressHandler  
+Conn#SetAuthorizer  
+Conn#Trace  
+Stmt#Status  
 
-Hook:
-Conn#CommitHook
-Conn#RollbackHook
-Conn#UpdateHook
+Hook:  
+Conn#CommitHook  
+Conn#RollbackHook  
+Conn#UpdateHook  
 
-Function:
-Conn#CreateScalarFunction
-Conn#CreateAggregateFunction
+Function:  
+Conn#CreateScalarFunction  
+Conn#CreateAggregateFunction  
 
 $ go test -test.bench '.*'
+<pre>
 BenchmarkValuesScan 500000  4658 ns/op
 BenchmarkScan       500000   324 ns/op
 BenchmarkNamedScan  200000  9221 ns/op
