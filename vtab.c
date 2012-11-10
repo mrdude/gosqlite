@@ -82,31 +82,53 @@ static int cXOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   *ppCursor = (sqlite3_vtab_cursor *)pCursor;
 	return SQLITE_OK;
 }
+
+static int setErrMsg(sqlite3_vtab_cursor *pCursor, char *pzErr) {
+  if (pCursor->pVtab->zErrMsg)
+    sqlite3_free(pCursor->pVtab->zErrMsg);
+  pCursor->pVtab->zErrMsg = pzErr;
+  return SQLITE_ERROR;
+}
+
 static int cXClose(sqlite3_vtab_cursor *pCursor) {
   char *pzErr = goVClose(((goVTabCursor*)pCursor)->vTabCursor);
   if (pzErr) {
-    if (pCursor->pVtab->zErrMsg)
-      sqlite3_free(pCursor->pVtab->zErrMsg);
-    pCursor->pVtab->zErrMsg = pzErr;
-    return SQLITE_ERROR;
+    return setErrMsg(pCursor, pzErr);
   }
   sqlite3_free(pCursor);
 	return SQLITE_OK;
 }
 static int cXFilter(sqlite3_vtab_cursor *pCursor, int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
-	return 0;
+  // TODO idxNum, idxStr, argc, argv are useless when cXBestIndex is empty
+  char *pzErr = goVFilter(((goVTabCursor*)pCursor)->vTabCursor);
+  if (pzErr) {
+    return setErrMsg(pCursor, pzErr);
+  }
+  return SQLITE_OK;
 }
 static int cXNext(sqlite3_vtab_cursor *pCursor) {
-	return goXNext(pCursor);
+  char *pzErr = goVNext(((goVTabCursor*)pCursor)->vTabCursor);
+  if (pzErr) {
+    return setErrMsg(pCursor, pzErr);
+  }
+  return SQLITE_OK;
 }
 static int cXEof(sqlite3_vtab_cursor *pCursor) {
-	return 0;
+  return goVEof(((goVTabCursor*)pCursor)->vTabCursor);
 }
 static int cXColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *ctx, int i) {
-	return 0;
+  char *pzErr = goVColumn(((goVTabCursor*)pCursor)->vTabCursor, ctx, i);
+  if (pzErr) {
+    return setErrMsg(pCursor, pzErr);
+  }
+  return SQLITE_OK;
 }
 static int cXRowid(sqlite3_vtab_cursor *pCursor, sqlite3_int64 *pRowid) {
-	return 0;
+  char *pzErr = goVRowid(((goVTabCursor*)pCursor)->vTabCursor, pRowid);
+  if (pzErr) {
+    return setErrMsg(pCursor, pzErr);
+  }
+  return SQLITE_OK;
 }
 
 static sqlite3_module goModule = {

@@ -127,10 +127,52 @@ func goMDestroy(pClientData unsafe.Pointer) {
 	delete(m.c.modules, m.name)
 }
 
-//export goXNext
-func goXNext(pCursor unsafe.Pointer) C.int {
-	//vtc := (*sqliteVTabCursor)(pCursor)
-	return 0
+//export goVFilter
+func goVFilter(pCursor unsafe.Pointer) *C.char {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	err := vtc.vTabCursor.Filter()
+	if err != nil {
+		return mPrintf("%s", err.Error())
+	}
+	return nil
+}
+
+//export goVNext
+func goVNext(pCursor unsafe.Pointer) *C.char {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	err := vtc.vTabCursor.Next()
+	if err != nil {
+		return mPrintf("%s", err.Error())
+	}
+	return nil
+}
+
+//export goVEof
+func goVEof(pCursor unsafe.Pointer) C.int {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	return btocint(vtc.vTabCursor.Eof())
+}
+
+//export goVColumn
+func goVColumn(pCursor, cp unsafe.Pointer, col int) *C.char {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	c := &Context{(*C.sqlite3_context)(cp)} // TODO how to avoid building a Context at each invocation?
+	err := vtc.vTabCursor.Column(c, col)
+	if err != nil {
+		return mPrintf("%s", err.Error())
+	}
+	return nil
+}
+
+//export goVRowid
+func goVRowid(pCursor unsafe.Pointer, pRowid *C.sqlite3_int64) *C.char {
+	vtc := (*sqliteVTabCursor)(pCursor)
+	rowid, err := vtc.vTabCursor.Rowid()
+	if err != nil {
+		return mPrintf("%s", err.Error())
+	}
+	*pRowid = C.sqlite3_int64(rowid)
+	return nil
 }
 
 type Module interface {
@@ -168,7 +210,7 @@ type VTabExtended interface {
 // (See http://sqlite.org/c3ref/vtab_cursor.html)
 type VTabCursor interface {
 	Close() error                                                                // See http://sqlite.org/vtab.html#xclose
-	Filter(idxNum int, idxStr string /*, int argc, sqlite3_value **argv*/) error // See http://sqlite.org/vtab.html#xfilter
+	Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error // See http://sqlite.org/vtab.html#xfilter
 	Next() error                                                                 // See http://sqlite.org/vtab.html#xnext
 	Eof() bool                                                                   // See http://sqlite.org/vtab.html#xeof
 	// col is zero-based so the first column is numbered 0
