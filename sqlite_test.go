@@ -304,14 +304,34 @@ func TestScanNull(t *testing.T) {
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
-	var pi *int
+	var pi *int = new(int)
 	null := Must(s.ScanByIndex(0, &pi))
 	assert(t, "expected null value", null)
 	assertEquals(t, "expected nil (%p) but got %p", (*int)(nil), pi)
-	var ps *string
+	var ps *string = new(string)
 	null = Must(s.ScanByIndex(0, &ps))
 	assert(t, "expected null value", null)
 	assertEquals(t, "expected nil (%p) but got %p", (*string)(nil), ps)
+}
+
+func TestScanNotNull(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	s, err := db.Prepare("select 1")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+	var pi *int = new(int)
+	null := Must(s.ScanByIndex(0, &pi))
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %d but got %d", 1, *pi)
+	var ps *string = new(string)
+	null = Must(s.ScanByIndex(0, &ps))
+	assert(t, "expected not null value", !null)
+	assertEquals(t, "expected %s but got %s", "1", *ps)
 }
 
 func TestCloseTwice(t *testing.T) {
