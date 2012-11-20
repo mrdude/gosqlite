@@ -915,11 +915,11 @@ func (s *Stmt) finalize() error {
 		return errors.New("nil sqlite statement")
 	}
 	rv := C.sqlite3_finalize(s.stmt)
+	s.stmt = nil
 	if rv != C.SQLITE_OK {
 		Log(int(rv), "error while finalizing Stmt")
 		return s.error(rv)
 	}
-	s.stmt = nil
 	return nil
 }
 
