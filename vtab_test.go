@@ -33,7 +33,10 @@ func (m testModule) Create(c *Conn, args []string) (VTab, error) {
 	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "'1'", args[3])
 	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "2", args[4])
 	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "three", args[5])
-	c.DeclareVTab("CREATE TABLE x(test TEXT)")
+	err := c.DeclareVTab("CREATE TABLE x(test TEXT)")
+	if err != nil {
+		return nil, err
+	}
 	return &testVTab{}, nil
 }
 func (m testModule) Connect(c *Conn, args []string) (VTab, error) {
