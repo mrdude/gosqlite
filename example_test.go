@@ -125,21 +125,28 @@ func ExampleStmt_Scan() {
 	check(err)
 	defer db.Close()
 
-	s, err := db.Prepare("SELECT 1 as id, 'Go' as name UNION SELECT 2, 'SQLite'")
+	s, err := db.Prepare("SELECT 1 as id, 'Go' as name, 'Y' as status UNION SELECT 2, 'SQLite', 'yes'")
 	check(err)
 	defer s.Finalize()
 
 	var id int
 	var name string
+	var status bool
+
+	converter := func(value interface{}) (bool, error) {
+		status = value == "Y" || value == "yes"
+		return false, nil
+	}
+
 	err = s.Select(func(s *sqlite.Stmt) (err error) {
-		if err = s.Scan(&id, &name); err != nil {
+		if err = s.Scan(&id, &name, converter); err != nil {
 			return
 		}
-		fmt.Println(id, name)
+		fmt.Println(id, name, status)
 		return
 	})
-	// Output: 1 Go
-	// 2 SQLite
+	// Output: 1 Go true
+	// 2 SQLite true
 }
 
 func ExampleNewBackup() {

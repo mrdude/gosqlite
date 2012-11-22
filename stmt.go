@@ -68,6 +68,7 @@ func (s *Stmt) specificError(msg string, a ...interface{}) error {
 }
 
 // SQL statement
+// (See http://sqlite.org/c3ref/stmt.html)
 type Stmt struct {
 	c                  *Conn
 	stmt               *C.sqlite3_stmt
@@ -562,6 +563,7 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 //    (*)*float64
 //    (*)*[]byte
 //    *interface{}
+//    func(interface{}) (bool, error)
 //
 // Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
@@ -656,6 +658,8 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *interface{}:
 		*value = s.ScanValue(index)
 		isNull = *value == nil
+	case func(interface{}) (bool, error):
+		isNull, err = value(s.ScanValue(index))
 	default:
 		return false, s.specificError("unsupported type in Scan: %s", reflect.TypeOf(value))
 	}
