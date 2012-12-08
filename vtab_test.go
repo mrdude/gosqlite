@@ -7,21 +7,21 @@ package sqlite_test
 import (
 	"fmt"
 	. "github.com/gwenn/gosqlite"
-	"strconv"
 	"testing"
 )
 
 type testModule struct {
-	t *testing.T
+	t        *testing.T
+	intarray []int
 }
 
 type testVTab struct {
-	eof bool
+	intarray []int
 }
 
 type testVTabCursor struct {
-	vTab *testVTab
-	pos  int64
+	vTab  *testVTab
+	index int /* Current cursor position */
 }
 
 func (m testModule) Create(c *Conn, args []string) (VTab, error) {
@@ -37,7 +37,7 @@ func (m testModule) Create(c *Conn, args []string) (VTab, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &testVTab{}, nil
+	return &testVTab{m.intarray}, nil
 }
 func (m testModule) Connect(c *Conn, args []string) (VTab, error) {
 	//println("testVTab.Connect")
@@ -71,48 +71,54 @@ func (vc *testVTabCursor) Close() error {
 }
 func (vc *testVTabCursor) Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error {
 	//fmt.Printf("testVTabCursor.Filter: %v\n", vc)
-	vc.vTab.eof = false
-	return vc.Next()
+	vc.index = 0
+	return nil
 }
 func (vc *testVTabCursor) Next() error {
 	//fmt.Printf("testVTabCursor.Next: %v\n", vc)
-	if vc.vTab.eof {
-		return fmt.Errorf("Next() called after EOF!")
-	}
-	if vc.pos == 1 {
-		vc.vTab.eof = true
-	}
-	vc.pos++
+	vc.index++
 	return nil
 }
 func (vc *testVTabCursor) Eof() bool {
 	//fmt.Printf("testVTabCursor.Eof: %v\n", vc)
-	return vc.vTab.eof
+	return vc.index >= len(vc.vTab.intarray)
 }
 func (vc *testVTabCursor) Column(c *Context, col int) error {
 	//fmt.Printf("testVTabCursor.Column(%d): %v\n", col, vc)
 	if col != 0 {
 		return fmt.Errorf("Column index out of bounds: %d", col)
 	}
-	c.ResultText(strconv.FormatInt(vc.pos, 10))
+	c.ResultInt(vc.vTab.intarray[vc.index])
 	return nil
 }
 func (vc *testVTabCursor) Rowid() (int64, error) {
 	//fmt.Printf("testVTabCursor.Rowid: %v\n", vc)
-	return vc.pos, nil
+	return int64(vc.index), nil
 }
 
 func TestCreateModule(t *testing.T) {
 	db := open(t)
 	defer db.Close()
-	err := db.CreateModule("test", testModule{t})
+	intarray := []int{1, 2, 3}
+	err := db.CreateModule("test", testModule{t, intarray})
 	checkNoError(t, err, "couldn't create module: %s")
 	err = db.Exec("CREATE VIRTUAL TABLE vtab USING test('1', 2, three)")
 	checkNoError(t, err, "couldn't create virtual table: %s")
-	var value string
-	err = db.OneValue("SELECT * from vtab", &value)
+
+	s, err := db.Prepare("SELECT * from vtab")
 	checkNoError(t, err, "couldn't select from virtual table: %s")
-	assertEquals(t, "Expected '%s' but got '%s'", "1", value)
+	defer s.Finalize()
+	var i, value int
+	err = s.Select(func(s *Stmt) (err error) {
+		if err = s.Scan(&value); err != nil {
+			return
+		}
+		assertEquals(t, "Expected '%d' but got '%d'", intarray[i], value)
+		i++
+		return
+	})
+	checkNoError(t, err, "couldn't select from virtual table: %s")
+
 	err = db.Exec("DROP TABLE vtab")
 	checkNoError(t, err, "couldn't drop virtual table: %s")
 }
