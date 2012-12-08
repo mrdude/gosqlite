@@ -7,6 +7,7 @@ package sqlite_test
 import (
 	. "github.com/gwenn/gosqlite"
 	"math/rand"
+	"os"
 	"regexp"
 	"testing"
 )
@@ -91,6 +92,27 @@ func TestRegexpFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't scan result: %s")
 	assertEquals(t, "expected %d but got %d", 0, i)
 	assert(t, "unexpected reused state", reused)
+}
+
+func user(ctx *ScalarContext, nArg int) {
+	login := os.Getenv("USER")
+	if len(login) == 0 {
+		login = "Anonymous"
+	}
+	ctx.ResultText(login)
+}
+
+func TestUserFunction(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	err := db.CreateScalarFunction("user", 0, nil, user, nil)
+	checkNoError(t, err, "couldn't create function: %s")
+	var name string
+	err = db.OneValue("select user()", &name)
+	checkNoError(t, err, "couldn't retrieve result: %s")
+	assert(t, "unexpected user name: %q", len(name) > 0)
+	err = db.CreateScalarFunction("user", 1, nil, nil, nil)
+	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
 func sumStep(ctx *AggregateContext, nArg int) {
