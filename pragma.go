@@ -62,6 +62,30 @@ func (c *Conn) SetRecursiveTriggers(dbName string, on bool) error {
 	return c.exec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t", on)))
 }
 
+// JournalMode queries the current journaling mode for database.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_journal_mode)
+func (c *Conn) JournalMode(dbName string) (string, error) {
+	var mode string
+	err := c.OneValue(pragma(dbName, "journal_mode"), &mode)
+	if err != nil {
+		return "", err
+	}
+	return mode, nil
+}
+
+// SetJournalMode changes the journaling mode for database.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_journal_mode)
+func (c *Conn) SetJournalMode(dbName, mode string) (string, error) {
+	var newMode string
+	err := c.OneValue(pragma(dbName, Mprintf("journal_mode=%Q", mode)), &newMode)
+	if err != nil {
+		return "", err
+	}
+	return newMode, nil
+}
+
 func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
 		return "PRAGMA " + pragmaName

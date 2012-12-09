@@ -29,3 +29,19 @@ func TestSchemaVersion(t *testing.T) {
 	checkNoError(t, err, "Error reading schema version of database: %s")
 	assertEquals(t, "expecting %d but got %d", 0, version)
 }
+
+func TestJournalMode(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	mode, err := db.JournalMode("")
+	checkNoError(t, err, "Error reading journaling mode of database: %s")
+	assertEquals(t, "expecting %s but got %s", "memory", mode)
+}
+
+func TestSetJournalMode(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	mode, err := db.SetJournalMode("", "OFF")
+	checkNoError(t, err, "Error setting journaling mode of database: %s")
+	assertEquals(t, "expecting %s but got %s", "off", mode)
+}
