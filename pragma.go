@@ -86,6 +86,49 @@ func (c *Conn) SetJournalMode(dbName, mode string) (string, error) {
 	return newMode, nil
 }
 
+// LockingMode queries the database connection locking-mode.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_locking_mode)
+func (c *Conn) LockingMode(dbName string) (string, error) {
+	var mode string
+	err := c.OneValue(pragma(dbName, "locking_mode"), &mode)
+	if err != nil {
+		return "", err
+	}
+	return mode, nil
+}
+
+// SetLockingMode changes the database connection locking-mode.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_locking_mode)
+func (c *Conn) SetLockingMode(dbName, mode string) (string, error) {
+	var newMode string
+	err := c.OneValue(pragma(dbName, Mprintf("locking_mode=%Q", mode)), &newMode)
+	if err != nil {
+		return "", err
+	}
+	return newMode, nil
+}
+
+// Synchronous queries the synchronous flag.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_synchronous)
+func (c *Conn) Synchronous(dbName string) (int, error) {
+	var mode int
+	err := c.OneValue(pragma(dbName, "synchronous"), &mode)
+	if err != nil {
+		return -1, err
+	}
+	return mode, nil
+}
+
+// SetSynchronous changes the synchronous flag.
+// Database name is optional (default is 'main').
+// (See http://sqlite.org/pragma.html#pragma_synchronous)
+func (c *Conn) SetSynchronous(dbName string, mode int) error {
+	return c.exec(pragma(dbName, fmt.Sprintf("synchronous=%d", mode)))
+}
+
 func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
 		return "PRAGMA " + pragmaName

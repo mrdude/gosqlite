@@ -45,3 +45,37 @@ func TestSetJournalMode(t *testing.T) {
 	checkNoError(t, err, "Error setting journaling mode of database: %s")
 	assertEquals(t, "expecting %s but got %s", "off", mode)
 }
+
+func TestLockingMode(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	mode, err := db.LockingMode("")
+	checkNoError(t, err, "Error reading locking-mode of database: %s")
+	assertEquals(t, "expecting %s but got %s", "normal", mode)
+}
+
+func TestSetLockingMode(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	mode, err := db.SetLockingMode("", "exclusive")
+	checkNoError(t, err, "Error setting locking-mode of database: %s")
+	assertEquals(t, "expecting %s but got %s", "exclusive", mode)
+}
+
+func TestSynchronous(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	mode, err := db.Synchronous("")
+	checkNoError(t, err, "Error reading synchronous flag of database: %s")
+	assertEquals(t, "expecting %d but got %d", 2, mode)
+}
+
+func TestSetSynchronous(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+	err := db.SetSynchronous("", 0)
+	checkNoError(t, err, "Error setting synchronous flag of database: %s")
+	mode, err := db.Synchronous("")
+	checkNoError(t, err, "Error reading synchronous flag of database: %s")
+	assertEquals(t, "expecting %d but got %d", 0, mode)
+}
