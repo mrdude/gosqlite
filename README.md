@@ -23,6 +23,7 @@ The original implementation is using this strategy:
  - convert the stored value to a []byte by calling sqlite3_column_blob,
  - convert the bytes to the desired Go type with correct feedback in case of illegal conversion,
  - but apparently no support for NULL value.
+
 Using the native sqlite3_column_x implies:
  - optimal conversion from the storage type to Go type (when they match),
  - loosy conversion when types mismatch (select cast('M' as int); --> 0),
@@ -87,7 +88,7 @@ Function:
 Conn#CreateScalarFunction  
 Conn#CreateAggregateFunction  
 
-$ go test -test.bench '.*'
+$ go test -test.bench .
 <pre>
 BenchmarkValuesScan 500000  4658 ns/op
 BenchmarkScan       500000   324 ns/op
