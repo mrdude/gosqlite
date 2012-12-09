@@ -193,9 +193,8 @@ func (c *Context) ResultNull() {
 // ResultText sets the result of an SQL function.
 // (See sqlite3_result_text, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultText(s string) {
-	cs := C.CString(s)
-	defer C.free(unsafe.Pointer(cs))
-	C.my_result_text(c.sc, cs, -1)
+	cs, l := cstring(s)
+	C.my_result_text(c.sc, cs, l)
 }
 
 // ResultValue sets the result of an SQL function.
@@ -250,7 +249,8 @@ func (c *FunctionContext) Blob(i int) (value []byte) {
 	p := C.my_value_blob(c.argv, C.int(i))
 	if p != nil {
 		n := C.my_value_bytes(c.argv, C.int(i))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+		value = C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
 	}
 	return
 }

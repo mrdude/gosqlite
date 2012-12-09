@@ -92,7 +92,8 @@ func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	defer C.free(unsafe.Pointer(cmdstr))
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
-	rv := C.my_prepare_v2(c.db, cmdstr, -1, &stmt, &tail)
+	// If the caller knows that the supplied string is nul-terminated, then there is a small performance advantage to be gained by passing an nByte parameter that is equal to the number of bytes in the input string including the nul-terminator bytes as this saves SQLite from having to make a copy of the input string.
+	rv := C.my_prepare_v2(c.db, cmdstr, C.int(len(cmd)+1), &stmt, &tail)
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, cmd)
 	}
@@ -318,10 +319,8 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case nil:
 		rv = C.sqlite3_bind_null(s.stmt, i)
 	case string:
-		cstr := C.CString(value)
-		rv = C.my_bind_text(s.stmt, i, cstr, C.int(len(value)))
-		C.free(unsafe.Pointer(cstr))
-		//rv = C.my_bind_text(s.stmt, i, (*C.char)(unsafe.Pointer(&value)), C.int(len(value)))
+		cs, l := cstring(value)
+		rv = C.my_bind_text(s.stmt, i, cs, l)
 	case int:
 		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
 	case int64:
@@ -817,7 +816,8 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 		isNull = true
 	} else {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+		value = C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
 	}
 	return
 }
