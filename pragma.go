@@ -6,6 +6,7 @@ package sqlite
 
 import (
 	"fmt"
+	"io"
 )
 
 // IntegrityCheck checks database integrity.
@@ -21,7 +22,7 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 	}
 	pragmaName := fmt.Sprintf("%s_check(%d)", prefix, max)
 	var msg string
-	err := c.OneValue(pragma(dbName, pragmaName), &msg)
+	err := c.oneValue(pragma(dbName, pragmaName), &msg)
 	if err != nil {
 		return err
 	}
@@ -36,7 +37,7 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 // (See http://sqlite.org/pragma.html#pragma_encoding)
 func (c *Conn) Encoding(dbName string) (string, error) {
 	var encoding string
-	err := c.OneValue(pragma(dbName, "encoding"), &encoding)
+	err := c.oneValue(pragma(dbName, "encoding"), &encoding)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +49,7 @@ func (c *Conn) Encoding(dbName string) (string, error) {
 // (See http://sqlite.org/pragma.html#pragma_schema_version)
 func (c *Conn) SchemaVersion(dbName string) (int, error) {
 	var version int
-	err := c.OneValue(pragma(dbName, "schema_version"), &version)
+	err := c.oneValue(pragma(dbName, "schema_version"), &version)
 	if err != nil {
 		return -1, err
 	}
@@ -67,7 +68,7 @@ func (c *Conn) SetRecursiveTriggers(dbName string, on bool) error {
 // (See http://sqlite.org/pragma.html#pragma_journal_mode)
 func (c *Conn) JournalMode(dbName string) (string, error) {
 	var mode string
-	err := c.OneValue(pragma(dbName, "journal_mode"), &mode)
+	err := c.oneValue(pragma(dbName, "journal_mode"), &mode)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +80,7 @@ func (c *Conn) JournalMode(dbName string) (string, error) {
 // (See http://sqlite.org/pragma.html#pragma_journal_mode)
 func (c *Conn) SetJournalMode(dbName, mode string) (string, error) {
 	var newMode string
-	err := c.OneValue(pragma(dbName, Mprintf("journal_mode=%Q", mode)), &newMode)
+	err := c.oneValue(pragma(dbName, Mprintf("journal_mode=%Q", mode)), &newMode)
 	if err != nil {
 		return "", err
 	}
@@ -91,7 +92,7 @@ func (c *Conn) SetJournalMode(dbName, mode string) (string, error) {
 // (See http://sqlite.org/pragma.html#pragma_locking_mode)
 func (c *Conn) LockingMode(dbName string) (string, error) {
 	var mode string
-	err := c.OneValue(pragma(dbName, "locking_mode"), &mode)
+	err := c.oneValue(pragma(dbName, "locking_mode"), &mode)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +104,7 @@ func (c *Conn) LockingMode(dbName string) (string, error) {
 // (See http://sqlite.org/pragma.html#pragma_locking_mode)
 func (c *Conn) SetLockingMode(dbName, mode string) (string, error) {
 	var newMode string
-	err := c.OneValue(pragma(dbName, Mprintf("locking_mode=%Q", mode)), &newMode)
+	err := c.oneValue(pragma(dbName, Mprintf("locking_mode=%Q", mode)), &newMode)
 	if err != nil {
 		return "", err
 	}
@@ -115,7 +116,7 @@ func (c *Conn) SetLockingMode(dbName, mode string) (string, error) {
 // (See http://sqlite.org/pragma.html#pragma_synchronous)
 func (c *Conn) Synchronous(dbName string) (int, error) {
 	var mode int
-	err := c.OneValue(pragma(dbName, "synchronous"), &mode)
+	err := c.oneValue(pragma(dbName, "synchronous"), &mode)
 	if err != nil {
 		return -1, err
 	}
@@ -134,4 +135,22 @@ func pragma(dbName, pragmaName string) string {
 		return "PRAGMA " + pragmaName
 	}
 	return Mprintf("PRAGMA %Q."+pragmaName, dbName)
+}
+
+func (c *Conn) oneValue(query string, value interface{}, args ...interface{}) error { // no cache
+	s, err := c.prepare(query, args...)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		s.Reset()
+		s.finalize()
+	}()
+	b, err := s.Next()
+	if err != nil {
+		return err
+	} else if !b {
+		return io.EOF
+	}
+	return s.Scan(value)
 }

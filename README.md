@@ -1,6 +1,7 @@
 Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
+
 This binding implements the "database/sql/driver" interface.
 
 See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).

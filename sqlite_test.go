@@ -18,11 +18,13 @@ func checkNoError(t *testing.T, err error, format string) {
 }
 
 func open(t *testing.T) *Conn {
-	db, err := Open(":memory:", OpenReadWrite, OpenCreate, OpenFullMutex)
+	db, err := Open(":memory:", OpenReadWrite, OpenCreate, OpenFullMutex /*OpenNoMutex*/)
 	checkNoError(t, err, "couldn't open database file: %s")
 	if db == nil {
 		t.Fatal("opened database is nil")
 	}
+	//db.SetLockingMode("", "exclusive")
+	//db.SetSynchronous("", 0)
 	//db.Profile(profile, t)
 	//db.Trace(trace, t)
 	//db.SetAuthorizer(authorizer, t)
