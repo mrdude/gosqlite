@@ -4,6 +4,11 @@
 
 package sqlite
 
+/*
+#include <sqlite3.h>
+*/
+import "C"
+
 import (
 	"fmt"
 	"io"
@@ -137,20 +142,18 @@ func pragma(dbName, pragmaName string) string {
 	return Mprintf("PRAGMA %Q."+pragmaName, dbName)
 }
 
-func (c *Conn) oneValue(query string, value interface{}, args ...interface{}) error { // no cache
-	s, err := c.prepare(query, args...)
+func (c *Conn) oneValue(query string, value interface{}) error { // no cache
+	s, err := c.prepare(query)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		s.Reset()
-		s.finalize()
-	}()
-	b, err := s.Next()
-	if err != nil {
-		return err
-	} else if !b {
+	defer s.finalize()
+	rv := C.sqlite3_step(s.stmt)
+	err = Errno(rv)
+	if err == Row {
+		return s.Scan(value)
+	} else if err == Done {
 		return io.EOF
 	}
-	return s.Scan(value)
+	return s.error(rv)
 }
