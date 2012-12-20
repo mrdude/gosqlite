@@ -42,6 +42,9 @@ func (c *cache) find(sql string) *Stmt {
 		if s, ok := e.Value.(*Stmt); ok {
 			if s.SQL() == sql { // TODO s.SQL() may have been trimmed by SQLite
 				c.l.Remove(e)
+				if err := s.ClearBindings(); err != nil {
+					return nil
+				}
 				return s
 			}
 		}
