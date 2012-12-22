@@ -34,7 +34,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 	"unsafe"
 )
@@ -150,7 +149,7 @@ func (s *Stmt) exec() error {
 	rv := C.sqlite3_step(s.stmt)
 	C.sqlite3_reset(s.stmt)
 	if Errno(rv) != Done {
-		return s.error(rv)
+		return s.error(rv, "Stmt.exec")
 	}
 	return nil
 }
@@ -228,6 +227,7 @@ func (s *Stmt) SelectOneRow(args ...interface{}) (bool, error) {
 }
 
 // BindParameterCount returns the number of SQL parameters.
+// FIXME If parameters of the ?NNN form are used, there may be gaps in the list.
 // (See http://sqlite.org/c3ref/bind_parameter_count.html)
 func (s *Stmt) BindParameterCount() int {
 	if s.bindParameterCount == -1 {
@@ -252,7 +252,7 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 	defer C.free(unsafe.Pointer(cname))
 	index = int(C.sqlite3_bind_parameter_index(s.stmt, cname))
 	if index == 0 {
-		return index, s.specificError("invalid parameter name: %s", name)
+		return index, s.specificError("invalid parameter name: %q", name)
 	}
 	s.params[name] = index
 	return index, nil
@@ -273,12 +273,12 @@ func (s *Stmt) BindParameterName(i int) (string, error) {
 // NamedBind binds parameters by their name (name1, value1, ...)
 func (s *Stmt) NamedBind(args ...interface{}) error {
 	if len(args)%2 != 0 {
-		return s.specificError("Expected an even number of arguments")
+		return s.specificError("expected an even number of arguments: %d", len(args))
 	}
 	for i := 0; i < len(args); i += 2 {
 		name, ok := args[i].(string)
 		if !ok {
-			return s.specificError("non-string param name")
+			return s.specificError("non-string param name at %d: %T", i, args[i])
 		}
 		index, err := s.BindParameterIndex(name) // How to look up only once for one statement ?
 		if err != nil {
@@ -346,9 +346,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
-		return s.specificError("unsupported type in Bind: %s", reflect.TypeOf(value))
+		return s.specificError("unsupported type in Bind: %T", value)
 	}
-	return s.error(rv)
+	return s.error(rv, "Stmt.Bind")
 }
 
 // Next evaluates an SQL statement
@@ -376,7 +376,7 @@ func (s *Stmt) Next() (bool, error) {
 	}
 	C.sqlite3_reset(s.stmt)
 	if err != Done {
-		return false, s.error(rv)
+		return false, s.error(rv, "Stmt.Next")
 	}
 	// TODO Check column count > 0
 	return false, nil
@@ -386,13 +386,13 @@ func (s *Stmt) Next() (bool, error) {
 // and reset it back to its starting state so that it can be reused.
 // (See http://sqlite.org/c3ref/reset.html)
 func (s *Stmt) Reset() error {
-	return s.error(C.sqlite3_reset(s.stmt))
+	return s.error(C.sqlite3_reset(s.stmt), "Stmt.Reset")
 }
 
 // ClearBindings resets all bindings on a prepared statement.
 // (See http://sqlite.org/c3ref/clear_bindings.html)
 func (s *Stmt) ClearBindings() error {
-	return s.error(C.sqlite3_clear_bindings(s.stmt))
+	return s.error(C.sqlite3_clear_bindings(s.stmt), "Stmt.ClearBindings")
 }
 
 // ColumnCount returns the number of columns in the result set for the statement (with or without row).
@@ -470,12 +470,12 @@ func (s *Stmt) ColumnType(index int) Type {
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) NamedScan(args ...interface{}) error {
 	if len(args)%2 != 0 {
-		return s.specificError("Expected an even number of arguments")
+		return s.specificError("expected an even number of arguments: %d", len(args))
 	}
 	for i := 0; i < len(args); i += 2 {
 		name, ok := args[i].(string)
 		if !ok {
-			return s.specificError("non-string field name")
+			return s.specificError("non-string field name at %d: %T", i, args[i])
 		}
 		index, err := s.ColumnIndex(name) // How to look up only once for one statement ?
 		if err != nil {
@@ -660,7 +660,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case func(interface{}) (bool, error):
 		isNull, err = value(s.ScanValue(index))
 	default:
-		return false, s.specificError("unsupported type in Scan: %s", reflect.TypeOf(value))
+		return false, s.specificError("unsupported type in Scan: %T", value)
 	}
 	return isNull, err
 }
@@ -885,14 +885,14 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.specificError("Type mismatch, source %s vs target %s", source, target)
+			return s.specificError("type mismatch, source %s vs target %s", source, target)
 		}
 	case Float:
 		switch source {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.specificError("Type mismatch, source %s vs target %s", source, target)
+			return s.specificError("type mismatch, source %s vs target %s", source, target)
 		}
 	}
 	return nil
@@ -923,7 +923,7 @@ func (s *Stmt) finalize() error {
 	s.stmt = nil
 	if rv != C.SQLITE_OK {
 		Log(int(rv), "error while finalizing Stmt")
-		return s.error(rv)
+		return s.error(rv, "Stmt.finalize")
 	}
 	return nil
 }

@@ -13,6 +13,7 @@ int goSqlite3CreateModule(sqlite3 *db, const char *zName, void *pClientData);
 import "C"
 
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -223,7 +224,7 @@ type VTabCursor interface {
 func (c *Conn) DeclareVTab(sql string) error {
 	zSQL := C.CString(sql)
 	defer C.free(unsafe.Pointer(zSQL))
-	return c.error(C.sqlite3_declare_vtab(c.db, zSQL))
+	return c.error(C.sqlite3_declare_vtab(c.db, zSQL), fmt.Sprintf("Conn.DeclareVTab(%q)", sql))
 }
 
 // CreateModule registers a virtual table implementation.
@@ -237,7 +238,8 @@ func (c *Conn) CreateModule(moduleName string, module Module) error {
 		c.modules = make(map[string]*sqliteModule)
 	}
 	c.modules[moduleName] = udm // FIXME What happens if different modules are registered with the same name?
-	return c.error(C.goSqlite3CreateModule(c.db, mname, unsafe.Pointer(udm)))
+	return c.error(C.goSqlite3CreateModule(c.db, mname, unsafe.Pointer(udm)),
+		fmt.Sprintf("Conn.CreateModule(%q)", moduleName))
 }
 
 /*

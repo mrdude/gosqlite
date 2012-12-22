@@ -243,7 +243,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 // BusyTimeout sets a busy timeout.
 // (See http://sqlite.org/c3ref/busy_timeout.html)
 func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
-	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)))
+	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)), "Conn.BusyTimeout")
 }
 
 // EnableFKey enables or disables the enforcement of foreign key constraints.
@@ -292,7 +292,7 @@ func (c *Conn) queryOrSetEnableDbConfig(key, i C.int) (bool, error) {
 // EnableExtendedResultCodes enables or disables the extended result codes feature of SQLite.
 // (See http://sqlite.org/c3ref/extended_result_codes.html)
 func (c *Conn) EnableExtendedResultCodes(b bool) error {
-	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)))
+	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)), "Conn.EnableExtendedResultCodes")
 }
 
 // Readonly determines if a database is read-only.
@@ -335,7 +335,7 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 		if len(s.tail) > 0 {
 			if len(args) > 0 {
 				s.finalize()
-				return c.specificError("Cannot execute multiple statements when args are specified")
+				return c.specificError("cannot execute multiple statements when args are specified: %q", cmd)
 			}
 		}
 		cmd = s.tail
@@ -478,7 +478,7 @@ func (c *Conn) exec(cmd string) error {
 	defer s.finalize()
 	rv := C.sqlite3_step(s.stmt)
 	if Errno(rv) != Done {
-		return s.error(rv)
+		return s.error(rv, "Conn.exec(%q)", cmd)
 	}
 	return nil
 }
@@ -511,7 +511,7 @@ func (c *Conn) Close() error {
 	c.db = nil
 	if rv != C.SQLITE_OK {
 		Log(int(rv), "error while closing Conn")
-		return c.error(rv)
+		return c.error(rv, "Conn.Close")
 	}
 	return nil
 }

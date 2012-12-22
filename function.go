@@ -421,7 +421,8 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		if len(c.udfs) > 0 {
 			delete(c.udfs, functionName)
 		}
-		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
+		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil),
+			fmt.Sprintf("<Conn.CreateScalarFunction(%q)", functionName))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
 	udf := &sqliteFunction{f, nil, nil, d, pApp, make(map[*ScalarContext]bool), nil}
@@ -429,7 +430,8 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		c.udfs = make(map[string]*sqliteFunction)
 	}
 	c.udfs[functionName] = udf // FIXME same function name with different args is not supported
-	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
+	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)),
+		fmt.Sprintf("Conn.CreateScalarFunction(%q)", functionName))
 }
 
 // CreateAggregateFunction creates or redefines SQL aggregate functions.
@@ -443,7 +445,8 @@ func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp inter
 		if len(c.udfs) > 0 {
 			delete(c.udfs, functionName)
 		}
-		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil))
+		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil),
+			fmt.Sprintf("<Conn.CreateAggregateFunction(%q)", functionName))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
 	udf := &sqliteFunction{nil, step, final, d, pApp, nil, make(map[*AggregateContext]bool)}
@@ -451,5 +454,6 @@ func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp inter
 		c.udfs = make(map[string]*sqliteFunction)
 	}
 	c.udfs[functionName] = udf // FIXME same function name with different args is not supported
-	return c.error(C.goSqlite3CreateAggregateFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)))
+	return c.error(C.goSqlite3CreateAggregateFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)),
+		fmt.Sprintf("Conn.CreateAggregateFunction(%q)", functionName))
 }

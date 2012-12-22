@@ -12,6 +12,7 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"unsafe"
 )
@@ -68,7 +69,7 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 		if bl != nil {
 			C.sqlite3_blob_close(bl)
 		}
-		return nil, c.error(rv)
+		return nil, c.error(rv, fmt.Sprintf("Conn.blob_open(db: %q, tbl: %q, col: %q, row: %d)", db, table, column, row))
 	}
 	if bl == nil {
 		return nil, errors.New("sqlite succeeded without returning a blob")
@@ -80,11 +81,11 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 // (See http://sqlite.org/c3ref/blob_close.html)
 func (r *BlobReader) Close() error {
 	if r == nil {
-		return errors.New("nil sqlite blob reader")
+		return errors.New("nil sqlite blob")
 	}
 	rv := C.sqlite3_blob_close(r.bl)
 	if rv != C.SQLITE_OK {
-		return r.c.error(rv)
+		return r.c.error(rv, "BlobReader.Close")
 	}
 	r.bl = nil
 	return nil
@@ -110,7 +111,7 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 	n := len(v)
 	rv := C.sqlite3_blob_read(r.bl, unsafe.Pointer(p), C.int(n), C.int(r.ReadOffset))
 	if rv != C.SQLITE_OK {
-		return 0, r.c.error(rv)
+		return 0, r.c.error(rv, "BlobReader.Read")
 	}
 	r.ReadOffset += n
 	return n, nil
@@ -150,7 +151,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	n := len(v)
 	rv := C.sqlite3_blob_write(w.bl, unsafe.Pointer(p), C.int(n), C.int(w.WriteOffset))
 	if rv != C.SQLITE_OK {
-		return 0, w.c.error(rv)
+		return 0, w.c.error(rv, "BlobReadWiter.Write")
 	}
 	w.WriteOffset += n
 	return n, err
@@ -161,7 +162,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 func (r *BlobReader) Reopen(rowid int64) error {
 	rv := C.sqlite3_blob_reopen(r.bl, C.sqlite3_int64(rowid))
 	if rv != C.SQLITE_OK {
-		return r.c.error(rv)
+		return r.c.error(rv, fmt.Sprintf("BlobReader.Reopen(%d)", rowid))
 	}
 	r.size = -1
 	r.ReadOffset = 0

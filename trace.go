@@ -226,11 +226,11 @@ func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.
 func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
 		c.authorizer = nil
-		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil))
+		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil), "<Conn.SetAuthorizer")
 	}
 	// To make sure it is not gced, keep a reference in the connection.
 	c.authorizer = &sqliteAuthorizer{f, udp}
-	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)))
+	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)), "Conn.SetAuthorizer")
 }
 
 // Returns true to try again.
@@ -254,11 +254,11 @@ func goXBusy(udp unsafe.Pointer, count int) C.int {
 func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
 		c.busyHandler = nil
-		return c.error(C.sqlite3_busy_handler(c.db, nil, nil))
+		return c.error(C.sqlite3_busy_handler(c.db, nil, nil), "<Conn.BusyHandler")
 	}
 	// To make sure it is not gced, keep a reference in the connection.
 	c.busyHandler = &sqliteBusyHandler{f, udp}
-	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)))
+	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)), "Conn.BusyHandler")
 }
 
 // Returns true to interrupt.

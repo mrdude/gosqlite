@@ -35,7 +35,10 @@ static int my_table_column_metadata(
 */
 import "C"
 
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // Databases returns one couple (name, file) for each database attached to the current database connection.
 // (See http://www.sqlite.org/pragma.html#pragma_database_list)
@@ -146,7 +149,7 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	rv := C.my_table_column_metadata(c.db, zDbName, zTableName, zColumnName, &zDataType, &zCollSeq,
 		&notNull, &primaryKey, &autoinc)
 	if rv != C.SQLITE_OK {
-		return nil, c.error(rv)
+		return nil, c.error(rv, fmt.Sprintf("Conn.Column(db: %q, tbl: %q, col: %q)", dbName, tableName, columnName))
 	}
 	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", primaryKey == 1,
 		autoinc == 1, C.GoString(zCollSeq)}, nil

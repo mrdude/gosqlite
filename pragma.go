@@ -32,7 +32,7 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 		return err
 	}
 	if msg != "ok" {
-		return c.specificError("Integrity check failed (%s)", msg)
+		return c.specificError("Integrity check failed on %q (%s)", dbName, msg)
 	}
 	return nil
 }
@@ -155,5 +155,5 @@ func (c *Conn) oneValue(query string, value interface{}) error { // no cache
 	} else if err == Done {
 		return io.EOF
 	}
-	return s.error(rv)
+	return s.error(rv, fmt.Sprintf("Conn.oneValue(%q)", query))
 }
