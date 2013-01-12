@@ -910,7 +910,7 @@ func (s *Stmt) Finalize() error {
 	if s == nil {
 		return errors.New("nil sqlite statement")
 	}
-	if s.Cacheable {
+	if s.Cacheable && s.c != nil && s.c.db != nil {
 		return s.c.stmtCache.release(s)
 	}
 	return s.finalize()
@@ -918,6 +918,9 @@ func (s *Stmt) Finalize() error {
 func (s *Stmt) finalize() error {
 	if s == nil {
 		return errors.New("nil sqlite statement")
+	}
+	if s.stmt == nil {
+		return nil
 	}
 	if s.c == nil || s.c.db == nil {
 		return errors.New("sqlite statement with already closed database connection")

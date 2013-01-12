@@ -374,6 +374,24 @@ func TestOpenSameMemoryDb(t *testing.T) {
 	checkNoError(t, err, "exists error: %s")
 }
 
+func TestStmtWithClosedDb(t *testing.T) {
+	db := open(t)
+	defer db.Close()
+
+	db.SetCacheSize(0)
+
+	s, err := db.Prepare("select 1")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+
+	err = db.Close()
+	checkNoError(t, err, "close error: %s")
+
+	err = s.Finalize()
+	assert(t, "error expected", err != nil)
+	//println(err.Error())
+}
+
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {
 	if expected != actual {
 		t.Errorf(format, expected, actual)
