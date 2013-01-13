@@ -508,11 +508,11 @@ func (c *Conn) Close() error {
 	}
 
 	rv := C.sqlite3_close(c.db)
-	c.db = nil
 	if rv != C.SQLITE_OK {
 		Log(int(rv), "error while closing Conn")
 		return c.error(rv, "Conn.Close")
 	}
+	c.db = nil
 	return nil
 }
 

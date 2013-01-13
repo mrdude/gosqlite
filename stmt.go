@@ -923,14 +923,15 @@ func (s *Stmt) finalize() error {
 		return nil
 	}
 	if s.c == nil || s.c.db == nil {
+		Log(C.SQLITE_MISUSE, "sqlite statement with already closed database connection")
 		return errors.New("sqlite statement with already closed database connection")
 	}
 	rv := C.sqlite3_finalize(s.stmt)
-	s.stmt = nil
 	if rv != C.SQLITE_OK {
 		Log(int(rv), "error while finalizing Stmt")
 		return s.error(rv, "Stmt.finalize")
 	}
+	s.stmt = nil
 	return nil
 }
 
