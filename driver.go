@@ -20,6 +20,8 @@ func init() {
 			log.Printf("%s: %s, %s\n", d, err, msg)
 		}, "SQLITE")
 	}
+	ConfigThreadingMode(MultiThread)
+	ConfigMemStatus(false)
 }
 
 // Adapter to database/sql/driver
@@ -41,13 +43,13 @@ type rowsImpl struct {
 // Open opens a new database connection.
 // ":memory:" for memory db,
 // "" for temp file db
-// TODO How to specify open flags?
+// TODO How to specify open flags? SQLITE_OPEN_NOMUTEX
 func (d *Driver) Open(name string) (driver.Conn, error) {
 	c, err := Open(name)
 	if err != nil {
 		return nil, err
 	}
-	c.BusyTimeout(500)
+	c.BusyTimeout(10000)
 	return &connImpl{c}, nil
 }
 
