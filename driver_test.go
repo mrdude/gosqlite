@@ -27,6 +27,18 @@ func sqlOpen(t *testing.T) *sql.DB {
 	return db
 }
 
+func checkSqlDbClose(db *sql.DB, t *testing.T) {
+	checkNoError(t, db.Close(), "Error closing connection: %s")
+}
+
+func checkSqlStmtClose(stmt *sql.Stmt, t *testing.T) {
+	checkNoError(t, stmt.Close(), "Error closing statement: %s")
+}
+
+func checkSqlRowsClose(rows *sql.Rows, t *testing.T) {
+	checkNoError(t, rows.Close(), "Error closing rows: %s")
+}
+
 func sqlCreate(ddl string, t *testing.T) *sql.DB {
 	db := sqlOpen(t)
 	_, err := db.Exec(ddl)
@@ -41,7 +53,7 @@ func TestSqlOpen(t *testing.T) {
 
 func TestSqlDdl(t *testing.T) {
 	db := sqlOpen(t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 	result, err := db.Exec(ddl)
 	checkNoError(t, err, "Error creating table: %s")
 	_, err = result.LastInsertId() // FIXME Error expected
@@ -56,7 +68,7 @@ func TestSqlDdl(t *testing.T) {
 
 func TestSqlDml(t *testing.T) {
 	db := sqlCreate(ddl, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 	result, err := db.Exec(dml)
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
@@ -69,7 +81,7 @@ func TestSqlDml(t *testing.T) {
 
 func TestSqlInsert(t *testing.T) {
 	db := sqlCreate(ddl, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 	result, err := db.Exec(insert, "Bart")
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
@@ -82,7 +94,7 @@ func TestSqlInsert(t *testing.T) {
 
 func TestSqlExecWithIllegalCmd(t *testing.T) {
 	db := sqlCreate(ddl+dml, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 
 	_, err := db.Exec(query, "%")
 	if err == nil {
@@ -92,10 +104,10 @@ func TestSqlExecWithIllegalCmd(t *testing.T) {
 
 func TestSqlQuery(t *testing.T) {
 	db := sqlCreate(ddl+dml, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 
 	rows, err := db.Query(query, "%")
-	defer rows.Close()
+	defer checkSqlRowsClose(rows, t)
 	var id int
 	var name string
 	for rows.Next() {
@@ -106,7 +118,7 @@ func TestSqlQuery(t *testing.T) {
 
 func TestSqlTx(t *testing.T) {
 	db := sqlCreate(ddl, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 
 	tx, err := db.Begin()
 	checkNoError(t, err, "Error while begining tx: %s")
@@ -116,26 +128,26 @@ func TestSqlTx(t *testing.T) {
 
 func TestSqlPrepare(t *testing.T) {
 	db := sqlCreate(ddl+dml, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 
 	stmt, err := db.Prepare(insert)
 	checkNoError(t, err, "Error while preparing stmt: %s")
-	defer stmt.Close()
+	defer checkSqlStmtClose(stmt, t)
 	_, err = stmt.Exec("Bart")
 	checkNoError(t, err, "Error while executing stmt: %s")
 }
 
 func TestRowsWithStmtClosed(t *testing.T) {
 	db := sqlCreate(ddl+dml, t)
-	defer db.Close()
+	defer checkSqlDbClose(db, t)
 
 	stmt, err := db.Prepare(query)
 	checkNoError(t, err, "Error while preparing stmt: %s")
 	//defer stmt.Close()
 
 	rows, err := stmt.Query("%")
-	stmt.Close()
-	defer rows.Close()
+	checkSqlStmtClose(stmt, t)
+	defer checkSqlRowsClose(rows, t)
 	var id int
 	var name string
 	for rows.Next() {

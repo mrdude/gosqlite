@@ -10,13 +10,13 @@ import (
 
 func TestIntegrityCheck(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	checkNoError(t, db.IntegrityCheck("", 1, true), "Error checking integrity of database: %s")
 }
 
 func TestEncoding(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	encoding, err := db.Encoding("")
 	checkNoError(t, err, "Error reading encoding of database: %s")
 	assertEquals(t, "Expecting %s but got %s", "UTF-8", encoding)
@@ -24,7 +24,7 @@ func TestEncoding(t *testing.T) {
 
 func TestSchemaVersion(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	version, err := db.SchemaVersion("")
 	checkNoError(t, err, "Error reading schema version of database: %s")
 	assertEquals(t, "expecting %d but got %d", 0, version)
@@ -32,7 +32,7 @@ func TestSchemaVersion(t *testing.T) {
 
 func TestJournalMode(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	mode, err := db.JournalMode("")
 	checkNoError(t, err, "Error reading journaling mode of database: %s")
 	assertEquals(t, "expecting %s but got %s", "memory", mode)
@@ -40,7 +40,7 @@ func TestJournalMode(t *testing.T) {
 
 func TestSetJournalMode(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	mode, err := db.SetJournalMode("", "OFF")
 	checkNoError(t, err, "Error setting journaling mode of database: %s")
 	assertEquals(t, "expecting %s but got %s", "off", mode)
@@ -48,7 +48,7 @@ func TestSetJournalMode(t *testing.T) {
 
 func TestLockingMode(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	mode, err := db.LockingMode("")
 	checkNoError(t, err, "Error reading locking-mode of database: %s")
 	assertEquals(t, "expecting %s but got %s", "normal", mode)
@@ -56,7 +56,7 @@ func TestLockingMode(t *testing.T) {
 
 func TestSetLockingMode(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	mode, err := db.SetLockingMode("", "exclusive")
 	checkNoError(t, err, "Error setting locking-mode of database: %s")
 	assertEquals(t, "expecting %s but got %s", "exclusive", mode)
@@ -64,7 +64,7 @@ func TestSetLockingMode(t *testing.T) {
 
 func TestSynchronous(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	mode, err := db.Synchronous("")
 	checkNoError(t, err, "Error reading synchronous flag of database: %s")
 	assertEquals(t, "expecting %d but got %d", 2, mode)
@@ -72,7 +72,7 @@ func TestSynchronous(t *testing.T) {
 
 func TestSetSynchronous(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	err := db.SetSynchronous("", 0)
 	checkNoError(t, err, "Error setting synchronous flag of database: %s")
 	mode, err := db.Synchronous("")

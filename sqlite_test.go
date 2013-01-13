@@ -31,6 +31,14 @@ func open(t *testing.T) *Conn {
 	return db
 }
 
+func checkClose(db *Conn, t *testing.T) {
+	checkNoError(t, db.Close(), "Error closing database: %s")
+}
+
+func checkFinalize(s *Stmt, t *testing.T) {
+	checkNoError(t, s.Finalize(), "Error finalizing statement: %s")
+}
+
 func createTable(db *Conn, t *testing.T) {
 	err := db.Exec("DROP TABLE IF EXISTS test;" +
 		"CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
@@ -52,7 +60,7 @@ func TestOpen(t *testing.T) {
 
 func TestEnableFKey(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	b := Must(db.IsFKeyEnabled())
 	if !b {
 		b = Must(db.EnableFKey(true))
@@ -62,7 +70,7 @@ func TestEnableFKey(t *testing.T) {
 
 func TestEnableTriggers(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	b := Must(db.AreTriggersEnabled())
 	if !b {
 		b = Must(db.EnableTriggers(true))
@@ -72,19 +80,19 @@ func TestEnableTriggers(t *testing.T) {
 
 func TestEnableExtendedResultCodes(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enabled extended result codes: %s")
 }
 
 func TestCreateTable(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 }
 
 func TestTransaction(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	checkNoError(t, db.Begin(), "Error while beginning transaction: %s")
 	if err := db.Begin(); err == nil {
 		t.Fatalf("Error expected (transaction cannot be nested)")
@@ -94,7 +102,7 @@ func TestTransaction(t *testing.T) {
 
 func TestSavepoint(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	checkNoError(t, db.Savepoint("1"), "Error while creating savepoint: %s")
 	checkNoError(t, db.Savepoint("2"), "Error while creating savepoint: %s")
 	checkNoError(t, db.RollbackSavepoint("2"), "Error while creating savepoint: %s")
@@ -103,7 +111,7 @@ func TestSavepoint(t *testing.T) {
 
 func TestExists(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	b := Must(db.Exists("SELECT 1 where 1 = 0"))
 	assert(t, "No row expected", !b)
 	b = Must(db.Exists("SELECT 1 where 1 = 1"))
@@ -112,7 +120,7 @@ func TestExists(t *testing.T) {
 
 func TestInsert(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 	db.Begin()
 	for i := 0; i < 1000; i++ {
@@ -127,7 +135,7 @@ func TestInsert(t *testing.T) {
 	assertEquals(t, "last insert row id error: expected %d but got %d", int64(1000), lastId)
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
-	defer cs.Finalize()
+	defer checkFinalize(cs, t)
 
 	paramCount := cs.BindParameterCount()
 	assertEquals(t, "bind parameter count error: expected %d but got %d", 0, paramCount)
@@ -148,14 +156,14 @@ func TestInsert(t *testing.T) {
 
 func TestInsertWithStatement(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 	s, serr := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (:f, :i, :s)")
 	checkNoError(t, serr, "prepare error: %s")
 	if s == nil {
 		t.Fatal("statement is nil")
 	}
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 
 	assert(t, "update statement should not be readonly", !s.ReadOnly())
 
@@ -181,7 +189,7 @@ func TestInsertWithStatement(t *testing.T) {
 	checkNoError(t, db.Commit(), "Error: %s")
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
-	defer cs.Finalize()
+	defer checkFinalize(cs, t)
 	assert(t, "select statement should be readonly", cs.ReadOnly())
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
@@ -191,7 +199,7 @@ func TestInsertWithStatement(t *testing.T) {
 	assertEquals(t, "count should be %d, but it is %d", 1000, i)
 
 	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test where a_string like ? ORDER BY int_num LIMIT 2", "hel%")
-	defer rs.Finalize()
+	defer checkFinalize(rs, t)
 	columnCount = rs.ColumnCount()
 	assertEquals(t, "column count error: expected %d but got %d", 3, columnCount)
 	secondColumnName := rs.ColumnName(1)
@@ -222,11 +230,11 @@ func TestInsertWithStatement(t *testing.T) {
 
 func TestScanColumn(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("select 1, null, 0")
 	checkNoError(t, err, "prepare error: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
@@ -244,11 +252,11 @@ func TestScanColumn(t *testing.T) {
 
 func TestNamedScanColumn(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("select 1 as i1, null as i2, 0 as i3")
 	checkNoError(t, err, "prepare error: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
@@ -266,11 +274,11 @@ func TestNamedScanColumn(t *testing.T) {
 
 func TestScanCheck(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("select 'hello'")
 	checkNoError(t, err, "prepare error: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
@@ -298,11 +306,11 @@ func TestLoadExtension(t *testing.T) {
 
 func TestScanNull(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("select null")
 	checkNoError(t, err, "prepare error: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
@@ -318,11 +326,11 @@ func TestScanNull(t *testing.T) {
 
 func TestScanNotNull(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("select 1")
 	checkNoError(t, err, "prepare error: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
 		t.Fatal("no result")
 	}
@@ -352,7 +360,7 @@ func TestCloseTwice(t *testing.T) {
 
 func TestStmtMisuse(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	s, err := db.Prepare("MISUSE")
 	assert(t, "error expected", s == nil && err != nil)
@@ -363,20 +371,20 @@ func TestStmtMisuse(t *testing.T) {
 func TestOpenSameMemoryDb(t *testing.T) {
 	db1, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "open error: %s")
-	defer db1.Close()
+	defer checkClose(db1, t)
 	err = db1.Exec("CREATE TABLE test (data TEXT)")
 	checkNoError(t, err, "exec error: %s")
 
 	db2, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "open error: %s")
-	defer db2.Close()
+	defer checkClose(db2, t)
 	_, err = db2.Exists("SELECT 1 from test")
 	checkNoError(t, err, "exists error: %s")
 }
 
 func TestStmtWithClosedDb(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	db.SetCacheSize(0)
 

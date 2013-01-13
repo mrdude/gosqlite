@@ -98,7 +98,7 @@ func (vc *testVTabCursor) Rowid() (int64, error) {
 
 func TestCreateModule(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	intarray := []int{1, 2, 3}
 	err := db.CreateModule("test", testModule{t, intarray})
 	checkNoError(t, err, "couldn't create module: %s")
@@ -107,7 +107,7 @@ func TestCreateModule(t *testing.T) {
 
 	s, err := db.Prepare("SELECT * from vtab")
 	checkNoError(t, err, "couldn't select from virtual table: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	var i, value int
 	err = s.Select(func(s *Stmt) (err error) {
 		if err = s.Scan(&value); err != nil {

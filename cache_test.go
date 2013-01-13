@@ -17,7 +17,7 @@ func checkCacheSize(t *testing.T, db *Conn, expectedSize, expectedMaxSize int) {
 
 func TestDisabledCache(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	db.SetCacheSize(0)
 	checkCacheSize(t, db, 0, 0)
@@ -35,7 +35,7 @@ func TestDisabledCache(t *testing.T) {
 
 func TestEnabledCache(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	db.SetCacheSize(10)
 	checkCacheSize(t, db, 0, 10)

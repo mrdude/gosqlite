@@ -23,7 +23,7 @@ func half(ctx *ScalarContext, nArg int) {
 
 func TestScalarFunction(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	err := db.CreateScalarFunction("half", 1, nil, half, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var d float64
@@ -70,12 +70,12 @@ func reDestroy(ad interface{}) {
 
 func TestRegexpFunction(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	err := db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
 	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
@@ -104,7 +104,7 @@ func user(ctx *ScalarContext, nArg int) {
 
 func TestUserFunction(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	err := db.CreateScalarFunction("user", 0, nil, user, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var name string
@@ -138,7 +138,7 @@ func sumFinal(ctx *AggregateContext) {
 
 func TestSumFunction(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	err := db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var i int

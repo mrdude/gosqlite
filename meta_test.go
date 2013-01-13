@@ -17,7 +17,7 @@ func createIndex(db *Conn, t *testing.T) {
 
 func TestDatabases(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	databases, err := db.Databases()
 	checkNoError(t, err, "error looking for databases: %s")
@@ -31,7 +31,7 @@ func TestDatabases(t *testing.T) {
 
 func TestTables(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	tables, err := db.Tables("")
 	checkNoError(t, err, "error looking for tables: %s")
@@ -45,7 +45,7 @@ func TestTables(t *testing.T) {
 
 func TestColumns(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 
 	columns, err := db.Columns("", "test")
@@ -59,7 +59,7 @@ func TestColumns(t *testing.T) {
 
 func TestColumn(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 
 	column, err := db.Column("", "test", "id")
@@ -71,7 +71,7 @@ func TestColumn(t *testing.T) {
 
 func TestForeignKeys(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	err := db.Exec("CREATE TABLE parent (id INTEGER PRIMARY KEY NOT NULL);" +
 		"CREATE TABLE child (id INTEGER PRIMARY KEY NOT NULL, parentId INTEGER, " +
@@ -90,7 +90,7 @@ func TestForeignKeys(t *testing.T) {
 
 func TestIndexes(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	createTable(db, t)
 	createIndex(db, t)
 
@@ -114,10 +114,10 @@ func TestIndexes(t *testing.T) {
 
 func TestColumnMetadata(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	s, err := db.Prepare("SELECT name AS table_name FROM sqlite_master")
 	check(err)
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 
 	databaseName := s.ColumnDatabaseName(0)
 	assertEquals(t, "wrong database name: %q <> %q", "main", databaseName)

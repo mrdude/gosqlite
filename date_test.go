@@ -24,7 +24,7 @@ func TestJulianDay(t *testing.T) {
 
 func TestBind(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	var delta int
 	err := db.OneValue("SELECT CAST(strftime('%s', 'now') AS NUMERIC) - ?", &delta, time.Now())
 	checkNoError(t, err, "Error reading date: %#v")
@@ -35,7 +35,7 @@ func TestBind(t *testing.T) {
 
 func TestScan(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	var dt time.Time
 	err := db.OneValue("SELECT date('now')", &dt)
 	checkNoError(t, err, "Error reading date: %#v")

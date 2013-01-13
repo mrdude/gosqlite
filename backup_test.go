@@ -11,9 +11,9 @@ import (
 
 func TestBackup(t *testing.T) {
 	dst := open(t)
-	defer dst.Close()
+	defer checkClose(dst, t)
 	src := open(t)
-	defer src.Close()
+	defer checkClose(src, t)
 	fill(src, 1000)
 
 	bck, err := NewBackup(dst, "main", src, "main")
@@ -35,7 +35,7 @@ func TestBackup(t *testing.T) {
 
 func TestBackupMisuse(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	bck, err := NewBackup(db, "", db, "")
 	assert(t, "source and destination must be distinct", bck == nil && err != nil)

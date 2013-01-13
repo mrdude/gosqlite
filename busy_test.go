@@ -14,14 +14,14 @@ import (
 
 func TestInterrupt(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	db.CreateScalarFunction("interrupt", 0, nil, func(ctx *ScalarContext, nArg int) {
 		db.Interrupt()
 		ctx.ResultText("ok")
 	}, nil)
 	s, err := db.Prepare("SELECT interrupt() FROM (SELECT 1 UNION SELECT 2 UNION SELECT 3)")
 	checkNoError(t, err, "couldn't prepare stmt: %#v")
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	err = s.Select(func(s *Stmt) (err error) {
 		return
 	})
@@ -46,8 +46,8 @@ func openTwoConnSameDb(t *testing.T) (*os.File, *Conn, *Conn) {
 func TestDefaultBusy(t *testing.T) {
 	f, db1, db2 := openTwoConnSameDb(t)
 	defer os.Remove(f.Name())
-	defer db1.Close()
-	defer db2.Close()
+	defer checkClose(db1, t)
+	defer checkClose(db2, t)
 	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 	defer db1.Rollback()
 
@@ -63,8 +63,8 @@ func TestDefaultBusy(t *testing.T) {
 func TestBusyTimeout(t *testing.T) {
 	f, db1, db2 := openTwoConnSameDb(t)
 	defer os.Remove(f.Name())
-	defer db1.Close()
-	defer db2.Close()
+	defer checkClose(db1, t)
+	defer checkClose(db2, t)
 	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 
 	//join := make(chan bool)
@@ -83,8 +83,8 @@ func TestBusyTimeout(t *testing.T) {
 func TestBusyHandler(t *testing.T) {
 	f, db1, db2 := openTwoConnSameDb(t)
 	defer os.Remove(f.Name())
-	defer db1.Close()
-	defer db2.Close()
+	defer checkClose(db1, t)
+	defer checkClose(db2, t)
 
 	//c := make(chan bool)
 	var called bool

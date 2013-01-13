@@ -12,7 +12,7 @@ import (
 
 func TestBlob(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	err := db.Exec("CREATE TABLE test (content BLOB);")
 	checkNoError(t, err, "error creating table: %s")
@@ -21,7 +21,7 @@ func TestBlob(t *testing.T) {
 	if s == nil {
 		t.Fatal("statement is nil")
 	}
-	defer s.Finalize()
+	defer checkFinalize(s, t)
 	err = s.Exec(ZeroBlobLength(10))
 	checkNoError(t, err, "insert error: %s")
 	rowid := db.LastInsertRowid()
@@ -57,7 +57,7 @@ func TestBlob(t *testing.T) {
 
 func TestBlobMisuse(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", 0)
 	assert(t, "error expected", bw == nil && err != nil)

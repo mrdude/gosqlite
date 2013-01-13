@@ -82,7 +82,7 @@ func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) 
 
 func TestNoTrace(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	db.Trace(nil, nil)
 	db.SetAuthorizer(nil, nil)
 	db.Profile(nil, nil)
@@ -95,7 +95,7 @@ func TestNoTrace(t *testing.T) {
 
 func TestTrace(t *testing.T) {
 	db := open(t)
-	defer db.Close()
+	defer checkClose(db, t)
 	db.Trace(trace, t)
 	err := db.SetAuthorizer(authorizer, t)
 	checkNoError(t, err, "couldn't set an authorizer")
