@@ -34,7 +34,7 @@ SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
 - ConfigLog function
 - or `export SQLITE_LOG=1`
 
-Misc:  
+### Misc:
 Conn#Exists  
 Conn#OneValue  
 
@@ -89,6 +89,14 @@ Function:
 Conn#CreateScalarFunction  
 Conn#CreateAggregateFunction  
 
+### GC:
+Although Go is gced, there is no destructor (see http://www.airs.com/blog/archives/362).  
+In the gosqlite wrapper, no finalizer is used.  
+So users must ensure that C ressources (database connections, prepared statements, BLOBs, Backups) are destroyed/deallocated by calling Conn#Close, Stmt#Finalize, BlobReader#Close, Backup#Close.
+
+Therefore, sqlite3_close/sqlite3_next_stmt are used by Conn#Close to free the database connection and all dangling statements (not sqlite3_close_v2) (see http://sqlite.org/c3ref/close.html).
+
+### Benchmarks:
 $ go test -test.bench .
 <pre>
 BenchmarkValuesScan 500000  4658 ns/op
