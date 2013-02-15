@@ -6,7 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
-	sqlite "github.com/gwenn/gosqlite"
+	"github.com/gwenn/gosqlite"
 )
 
 func check(err error) {

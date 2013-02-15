@@ -149,9 +149,8 @@ func (c *Context) ResultDouble(d float64) {
 // ResultError sets the result of an SQL function.
 // (See sqlite3_result_error, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultError(msg string) {
-	cs := C.CString(msg)
-	defer C.free(unsafe.Pointer(cs))
-	C.sqlite3_result_error(c.sc, cs, -1)
+	cs, l := cstring(msg)
+	C.sqlite3_result_error(c.sc, cs, l)
 }
 
 // ResultErrorTooBig sets the result of an SQL function.
