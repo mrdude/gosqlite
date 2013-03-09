@@ -93,6 +93,7 @@ func TestBusyHandler(t *testing.T) {
 			*b = true
 		}
 		//c <- true
+		time.Sleep(time.Millisecond)
 		return true
 	}, &called)
 
