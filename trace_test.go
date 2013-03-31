@@ -59,7 +59,7 @@ func commitHook(d interface{}) bool {
 	if t, ok := d.(*testing.T); ok {
 		t.Log("CMT")
 	} else {
-		fmt.Printf("%s\n", d)
+		fmt.Println(d)
 	}
 	return false
 }
@@ -68,7 +68,7 @@ func rollbackHook(d interface{}) {
 	if t, ok := d.(*testing.T); ok {
 		t.Log("RBK")
 	} else {
-		fmt.Printf("%s\n", d)
+		fmt.Println(d)
 	}
 }
 

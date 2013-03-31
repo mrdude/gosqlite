@@ -34,7 +34,7 @@ func Example() {
 		if err = s.Scan(&name); err != nil {
 			return
 		}
-		fmt.Printf("%s\n", name)
+		fmt.Println(name)
 		return
 	})
 	// Output: gosqlite driver
@@ -91,7 +91,7 @@ func ExampleStmt_Insert() {
 	for _, d := range data {
 		rowId, err := s.Insert(d)
 		check(err)
-		fmt.Printf("%d\n", rowId)
+		fmt.Println(rowId)
 	}
 	// Output: 1
 	// 2
