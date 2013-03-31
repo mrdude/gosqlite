@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 func init() {
@@ -49,7 +50,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.BusyTimeout(10000)
+	c.BusyTimeout(time.Duration(10) * time.Second)
 	return &connImpl{c}, nil
 }
 

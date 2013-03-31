@@ -68,7 +68,7 @@ func TestBusyTimeout(t *testing.T) {
 	checkNoError(t, db1.BeginTransaction(Exclusive), "couldn't begin transaction: %s")
 
 	//join := make(chan bool)
-	checkNoError(t, db2.BusyTimeout(500), "couldn't set busy timeout: %s")
+	checkNoError(t, db2.BusyTimeout(time.Duration(500)*time.Millisecond), "couldn't set busy timeout: %s")
 	go func() {
 		time.Sleep(time.Millisecond)
 		db1.Rollback()

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -242,8 +243,9 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 
 // BusyTimeout sets a busy timeout.
 // (See http://sqlite.org/c3ref/busy_timeout.html)
-func (c *Conn) BusyTimeout(ms int) error { // TODO time.Duration ?
-	return c.error(C.sqlite3_busy_timeout(c.db, C.int(ms)), "Conn.BusyTimeout")
+func (c *Conn) BusyTimeout(d time.Duration) error {
+	c.busyHandler = nil
+	return c.error(C.sqlite3_busy_timeout(c.db, C.int(d/time.Millisecond)), "Conn.BusyTimeout")
 }
 
 // EnableFKey enables or disables the enforcement of foreign key constraints.
