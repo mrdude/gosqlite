@@ -346,7 +346,8 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
-		return s.specificError("unsupported type in Bind: %T", value)
+		name, _ := s.BindParameterName(index)
+		return s.specificError("unsupported type in Bind: %T (index: %d, name: %q)", value, index, name)
 	}
 	return s.error(rv, "Stmt.Bind")
 }
