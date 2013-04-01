@@ -11,7 +11,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"time"
+	"unsafe"
 )
 
 func init() {
@@ -57,12 +59,15 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error) {
-	// http://code.google.com/p/go-wiki/wiki/InterfaceSlice
-	tmp := make([]interface{}, len(args))
-	for i, arg := range args {
-		tmp[i] = arg
+	// https://code.google.com/p/go-wiki/wiki/cgo#Turning_C_arrays_into_Go_slices
+	var iargs []interface{}
+	if len(args) > 0 {
+		h := (*reflect.SliceHeader)(unsafe.Pointer(&iargs))
+		h.Data = uintptr(unsafe.Pointer(&args[0]))
+		h.Len = len(args)
+		h.Cap = cap(args)
 	}
-	if err := c.c.Exec(query, tmp...); err != nil {
+	if err := c.c.Exec(query, iargs...); err != nil {
 		return nil, err
 	}
 	return c, nil // FIXME RowAffected/noRows
