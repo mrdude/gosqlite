@@ -45,7 +45,7 @@ func goMInit(db, pClientData unsafe.Pointer, argc int, argv **C.char, pzErr **C.
 	}
 	args := make([]string, argc)
 	var A []*C.char
-	slice := reflect.SliceHeader{uintptr(unsafe.Pointer(argv)), argc, argc}
+	slice := reflect.SliceHeader{Data: uintptr(unsafe.Pointer(argv)), Len: argc, Cap: argc}
 	a := reflect.NewAt(reflect.TypeOf(A), unsafe.Pointer(&slice)).Elem().Interface()
 	for i, s := range a.([]*C.char) {
 		args[i] = C.GoString(s)
