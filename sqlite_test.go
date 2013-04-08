@@ -400,6 +400,51 @@ func TestStmtWithClosedDb(t *testing.T) {
 	//println(err.Error())
 }
 
+func TestConnExecWithSelect(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	err := db.Exec("select 1")
+	assert(t, "error expected", err != nil)
+	if serr, ok := err.(*StmtError); ok {
+		assertEquals(t, "expected %q but got %q", Row, serr.Code())
+	} else {
+		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+	}
+}
+
+func TestStmtExecWithSelect(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("select 1")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+
+	err = s.Exec()
+	assert(t, "error expected", err != nil)
+	if serr, ok := err.(*StmtError); ok {
+		assertEquals(t, "expected %q but got %q", Row, serr.Code())
+	} else {
+		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+	}
+}
+
+func TestStmtSelectWithInsert(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (data TEXT)")
+	checkNoError(t, err, "exec error: %s")
+
+	s, err := db.Prepare("INSERT INTO test VALUES ('...')")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+
+	exists, err := s.SelectOneRow()
+	checkNoError(t, err, "select error: %s")
+	assert(t, "no row expected", !exists)
+}
+
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {
 	if expected != actual {
 		t.Errorf(format, expected, actual)
