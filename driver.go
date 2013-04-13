@@ -46,7 +46,7 @@ type rowsImpl struct {
 // ":memory:" for memory db,
 // "" for temp file db
 func (d *Driver) Open(name string) (driver.Conn, error) {
-	c, err := Open(name, OpenNoMutex, OpenReadWrite, OpenCreate)
+	c, err := Open(name, OpenUri, OpenNoMutex, OpenReadWrite, OpenCreate)
 	if err != nil {
 		return nil, err
 	}
