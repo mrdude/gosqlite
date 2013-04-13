@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"time"
 	"unsafe"
@@ -238,7 +239,18 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
 	}
-	return &Conn{db: db, stmtCache: newCache()}, nil
+	c := &Conn{db: db, stmtCache: newCache()}
+	if os.Getenv("SQLITE_DEBUG") != "" {
+		c.SetAuthorizer(authorizer, c.db)
+		c.SetCacheSize(0)
+	}
+
+	return c, nil
+}
+
+func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth {
+	fmt.Fprintf(os.Stderr, "%p: %s, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
+	return AuthOk
 }
 
 // BusyTimeout sets a busy timeout.
