@@ -164,12 +164,17 @@ func ExampleNewBackup() {
 	defer bck.Close()
 
 	cbs := make(chan sqlite.BackupStatus)
+	defer close(cbs)
 	ack := make(chan bool)
+	defer close(ack)
 	go func() {
 		for {
 			s := <-cbs
 			fmt.Printf("backup progress (remaining: %d)\n", s.Remaining)
 			ack <- true
+			if s.Remaining == 0 {
+				break
+			}
 		}
 	}()
 	err = bck.Run(100, 250000, cbs)

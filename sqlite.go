@@ -157,7 +157,11 @@ func (c *Conn) LastError() error {
 	if c == nil {
 		return errors.New("nil sqlite database")
 	}
-	return &ConnError{c: c, code: Errno(C.sqlite3_errcode(c.db)), msg: C.GoString(C.sqlite3_errmsg(c.db))}
+	errorCode := C.sqlite3_errcode(c.db)
+	if errorCode == C.SQLITE_OK {
+		return nil
+	}
+	return &ConnError{c: c, code: Errno(errorCode), msg: C.GoString(C.sqlite3_errmsg(c.db))}
 }
 
 // Database connection handle

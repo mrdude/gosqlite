@@ -9,26 +9,35 @@ import (
 	"testing"
 )
 
-func fill(db *Conn, n int) {
-	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
-
-	db.Begin()
-	for i := 0; i < n; i++ {
-		s.Exec(float64(i)*float64(3.14), i, "hello")
+func panicOnError(b *testing.B, err error) {
+	if err != nil {
+		panic(err)
 	}
-	s.Finalize()
-	db.Commit()
+}
+
+func fill(b *testing.B, db *Conn, n int) {
+	panicOnError(b, db.Exec("DROP TABLE IF EXISTS test"))
+	panicOnError(b, db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, float_num REAL, int_num INTEGER, a_string TEXT)"))
+	s, err := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
+	panicOnError(b, err)
+
+	panicOnError(b, db.Begin())
+	for i := 0; i < n; i++ {
+		panicOnError(b, s.Exec(float64(i)*float64(3.14), i, "hello"))
+	}
+	panicOnError(b, s.Finalize())
+	panicOnError(b, db.Commit())
 }
 
 func BenchmarkValuesScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open(":memory:")
+	db, err := Open(":memory:")
+	panicOnError(b, err)
 	defer db.Close()
-	fill(db, 1)
+	fill(b, db, 1)
 
-	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	cs, err := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	panicOnError(b, err)
 	defer cs.Finalize()
 
 	b.StartTimer()
@@ -38,17 +47,19 @@ func BenchmarkValuesScan(b *testing.B) {
 		if Must(cs.Next()) {
 			cs.ScanValues(values)
 		}
-		cs.Reset()
+		panicOnError(b, cs.Reset())
 	}
 }
 
 func BenchmarkScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open(":memory:")
+	db, err := Open(":memory:")
+	panicOnError(b, err)
 	defer db.Close()
-	fill(db, 1)
+	fill(b, db, 1)
 
-	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	cs, err := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	panicOnError(b, err)
 	defer cs.Finalize()
 
 	b.StartTimer()
@@ -59,19 +70,21 @@ func BenchmarkScan(b *testing.B) {
 		var sstr string
 
 		if Must(cs.Next()) {
-			cs.Scan(&fnum, &inum, &sstr)
+			panicOnError(b, cs.Scan(&fnum, &inum, &sstr))
 		}
-		cs.Reset()
+		panicOnError(b, cs.Reset())
 	}
 }
 
 func BenchmarkNamedScan(b *testing.B) {
 	b.StopTimer()
-	db, _ := Open(":memory:")
+	db, err := Open(":memory:")
+	panicOnError(b, err)
 	defer db.Close()
-	fill(db, 1)
+	fill(b, db, 1)
 
-	cs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	cs, err := db.Prepare("SELECT float_num, int_num, a_string FROM test")
+	panicOnError(b, err)
 	defer cs.Finalize()
 
 	b.StartTimer()
@@ -82,32 +95,35 @@ func BenchmarkNamedScan(b *testing.B) {
 		var sstr string
 
 		if Must(cs.Next()) {
-			cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr)
+			panicOnError(b, cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr))
 		}
-		cs.Reset()
+		panicOnError(b, cs.Reset())
 	}
 }
 
 func BenchmarkInsert(b *testing.B) {
-	db, _ := Open(":memory:")
+	db, err := Open(":memory:")
+	panicOnError(b, err)
 	defer db.Close()
-	fill(db, b.N)
+	fill(b, db, b.N)
 }
 
 func BenchmarkNamedInsert(b *testing.B) {
-	db, _ := Open(":memory:")
+	db, err := Open(":memory:")
+	panicOnError(b, err)
 	defer db.Close()
-	db.Exec("DROP TABLE IF EXISTS test")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
-		" float_num REAL, int_num INTEGER, a_string TEXT)")
-	s, _ := db.Prepare("INSERT INTO test (float_num, int_num, a_string)" +
+	panicOnError(b, db.Exec("DROP TABLE IF EXISTS test"))
+	panicOnError(b, db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL,"+
+		" float_num REAL, int_num INTEGER, a_string TEXT)"))
+	s, err := db.Prepare("INSERT INTO test (float_num, int_num, a_string)" +
 		" VALUES (:f, :i, :s)")
+	panicOnError(b, err)
 	defer s.Finalize()
 
-	db.Begin()
+	panicOnError(b, db.Begin())
 	for i := 0; i < b.N; i++ {
-		s.NamedBind("f", float64(i)*float64(3.14), "i", i, "s", "hello")
-		s.Next()
+		panicOnError(b, s.NamedBind(":f", float64(i)*float64(3.14), ":i", i, ":s", "hello"))
+		Must(s.Next())
 	}
-	db.Commit()
+	panicOnError(b, db.Commit())
 }

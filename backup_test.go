@@ -14,16 +14,20 @@ func TestBackup(t *testing.T) {
 	defer checkClose(dst, t)
 	src := open(t)
 	defer checkClose(src, t)
-	fill(src, 1000)
+	fill(nil, src, 1000)
 
 	bck, err := NewBackup(dst, "main", src, "main")
 	checkNoError(t, err, "couldn't init backup: %#v")
 
 	cbs := make(chan BackupStatus)
+	defer close(cbs)
 	go func() {
 		for {
 			s := <-cbs
 			t.Logf("Backup progress %#v\n", s)
+			if s.Remaining == 0 {
+				break
+			}
 		}
 	}()
 	err = bck.Run(10, 0, cbs)
