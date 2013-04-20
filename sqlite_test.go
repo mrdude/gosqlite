@@ -119,9 +119,9 @@ func TestSavepoint(t *testing.T) {
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	b := Must(db.Exists("SELECT 1 where 1 = 0"))
+	b := Must(db.Exists("SELECT 1 WHERE 1 = 0"))
 	assert(t, "No row expected", !b)
-	b = Must(db.Exists("SELECT 1 where 1 = 1"))
+	b = Must(db.Exists("SELECT 1 WHERE 1 = 1"))
 	assert(t, "One row expected", b)
 }
 
@@ -183,7 +183,7 @@ func TestOpenSameMemoryDb(t *testing.T) {
 	db2, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "open error: %s")
 	defer checkClose(db2, t)
-	_, err = db2.Exists("SELECT 1 from test")
+	_, err = db2.Exists("SELECT 1 FROM test")
 	checkNoError(t, err, "exists error: %s")
 }
 
@@ -191,7 +191,7 @@ func TestConnExecWithSelect(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	err := db.Exec("select 1")
+	err := db.Exec("SELECT 1")
 	assert(t, "error expected", err != nil)
 	if serr, ok := err.(*StmtError); ok {
 		assertEquals(t, "expected %q but got %q", Row, serr.Code())
@@ -232,7 +232,15 @@ func TestConnSettings(t *testing.T) {
 }
 
 func TestComplete(t *testing.T) {
-	assert(t, "expected complete statement", Complete("select 1;"))
+	assert(t, "expected complete statement", Complete("SELECT 1;"))
+}
+
+func TestExecMisuse(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
+	assert(t, "exec misuse expected", err != nil)
 }
 
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {

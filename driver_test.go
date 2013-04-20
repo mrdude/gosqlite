@@ -13,12 +13,12 @@ const (
 	ddl = "DROP TABLE IF EXISTS test;" +
 		"CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL," +
 		" name TEXT);"
-	dml = "INSERT INTO test (name) values ('Bart');" +
-		"INSERT INTO test (name) values ('Lisa');" +
-		"UPDATE test set name = 'El Barto' where name = 'Bart';" +
-		"DELETE from test where name = 'Bart';"
-	insert = "INSERT into test (name) values (?)"
-	query  = "SELECT * FROM test where name like ?"
+	dml = "INSERT INTO test (name) VALUES ('Bart');" +
+		"INSERT INTO test (name) VALUES ('Lisa');" +
+		"UPDATE test SET name = 'El Barto' WHERE name = 'Bart';" +
+		"DELETE FROM test WHERE name = 'Bart';"
+	insert = "INSERT INTO test (name) VALUES (?)"
+	query  = "SELECT * FROM test WHERE name LIKE ?"
 )
 
 func sqlOpen(t *testing.T) *sql.DB {
@@ -133,8 +133,14 @@ func TestSqlPrepare(t *testing.T) {
 	stmt, err := db.Prepare(insert)
 	checkNoError(t, err, "Error while preparing stmt: %s")
 	defer checkSqlStmtClose(stmt, t)
-	_, err = stmt.Exec("Bart")
+	result, err := stmt.Exec("Bart")
 	checkNoError(t, err, "Error while executing stmt: %s")
+	id, err := result.LastInsertId()
+	checkNoError(t, err, "Error while calling LastInsertId: %s")
+	assertEquals(t, "expected %d got %d LastInsertId", int64(3), id)
+	changes, err := result.RowsAffected()
+	checkNoError(t, err, "Error while calling RowsAffected: %s")
+	assertEquals(t, "expected %d got %d RowsAffected", int64(1), changes)
 }
 
 func TestRowsWithStmtClosed(t *testing.T) {

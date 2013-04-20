@@ -7,6 +7,7 @@ package sqlite_test
 import (
 	"fmt"
 	"github.com/gwenn/gosqlite"
+	"sync"
 )
 
 func check(err error) {
@@ -26,7 +27,7 @@ func Example() {
 	defer ins.Finalize()
 	_, err = ins.Insert("gosqlite driver")
 	check(err)
-	s, err := db.Prepare("SELECT name from test WHERE name like ?", "%go%")
+	s, err := db.Prepare("SELECT name FROM test WHERE name LIKE ?", "%go%")
 	check(err)
 	defer s.Finalize()
 	var name string
@@ -68,7 +69,7 @@ func ExampleStmt_ExecDml() {
 	err = db.Exec("CREATE TABLE test (content TEXT); INSERT INTO test VALUES ('Go'); INSERT INTO test VALUES ('SQLite')")
 	check(err)
 
-	s, err := db.Prepare("UPDATE test SET content = content || 'lang' where content like ?")
+	s, err := db.Prepare("UPDATE test SET content = content || 'lang' WHERE content LIKE ?")
 	check(err)
 	defer s.Finalize()
 	changes, err := s.ExecDml("%o")
@@ -103,7 +104,7 @@ func ExampleStmt_NamedScan() {
 	check(err)
 	defer db.Close()
 
-	s, err := db.Prepare("SELECT 1 as id, 'Go' as name UNION SELECT 2, 'SQLite'")
+	s, err := db.Prepare("SELECT 1 AS id, 'Go' AS name UNION SELECT 2, 'SQLite'")
 	check(err)
 	defer s.Finalize()
 
@@ -125,7 +126,7 @@ func ExampleStmt_Scan() {
 	check(err)
 	defer db.Close()
 
-	s, err := db.Prepare("SELECT 1 as id, 'Go' as name, 'Y' as status UNION SELECT 2, 'SQLite', 'yes'")
+	s, err := db.Prepare("SELECT 1 AS id, 'Go' AS name, 'Y' AS status UNION SELECT 2, 'SQLite', 'yes'")
 	check(err)
 	defer s.Finalize()
 
@@ -165,13 +166,13 @@ func ExampleNewBackup() {
 
 	cbs := make(chan sqlite.BackupStatus)
 	defer close(cbs)
-	ack := make(chan bool)
-	defer close(ack)
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
 		for {
 			s := <-cbs
 			fmt.Printf("backup progress (remaining: %d)\n", s.Remaining)
-			ack <- true
+			wg.Done()
 			if s.Remaining == 0 {
 				break
 			}
@@ -179,7 +180,7 @@ func ExampleNewBackup() {
 	}()
 	err = bck.Run(100, 250000, cbs)
 	check(err)
-	<-ack
+	wg.Wait()
 	// Output: backup progress (remaining: 0)
 }
 

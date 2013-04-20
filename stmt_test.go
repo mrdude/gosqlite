@@ -50,7 +50,7 @@ func TestInsertWithStatement(t *testing.T) {
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer checkFinalize(cs, t)
-	assert(t, "select statement should be readonly", cs.ReadOnly())
+	assert(t, "SELECT statement should be readonly", cs.ReadOnly())
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
@@ -58,7 +58,7 @@ func TestInsertWithStatement(t *testing.T) {
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
 	assertEquals(t, "count should be %d, but it is %d", 1000, i)
 
-	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test where a_string like ? ORDER BY int_num LIMIT 2", "hel%")
+	rs, _ := db.Prepare("SELECT float_num, int_num, a_string FROM test WHERE a_string LIKE ? ORDER BY int_num LIMIT 2", "hel%")
 	defer checkFinalize(rs, t)
 	columnCount = rs.ColumnCount()
 	assertEquals(t, "column count error: expected %d but got %d", 3, columnCount)
@@ -92,7 +92,7 @@ func TestScanColumn(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 1, null, 0")
+	s, err := db.Prepare("SELECT 1, null, 0")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -114,7 +114,7 @@ func TestNamedScanColumn(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 1 as i1, null as i2, 0 as i3")
+	s, err := db.Prepare("SELECT 1 AS i1, null AS i2, 0 AS i3")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -130,13 +130,16 @@ func TestNamedScanColumn(t *testing.T) {
 	null = Must(s.ScanByName("i3", &i3))
 	assert(t, "expected not null value", !null)
 	assertEquals(t, "expected %d but got %d", 0, i3)
+
+	_, err = s.ScanByName("invalid", &i1)
+	assert(t, "expected invalid name", err != nil)
 }
 
 func TestScanCheck(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 'hello'")
+	s, err := db.Prepare("SELECT 'hello'")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -157,7 +160,7 @@ func TestScanNull(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select null")
+	s, err := db.Prepare("SELECT null")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -177,7 +180,7 @@ func TestScanNotNull(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -198,7 +201,7 @@ func TestScanError(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -239,7 +242,7 @@ func TestStmtWithClosedDb(t *testing.T) {
 
 	db.SetCacheSize(0)
 
-	s, err := db.Prepare("select 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	assertEquals(t, "expected Conn: %p, actual: %p", db, s.Conn())
 	defer s.Finalize()
@@ -256,7 +259,7 @@ func TestStmtExecWithSelect(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	s, err := db.Prepare("select 1")
+	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer s.Finalize()
 
@@ -280,7 +283,7 @@ func TestStmtSelectWithInsert(t *testing.T) {
 	defer s.Finalize()
 
 	exists, err := s.SelectOneRow()
-	checkNoError(t, err, "select error: %s")
+	checkNoError(t, err, "SELECT error: %s")
 	assert(t, "no row expected", !exists)
 }
 
@@ -305,9 +308,16 @@ func TestNamedBind(t *testing.T) {
 	checkNoError(t, err, "named bind error: %s")
 	_, err = is.Next()
 	checkNoError(t, err, "named bind step error: %s")
+
+	err = is.NamedBind(":b", byt, ":invalid", nil)
+	assert(t, "invalid param name expected", err != nil)
+	err = is.NamedBind(":b")
+	assert(t, "missing params", err != nil)
+	err = is.NamedBind(byt, ":b")
+	assert(t, "invalid param name", err != nil)
 	checkFinalize(is, t)
 
-	s, err := db.Prepare("SELECT data as bs, byte as b FROM test")
+	s, err := db.Prepare("SELECT data AS bs, byte AS b FROM test")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	if !Must(s.Next()) {
@@ -319,4 +329,41 @@ func TestNamedBind(t *testing.T) {
 	checkNoError(t, err, "named scan error: %s")
 	assertEquals(t, "expected blob: %v, actual: %s", len(blob), len(bs))
 	assertEquals(t, "expected byte: %c, actual: %c", byt, b)
+
+	err = s.NamedScan("b")
+	assert(t, "missing params", err != nil)
+	err = s.NamedScan(&b, "b")
+	assert(t, "invalid param name", err != nil)
+}
+
+func TestBind(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (data TEXT, bool INT)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (data, bool) VALUES (?, ?)")
+	defer checkFinalize(is, t)
+	checkNoError(t, err, "prepare error: %s")
+	err = is.Bind(nil, true)
+	checkNoError(t, err, "bind error: %s")
+	_, err = is.Next()
+	checkNoError(t, err, "step error: %s")
+
+	err = is.Bind(nil, db)
+	assert(t, "unsupported type error expected", err != nil)
+}
+
+func TestInsertMisuse(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (data TEXT, bool INT)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (data, bool) VALUES (?, ?)")
+	defer checkFinalize(is, t)
+	checkNoError(t, err, "prepare error: %s")
+
+	_, err = is.Insert()
+	assert(t, "missing bind parameters expected", err != nil)
 }

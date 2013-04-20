@@ -22,7 +22,7 @@ func TestJulianDay(t *testing.T) {
 	}
 }
 
-func TestBind(t *testing.T) {
+func TestBindTime(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	var delta int

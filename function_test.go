@@ -27,7 +27,7 @@ func TestScalarFunction(t *testing.T) {
 	err := db.CreateScalarFunction("half", 1, nil, half, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var d float64
-	err = db.OneValue("select half(6)", &d)
+	err = db.OneValue("SELECT half(6)", &d)
 	checkNoError(t, err, "couldn't retrieve result: %s")
 	assertEquals(t, "Expected %f but got %f", 3.0, d)
 	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
@@ -73,7 +73,7 @@ func TestRegexpFunction(t *testing.T) {
 	defer checkClose(db, t)
 	err := db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
-	s, err := db.Prepare("select regexp('l.s[aeiouy]', name) from (select 'lisa' as name union all select 'bart')")
+	s, err := db.Prepare("SELECT regexp('l.s[aeiouy]', name) from (SELECT 'lisa' AS name UNION ALL SELECT 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer checkFinalize(s, t)
 
@@ -108,7 +108,7 @@ func TestUserFunction(t *testing.T) {
 	err := db.CreateScalarFunction("user", 0, nil, user, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var name string
-	err = db.OneValue("select user()", &name)
+	err = db.OneValue("SELECT user()", &name)
 	checkNoError(t, err, "couldn't retrieve result: %s")
 	assert(t, "unexpected user name: %q", len(name) > 0)
 	err = db.CreateScalarFunction("user", 1, nil, nil, nil)
@@ -142,7 +142,7 @@ func TestSumFunction(t *testing.T) {
 	err := db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var i int
-	err = db.OneValue("select mysum(i) from (select 2 as i union all select 2)", &i)
+	err = db.OneValue("SELECT mysum(i) FROM (SELECT 2 AS i UNION ALL SELECT 2)", &i)
 	checkNoError(t, err, "couldn't execute statement: %s")
 	assertEquals(t, "expected %d but got %v", 4, i)
 
@@ -170,7 +170,7 @@ func BenchmarkLike(b *testing.B) {
 	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
-	cs, _ := db.Prepare("SELECT count(1) FROM test where name like 'lisa'")
+	cs, _ := db.Prepare("SELECT count(1) FROM test WHERE name LIKE 'lisa'")
 	defer cs.Finalize()
 
 	b.StartTimer()
@@ -186,7 +186,7 @@ func BenchmarkHalf(b *testing.B) {
 	defer db.Close()
 	randomFill(db, 1)
 	db.CreateScalarFunction("half", 1, nil, half, nil)
-	cs, _ := db.Prepare("SELECT count(1) FROM test where half(rank) > 20")
+	cs, _ := db.Prepare("SELECT count(1) FROM test WHERE half(rank) > 20")
 	defer cs.Finalize()
 
 	b.StartTimer()
@@ -202,7 +202,7 @@ func BenchmarkRegexp(b *testing.B) {
 	defer db.Close()
 	randomFill(db, 1)
 	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
-	cs, _ := db.Prepare("SELECT count(1) FROM test where name regexp '(?i)\\blisa\\b'")
+	cs, _ := db.Prepare("SELECT count(1) FROM test WHERE name regexp '(?i)\\blisa\\b'")
 	defer cs.Finalize()
 
 	b.StartTimer()

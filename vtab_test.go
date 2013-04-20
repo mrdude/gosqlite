@@ -105,16 +105,15 @@ func TestCreateModule(t *testing.T) {
 	err = db.Exec("CREATE VIRTUAL TABLE vtab USING test('1', 2, three)")
 	checkNoError(t, err, "couldn't create virtual table: %s")
 
-	s, err := db.Prepare("SELECT * from vtab")
+	s, err := db.Prepare("SELECT rowid, * FROM vtab")
 	checkNoError(t, err, "couldn't select from virtual table: %s")
 	defer checkFinalize(s, t)
 	var i, value int
 	err = s.Select(func(s *Stmt) (err error) {
-		if err = s.Scan(&value); err != nil {
+		if err = s.Scan(&i, &value); err != nil {
 			return
 		}
 		assertEquals(t, "Expected '%d' but got '%d'", intarray[i], value)
-		i++
 		return
 	})
 	checkNoError(t, err, "couldn't select from virtual table: %s")
