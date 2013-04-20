@@ -55,6 +55,9 @@ func TestColumns(t *testing.T) {
 	}
 	column := columns[2]
 	assertEquals(t, "wrong column name: %q <> %q", "int_num", column.Name)
+
+	columns, err = db.Columns("main", "test")
+	checkNoError(t, err, "error listing columns: %s")
 }
 
 func TestColumn(t *testing.T) {
@@ -67,6 +70,9 @@ func TestColumn(t *testing.T) {
 	assertEquals(t, "wrong column name: %q <> %q", "id", column.Name)
 	assert(t, "expecting primary key flag to be true", column.Pk)
 	assert(t, "expecting autoinc flag to be false", !column.Autoinc)
+
+	column, err = db.Column("main", "test", "id")
+	checkNoError(t, err, "error getting column metadata: %s")
 }
 
 func TestForeignKeys(t *testing.T) {

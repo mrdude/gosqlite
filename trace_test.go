@@ -19,6 +19,24 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("cannot activate mem status: '%s'", err))
 	}
+	err = ConfigUri(true)
+	if err != nil {
+		panic(fmt.Sprintf("cannot activate uri handling: '%s'", err))
+	}
+	err = ConfigLog(func(d interface{}, err error, msg string) {
+		fmt.Printf("%s: %s, %s\n", d, err, msg)
+	}, "SQLITE")
+	if err != nil {
+		panic(fmt.Sprintf("couldn't config log: '%s'", err))
+	}
+	err = ConfigLog(nil, "")
+	if err != nil {
+		panic(fmt.Sprintf("couldn't unset logger: '%s'", err))
+	}
+	err = EnableSharedCache(false)
+	if err != nil {
+		panic(fmt.Sprintf("couldn't disable shared cache: '%s'", err))
+	}
 }
 
 func trace(d interface{}, sql string) {

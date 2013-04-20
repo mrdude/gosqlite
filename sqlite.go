@@ -535,8 +535,12 @@ func (c *Conn) Close() error {
 
 // EnableLoadExtension enables or disables extension loading.
 // (See http://sqlite.org/c3ref/enable_load_extension.html)
-func (c *Conn) EnableLoadExtension(b bool) {
-	C.sqlite3_enable_load_extension(c.db, btocint(b))
+func (c *Conn) EnableLoadExtension(b bool) error {
+	rv := C.sqlite3_enable_load_extension(c.db, btocint(b))
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	return c.error(rv, "Conn.EnableLoadExtension")
 }
 
 // LoadExtension loads an extension
@@ -560,8 +564,12 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 
 // EnableSharedCache enables or disables shared pager cache
 // (See http://sqlite.org/c3ref/enable_shared_cache.html)
-func EnableSharedCache(b bool) {
-	C.sqlite3_enable_shared_cache(btocint(b))
+func EnableSharedCache(b bool) error {
+	rv := C.sqlite3_enable_shared_cache(btocint(b))
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	return Errno(rv)
 }
 
 // Must is a helper that wraps a call to a function returning (bool, os.Error)

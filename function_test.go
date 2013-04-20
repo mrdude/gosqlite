@@ -145,6 +145,9 @@ func TestSumFunction(t *testing.T) {
 	err = db.OneValue("select mysum(i) from (select 2 as i union all select 2)", &i)
 	checkNoError(t, err, "couldn't execute statement: %s")
 	assertEquals(t, "expected %d but got %v", 4, i)
+
+	err = db.CreateAggregateFunction("mysum", 1, nil, nil, nil, nil)
+	checkNoError(t, err, "couldn't unregister function: %s")
 }
 
 func randomFill(db *Conn, n int) {

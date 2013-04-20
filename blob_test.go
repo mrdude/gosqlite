@@ -32,6 +32,10 @@ func TestBlob(t *testing.T) {
 	content := []byte("Clob")
 	n, err := bw.Write(content)
 	checkNoError(t, err, "blob write error: %s")
+	//bw.Close()
+
+	err = bw.Reopen(rowid)
+	checkNoError(t, err, "blob reopen error: %s")
 	bw.Close()
 
 	br, err := db.NewBlobReader("main", "test", "content", rowid)
@@ -52,6 +56,9 @@ func TestBlob(t *testing.T) {
 
 	n, err = br.Read(content[10:])
 	assert(t, "error expected", n == 0 && err == io.EOF)
+
+	err = br.Reopen(rowid)
+	checkNoError(t, err, "blob reopen error: %s")
 	br.Close()
 }
 

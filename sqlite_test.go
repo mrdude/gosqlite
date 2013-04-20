@@ -56,6 +56,11 @@ func TestOpen(t *testing.T) {
 	checkNoError(t, db.Close(), "Error closing database: %s")
 }
 
+func TestOpenFailure(t *testing.T) {
+	db, err := Open("doesnotexist.sqlite", OpenReadOnly)
+	assert(t, "open failure expected", db == nil && err != nil)
+}
+
 func TestEnableFKey(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
@@ -95,6 +100,10 @@ func TestTransaction(t *testing.T) {
 	if err := db.Begin(); err == nil {
 		t.Fatalf("Error expected (transaction cannot be nested)")
 	}
+	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
+	checkNoError(t, db.BeginTransaction(Immediate), "Error while beginning immediate transaction: %s")
+	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
+	checkNoError(t, db.BeginTransaction(Exclusive), "Error while beginning immediate transaction: %s")
 	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
 }
 
@@ -205,12 +214,25 @@ func TestConnInitialState(t *testing.T) {
 	assert(t, "readonly expected to be unset by default", !readonly)
 }
 
+func TestReadonlyMisuse(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	_, err := db.Readonly("doesnotexist")
+	assert(t, "error expected", err != nil)
+	err.Error()
+}
+
 func TestConnSettings(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	db.EnableLoadExtension(false)
-	err := db.SetRecursiveTriggers("main", true)
+	err := db.EnableLoadExtension(false)
+	checkNoError(t, err, "EnableLoadExtension error: %s")
+	err = db.SetRecursiveTriggers("main", true)
 	checkNoError(t, err, "SetRecursiveTriggers error: %s")
+}
+
+func TestComplete(t *testing.T) {
+	assert(t, "expected complete statement", Complete("select 1;"))
 }
 
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {
