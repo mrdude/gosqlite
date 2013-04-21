@@ -6,6 +6,11 @@ This binding implements the "database/sql/driver" interface.
 
 See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).
 
+[![Build Status][1]][2]
+
+[1]: https://secure.travis-ci.org/gwenn/gosqlite.png
+[2]: http://www.travis-ci.org/gwenn/gosqlite
+
 Open supports flags.  
 Conn#Exec handles multiple statements (separated by semicolons) properly.  
 Conn#Prepare can optionnaly #Bind as well.  

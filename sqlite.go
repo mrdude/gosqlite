@@ -455,7 +455,7 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 		return c.exec("BEGIN EXCLUSIVE")
 	}
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
-	// return nil // Go 1.1 unreachable code
+	return nil // Go 1.1 unreachable code
 }
 
 // Commit commits transaction
