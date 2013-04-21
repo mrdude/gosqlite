@@ -27,7 +27,7 @@ func open(t *testing.T) *Conn {
 	//db.SetSynchronous("", 0)
 	//db.Profile(profile, t)
 	//db.Trace(trace, t)
-	if testing.Verbose() {
+	if false /*testing.Verbose()*/ { // Go 1.1
 		db.SetAuthorizer(authorizer, t)
 	}
 	return db
