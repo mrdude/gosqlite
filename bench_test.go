@@ -47,7 +47,7 @@ func BenchmarkValuesScan(b *testing.B) {
 		if Must(cs.Next()) {
 			cs.ScanValues(values)
 		}
-		panicOnError(b, cs.Reset())
+		/*panicOnError(b, */ cs.Reset() /*)*/
 	}
 }
 
@@ -70,9 +70,9 @@ func BenchmarkScan(b *testing.B) {
 		var sstr string
 
 		if Must(cs.Next()) {
-			panicOnError(b, cs.Scan(&fnum, &inum, &sstr))
+			/*panicOnError(b, */ cs.Scan(&fnum, &inum, &sstr) /*)*/
 		}
-		panicOnError(b, cs.Reset())
+		/*panicOnError(b, */ cs.Reset() /*)*/
 	}
 }
 
@@ -95,20 +95,33 @@ func BenchmarkNamedScan(b *testing.B) {
 		var sstr string
 
 		if Must(cs.Next()) {
-			panicOnError(b, cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr))
+			/*panicOnError(b, */ cs.NamedScan("float_num", &fnum, "int_num", &inum, "a_string", &sstr) /*)*/
 		}
-		panicOnError(b, cs.Reset())
+		/*panicOnError(b, */ cs.Reset() /*)*/
 	}
 }
 
 func BenchmarkInsert(b *testing.B) {
+	b.StopTimer()
 	db, err := Open(":memory:")
 	panicOnError(b, err)
 	defer db.Close()
-	fill(b, db, b.N)
+	panicOnError(b, db.Exec("DROP TABLE IF EXISTS test"))
+	panicOnError(b, db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, float_num REAL, int_num INTEGER, a_string TEXT)"))
+	s, err := db.Prepare("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)")
+	panicOnError(b, err)
+	defer s.Finalize()
+
+	b.StartTimer()
+	panicOnError(b, db.Begin())
+	for i := 0; i < b.N; i++ {
+		/*panicOnError(b, */ s.Exec(float64(i)*float64(3.14), i, "hello") /*)*/
+	}
+	panicOnError(b, db.Commit())
 }
 
 func BenchmarkNamedInsert(b *testing.B) {
+	b.StopTimer()
 	db, err := Open(":memory:")
 	panicOnError(b, err)
 	defer db.Close()
@@ -120,9 +133,10 @@ func BenchmarkNamedInsert(b *testing.B) {
 	panicOnError(b, err)
 	defer s.Finalize()
 
+	b.StartTimer()
 	panicOnError(b, db.Begin())
 	for i := 0; i < b.N; i++ {
-		panicOnError(b, s.NamedBind(":f", float64(i)*float64(3.14), ":i", i, ":s", "hello"))
+		/*panicOnError(b, */ s.NamedBind(":f", float64(i)*float64(3.14), ":i", i, ":s", "hello") /*)*/
 		Must(s.Next())
 	}
 	panicOnError(b, db.Commit())

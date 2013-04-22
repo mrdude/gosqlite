@@ -367,3 +367,20 @@ func TestInsertMisuse(t *testing.T) {
 	_, err = is.Insert()
 	assert(t, "missing bind parameters expected", err != nil)
 }
+
+func TestScanValues(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 1, null, 0")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+	values := make([]interface{}, 3)
+	s.ScanValues(values)
+	assertEquals(t, "expected %v but got %v", int64(1), values[0])
+	assertEquals(t, "expected %v but got %v", nil, values[1])
+	assertEquals(t, "expected %v but got %v", int64(0), values[2])
+}

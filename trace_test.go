@@ -128,3 +128,12 @@ func TestTrace(t *testing.T) {
 func TestLog(t *testing.T) {
 	Log(0, "One message")
 }
+
+func TestMemory(t *testing.T) {
+	used := MemoryUsed()
+	assert(t, "memory used", used >= 0)
+	highwater := MemoryHighwater(false)
+	assert(t, "memory highwater", highwater >= 0)
+	limit := SoftHeapLimit()
+	assert(t, "soft heap limit positive", limit >= 0)
+}
