@@ -384,3 +384,17 @@ func TestScanValues(t *testing.T) {
 	assertEquals(t, "expected %v but got %v", nil, values[1])
 	assertEquals(t, "expected %v but got %v", int64(0), values[2])
 }
+
+func TestScanBytes(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 'test'")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+	blob, _ := s.ScanBlob(0)
+	assertEquals(t, "expected %v but got %v", "test", string(blob))
+}

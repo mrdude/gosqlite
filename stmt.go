@@ -656,10 +656,10 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *time.Time: // go fix doesn't like this type!
 		*value, isNull, err = s.ScanTime(index)
 	case *interface{}:
-		*value = s.ScanValue(index)
+		*value = s.ScanValue(index, false)
 		isNull = *value == nil
 	case func(interface{}) (bool, error):
-		isNull, err = value(s.ScanValue(index))
+		isNull, err = value(s.ScanValue(index, false))
 	default:
 		return false, s.specificError("unsupported type in Scan: %T", value)
 	}
@@ -672,20 +672,26 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 // Destination type is decided by SQLite.
 // The returned value will be of one of the following types:
 //    nil
-//    string
+//    string (exception if blob is true)
 //    int64
 //    float64
 //    []byte
 //
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanValue(index int) (value interface{}) {
+func (s *Stmt) ScanValue(index int, blob bool) (value interface{}) {
 	switch s.ColumnType(index) {
 	case Null:
 		value = nil
 	case Text:
-		p := C.sqlite3_column_text(s.stmt, C.int(index))
-		value = C.GoString((*C.char)(unsafe.Pointer(p)))
+		if blob {
+			p := C.sqlite3_column_blob(s.stmt, C.int(index))
+			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+			value = C.GoBytes(p, n)
+		} else {
+			p := C.sqlite3_column_text(s.stmt, C.int(index))
+			value = C.GoString((*C.char)(unsafe.Pointer(p)))
+		}
 	case Integer:
 		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
 	case Float:
@@ -704,7 +710,7 @@ func (s *Stmt) ScanValue(index int) (value interface{}) {
 // ScanValues is like ScanValue on several columns.
 func (s *Stmt) ScanValues(values []interface{}) {
 	for i := range values {
-		values[i] = s.ScanValue(i)
+		values[i] = s.ScanValue(i, false)
 	}
 }
 

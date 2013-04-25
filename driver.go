@@ -175,13 +175,10 @@ func (r *rowsImpl) Next(dest []driver.Value) error {
 		return io.EOF
 	}
 	for i := range dest {
-		value := r.s.s.ScanValue(i)
-		switch value := value.(type) {
-		case string: // "All string values must be converted to []byte."
-			dest[i] = []byte(value)
-		default:
-			dest[i] = value
-		}
+		dest[i] = r.s.s.ScanValue(i, true)
+		/*if !driver.IsScanValue(dest[i]) {
+			panic("Invalid type returned by ScanValue")
+		}*/
 	}
 	return nil
 }
