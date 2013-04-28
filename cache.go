@@ -6,7 +6,6 @@ package sqlite
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 )
 
@@ -39,15 +38,14 @@ func (c *cache) find(sql string) *Stmt {
 	c.m.Lock()
 	defer c.m.Unlock()
 	for e := c.l.Front(); e != nil; e = e.Next() {
-		if s, ok := e.Value.(*Stmt); ok {
-			if s.SQL() == sql { // TODO s.SQL() may have been trimmed by SQLite
-				c.l.Remove(e)
-				if err := s.ClearBindings(); err != nil {
-					s.finalize()
-					return nil
-				}
-				return s
+		s := e.Value.(*Stmt)
+		if s.SQL() == sql { // TODO s.SQL() may have been trimmed by SQLite
+			c.l.Remove(e)
+			if err := s.ClearBindings(); err != nil {
+				s.finalize()
+				return nil
 			}
+			return s
 		}
 	}
 	return nil
@@ -62,10 +60,7 @@ func (c *cache) release(s *Stmt) error {
 	defer c.m.Unlock()
 	c.l.PushFront(s)
 	for c.l.Len() > c.maxSize {
-		v := c.l.Remove(c.l.Back())
-		if s, ok := v.(*Stmt); ok {
-			s.finalize()
-		}
+		c.l.Remove(c.l.Back()).(*Stmt).finalize()
 	}
 	return nil
 }
@@ -81,12 +76,7 @@ func (c *cache) flush() {
 	var e, next *list.Element
 	for e = c.l.Front(); e != nil; e = next {
 		next = e.Next()
-		v := c.l.Remove(e)
-		if s, ok := v.(*Stmt); ok {
-			s.finalize()
-		} else {
-			panic(fmt.Sprintf("unexpected element in Stmt cache: %#v", v))
-		}
+		c.l.Remove(e).(*Stmt).finalize()
 	}
 }
 

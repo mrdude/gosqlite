@@ -179,6 +179,7 @@ type Conn struct {
 	updateHook      *sqliteUpdateHook
 	udfs            map[string]*sqliteFunction
 	modules         map[string]*sqliteModule
+	timeUsed        time.Time
 }
 
 // Version returns the run-time library version number
@@ -532,6 +533,10 @@ func (c *Conn) Close() error {
 	}
 	c.db = nil
 	return nil
+}
+
+func (c *Conn) IsClosed() bool {
+	return c == nil || c.db == nil
 }
 
 // EnableLoadExtension enables or disables extension loading.
