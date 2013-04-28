@@ -107,19 +107,19 @@ So users must ensure that C ressources (database connections, prepared statement
 Therefore, sqlite3_close/sqlite3_next_stmt are used by Conn#Close to free the database connection and all dangling statements (not sqlite3_close_v2) (see http://sqlite.org/c3ref/close.html).
 
 ### Benchmarks:
-$ go test -test.bench .
+$ go test -bench . -benchmem
 <pre>
-BenchmarkValuesScan 500000  4658 ns/op
-BenchmarkScan       500000   324 ns/op
-BenchmarkNamedScan  200000  9221 ns/op
+BenchmarkValuesScan	  500000	      6265 ns/op	      74 B/op	       3 allocs/op
+BenchmarkScan	  500000	      4994 ns/op	      41 B/op	       4 allocs/op
+BenchmarkNamedScan	  500000	      4960 ns/op	      93 B/op	       7 allocs/op
 
-BenchmarkInsert       500000  6088 ns/op
-BenchmarkNamedInsert  500000  6726 ns/op
+BenchmarkInsert	  500000	      4085 ns/op	      16 B/op	       1 allocs/op
+BenchmarkNamedInsert	  500000	      4798 ns/op	      64 B/op	       4 allocs/op
 
-BenchmarkDisabledCache   100000  19235 ns/op
-BenchmarkEnabledCache   1000000   1133 ns/op
+BenchmarkDisabledCache	  100000	     19841 ns/op	     117 B/op	       3 allocs/op
+BenchmarkEnabledCache	 2000000	       790 ns/op	      50 B/op	       1 allocs/op
 
-BenchmarkLike   1000000  2508 ns/op
-BenchmarkHalf    500000  4811 ns/op
-BenchmarkRegexp  500000  6170 ns/op
+BenchmarkLike	 1000000	      2605 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHalf	  500000	      4988 ns/op	      33 B/op	       1 allocs/op
+BenchmarkRegexp	  500000	      5557 ns/op	       8 B/op	       1 allocs/op
 </pre>
