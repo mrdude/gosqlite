@@ -361,8 +361,8 @@ func TestInsertMisuse(t *testing.T) {
 	checkNoError(t, err, "exec error: %s")
 
 	is, err := db.Prepare("INSERT INTO test (data, bool) VALUES (?, ?)")
-	defer checkFinalize(is, t)
 	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(is, t)
 
 	_, err = is.Insert()
 	assert(t, "missing bind parameters expected", err != nil)

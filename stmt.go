@@ -310,6 +310,21 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	return nil
 }
 
+// UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost) (default)
+type UnixTime time.Time
+
+// JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
+type JulianTime time.Time
+
+// YearMonthDay is an alias used to persist time as 'YYYY-MM-DD' string
+//type YearMonthDay time.Time
+
+// TimeOfDay is an alias used to persist time as 'HH:MM:SS.SSS' string
+//type TimeOfDay time.Time versus Duration
+
+// TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
+type TimeStamp time.Time
+
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindByIndex(index int, value interface{}) error {
@@ -339,10 +354,22 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			p = &value[0]
 		}
 		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
-	case time.Time: // At least three representations are possible: string (YYYY-MM-DD HH:MM:SS.SSS), int64 (unix time), float64 (julian day)
-		// rv = C.my_bind_text(s.stmt, i, value.format("2006-01-02 15:04:05.000"))
+	case JulianTime:
+		rv = C.sqlite3_bind_double(s.stmt, i, C.double(JulianDay(time.Time(value))))
+	/*case YearMonthDay:
+		cs, l := cstring((time.Time)(value).Format("2006-01-02"))
+		rv = C.my_bind_text(s.stmt, i, cs, l)
+	case TimeOfDay:
+		cs, l := cstring((time.Time)(value).Format("15:04:05.000"))
+		rv = C.my_bind_text(s.stmt, i, cs, l)
+	*/
+	case TimeStamp:
+		cs, l := cstring((time.Time)(value).Format("2006-01-02T15:04:05.999Z07:00"))
+		rv = C.my_bind_text(s.stmt, i, cs, l)
+	case UnixTime:
+		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64((time.Time)(value).Unix()))
+	case time.Time:
 		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
-		// rv = C.sqlite3_bind_double(s.stmt, i, JulianDay(value))
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	default:
@@ -831,6 +858,8 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 }
 
 // ScanTime scans result value from a query.
+// If time is persisted as string without timezone, UTC is used.
+// If time is persisted as numeric, local is used.
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
@@ -862,20 +891,26 @@ func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 			} else {
 				layout = "2006-01-02 15:04:05"
 			}
-		default: // YYYY-MM-DDTHH:MM:SS.SSS or parse error
-			if len(txt) > 10 && txt[10] == 'T' {
-				layout = "2006-01-02T15:04:05.000"
+		case 23: // YYYY-MM-DDTHH:MM:SS.SSS
+			if txt[10] == 'T' {
+				layout = "2006-01-02T15:04:05.999"
 			} else {
-				layout = "2006-01-02 15:04:05.000"
+				layout = "2006-01-02 15:04:05.999"
+			}
+		default: // YYYY-MM-DDTHH:MM:SS.SSSZhh:mm or parse error
+			if len(txt) > 10 && txt[10] == 'T' {
+				layout = "2006-01-02T15:04:05.999Z07:00"
+			} else {
+				layout = "2006-01-02 15:04:05.999Z07:00"
 			}
 		}
-		value, err = time.Parse(layout, txt)
+		value, err = time.Parse(layout, txt) // UTC except when timezone is specified
 	case Integer:
 		unixepoch := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
-		value = time.Unix(unixepoch, 0)
+		value = time.Unix(unixepoch, 0) // local time
 	case Float:
 		jd := float64(C.sqlite3_column_double(s.stmt, C.int(index)))
-		value = JulianDayToUTC(jd)
+		value = JulianDayToLocalTime(jd) // local time
 	default:
 		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, or SQLITE_NULL")
 	}

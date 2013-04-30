@@ -71,3 +71,61 @@ func TestScan(t *testing.T) {
 		t.Error("Unexpected zero julian day")
 	}
 }
+
+func TestBindTimeAsString(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (time TEXT)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
+	checkNoError(t, err, "prepare error: %s")
+
+	now := time.Now()
+	//id1, err := is.Insert(YearMonthDay(now))
+	//checkNoError(t, err, "error inserting YearMonthDay: %s")
+	id2, err := is.Insert(TimeStamp(now))
+	checkNoError(t, err, "error inserting TimeStamp: %s")
+
+	// The format used to persist has a max precision of 1ms.
+	now = now.Truncate(time.Millisecond)
+
+	var tim time.Time
+	//err = db.OneValue("SELECT /*date(*/time/*)*/ FROM test where ROWID = ?", &tim, id1)
+	//checkNoError(t, err, "error selecting YearMonthDay: %s")
+	//assertEquals(t, "Year MonthDay: %d vs %d", now.Year(), tim.Year())
+	//assertEquals(t, "YearMonth Day: %d vs %d", now.YearDay(), tim.YearDay())
+
+	err = db.OneValue("SELECT /*datetime(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
+	checkNoError(t, err, "error selecting TimeStamp: %s")
+	assertEquals(t, "TimeStamp: %s vs %s", now, tim)
+}
+
+func TestBindTimeAsNumeric(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (time NUMERIC)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
+	checkNoError(t, err, "prepare error: %s")
+
+	now := time.Now()
+	id1, err := is.Insert(UnixTime(now))
+	checkNoError(t, err, "error inserting UnixTime: %s")
+	id2, err := is.Insert(JulianTime(now))
+	checkNoError(t, err, "error inserting JulianTime: %s")
+	checkFinalize(is, t)
+
+	// And the format used to persist has a max precision of 1s.
+	now = now.Truncate(time.Second)
+
+	var tim time.Time
+	err = db.OneValue("SELECT /*datetime(*/ time/*, 'unixepoch')*/ FROM test where ROWID = ?", &tim, id1)
+	checkNoError(t, err, "error selecting UnixTime: %s")
+	assertEquals(t, "Year: %s vs %s", now, tim)
+
+	err = db.OneValue("SELECT /*julianday(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
+	checkNoError(t, err, "error selecting JulianTime: %s")
+	assertEquals(t, "Year: %s vs %s", now, tim)
+}
