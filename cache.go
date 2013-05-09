@@ -56,6 +56,10 @@ func (c *cache) release(s *Stmt) error {
 	if c.maxSize <= 0 || len(s.tail) > 0 || s.Busy() {
 		return s.finalize()
 	}
+	if err := s.Reset(); err != nil {
+		s.finalize()
+		return err
+	}
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.l.PushFront(s)

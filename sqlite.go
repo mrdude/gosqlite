@@ -371,10 +371,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer func() {
-		s.Reset()
-		s.Finalize()
-	}()
+	defer s.Finalize()
 	return s.Next()
 }
 
@@ -385,10 +382,7 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	if err != nil {
 		return err
 	}
-	defer func() {
-		s.Reset()
-		s.Finalize()
-	}()
+	defer s.Finalize()
 	b, err := s.Next()
 	if err != nil {
 		return err
