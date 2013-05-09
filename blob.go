@@ -20,16 +20,15 @@ import (
 // io.ReadCloser adapter to BLOB
 // (See http://sqlite.org/c3ref/blob.html)
 type BlobReader struct {
-	c          *Conn
-	bl         *C.sqlite3_blob
-	size       int
-	ReadOffset int
+	c      *Conn
+	bl     *C.sqlite3_blob
+	size   int
+	offset int
 }
 
 // io.ReadWriteCloser adapter to BLOB
 type BlobReadWriter struct {
 	BlobReader
-	WriteOffset int
 }
 
 // Zeroblobs are used to reserve space for a BLOB that is later written.
@@ -53,7 +52,7 @@ func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobRead
 	if err != nil {
 		return nil, err
 	}
-	return &BlobReadWriter{BlobReader{c, bl, -1, 0}, 0}, nil
+	return &BlobReadWriter{BlobReader{c, bl, -1, 0}}, nil
 }
 
 func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sqlite3_blob, error) {
@@ -101,20 +100,39 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if r.ReadOffset >= size {
+	if r.offset >= size {
 		return 0, io.EOF
 	}
-	if len(v) > (size - r.ReadOffset) {
-		v = v[0 : size-r.ReadOffset]
+	if len(v) > (size - r.offset) {
+		v = v[0 : size-r.offset]
 	}
 	p := &v[0]
 	n := len(v)
-	rv := C.sqlite3_blob_read(r.bl, unsafe.Pointer(p), C.int(n), C.int(r.ReadOffset))
+	rv := C.sqlite3_blob_read(r.bl, unsafe.Pointer(p), C.int(n), C.int(r.offset))
 	if rv != C.SQLITE_OK {
 		return 0, r.c.error(rv, "BlobReader.Read")
 	}
-	r.ReadOffset += n
+	r.offset += n
 	return n, nil
+}
+
+// Seek sets the offset for the next Read or Write to offset.
+func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case 0: // SEEK_SET
+		r.offset = int(offset)
+	case 1: // SEEK_CUR
+		r.offset += int(offset)
+	case 2: // SEEK_END
+		size, err := r.Size()
+		if err != nil {
+			return 0, err
+		}
+		r.offset = size + int(offset)
+	default:
+		return 0, r.c.specificError("Bad seekMode")
+	}
+	return int64(r.offset), nil
 }
 
 // Size returns the size of an opened BLOB.
@@ -139,21 +157,21 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if w.WriteOffset >= size {
+	if w.offset >= size {
 		return 0, io.EOF
 	}
 	/* Write must return a non-nil error if it returns n < len(v) */
-	if len(v) > (size - w.WriteOffset) {
-		v = v[0 : size-w.WriteOffset]
+	if len(v) > (size - w.offset) {
+		v = v[0 : size-w.offset]
 		err = io.EOF
 	}
 	p := &v[0]
 	n := len(v)
-	rv := C.sqlite3_blob_write(w.bl, unsafe.Pointer(p), C.int(n), C.int(w.WriteOffset))
+	rv := C.sqlite3_blob_write(w.bl, unsafe.Pointer(p), C.int(n), C.int(w.offset))
 	if rv != C.SQLITE_OK {
 		return 0, w.c.error(rv, "BlobReadWiter.Write")
 	}
-	w.WriteOffset += n
+	w.offset += n
 	return n, err
 }
 
@@ -165,16 +183,6 @@ func (r *BlobReader) Reopen(rowid int64) error {
 		return r.c.error(rv, fmt.Sprintf("BlobReader.Reopen(%d)", rowid))
 	}
 	r.size = -1
-	r.ReadOffset = 0
-	return nil
-}
-
-// Reopen moves a BLOB handle to a new row.
-// (See http://sqlite.org/c3ref/blob_reopen.html)
-func (w *BlobReadWriter) Reopen(rowid int64) error {
-	if err := w.BlobReader.Reopen(rowid); err != nil {
-		return err
-	}
-	w.WriteOffset = 0
+	r.offset = 0
 	return nil
 }
