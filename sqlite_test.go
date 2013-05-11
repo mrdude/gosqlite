@@ -93,7 +93,7 @@ func TestCreateTable(t *testing.T) {
 	createTable(db, t)
 }
 
-func TestTransaction(t *testing.T) {
+func TestManualTransaction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	checkNoError(t, db.Begin(), "Error while beginning transaction: %s")
@@ -241,6 +241,22 @@ func TestExecMisuse(t *testing.T) {
 	createTable(db, t)
 	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
 	assert(t, "exec misuse expected", err != nil)
+}
+
+func TestTransaction(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	gerr, serr := db.Transaction(Immediate, func(_ *Conn) error {
+		err, nerr := db.Transaction(Immediate, func(__ *Conn) error {
+			return db.Exec("INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
+		})
+		checkNoError(t, err, "Applicative error: %s")
+		checkNoError(t, nerr, "SQLite error: %s")
+		return err
+	})
+	checkNoError(t, gerr, "Applicative error: %s")
+	checkNoError(t, serr, "SQLite error: %s")
 }
 
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {

@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 	"unsafe"
 )
@@ -180,6 +181,7 @@ type Conn struct {
 	udfs            map[string]*sqliteFunction
 	modules         map[string]*sqliteModule
 	timeUsed        time.Time
+	nTransaction    uint8
 }
 
 // Version returns the run-time library version number
@@ -463,6 +465,45 @@ func (c *Conn) Commit() error {
 func (c *Conn) Rollback() error {
 	// TODO Check autocommit?
 	return c.exec("ROLLBACK")
+}
+
+// Transaction is used to execute a function inside an SQLite database transaction.
+// The transaction is committed when the function completes (with no error),
+// or it rolls back if the function fails.
+// If the transaction occurs within another transaction (only one that is started using this method) a Savepoint is created.
+// Two errors may be returned: the first is the one returned by the f function,
+// the second is the one returned by begin/commit/rollback.
+func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (gerr error, serr error) {
+	if c.nTransaction == 0 {
+		serr = c.BeginTransaction(t)
+	} else {
+		serr = c.Savepoint(strconv.Itoa(int(c.nTransaction)))
+	}
+	if serr != nil {
+		return
+	}
+	c.nTransaction++
+	defer func() {
+		c.nTransaction--
+		if gerr != nil {
+			if c.nTransaction == 0 {
+				serr = c.Rollback()
+			} else {
+				serr = c.RollbackSavepoint(strconv.Itoa(int(c.nTransaction)))
+			}
+		} else {
+			if c.nTransaction == 0 {
+				serr = c.Commit()
+			} else {
+				serr = c.ReleaseSavepoint(strconv.Itoa(int(c.nTransaction)))
+			}
+			if serr != nil {
+				c.Rollback()
+			}
+		}
+	}()
+	gerr = f(c)
+	return
 }
 
 // Savepoint starts a new transaction with a name.
