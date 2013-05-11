@@ -172,8 +172,8 @@ func ExampleNewBackup() {
 		for {
 			s := <-cbs
 			fmt.Printf("backup progress (remaining: %d)\n", s.Remaining)
-			wg.Done()
 			if s.Remaining == 0 {
+				wg.Done()
 				break
 			}
 		}
@@ -200,6 +200,6 @@ func ExampleConn_NewBlobReader() {
 	content := make([]byte, size)
 	n, err := br.Read(content)
 	check(err)
-	fmt.Printf("blob (size: %d, read: %d, content: %q\n", size, n, content)
-	// Output: blob (size: 10, read: 10, content: "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	fmt.Printf("blob (size: %d, read: %d, content: %q)\n", size, n, content)
+	// Output: blob (size: 10, read: 10, content: "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
 }
