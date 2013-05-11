@@ -28,6 +28,7 @@ func TestInterrupt(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected interrupt but got %v", err)
 	}
+	//println(err.Error())
 	if se, ok := err.(*StmtError); !ok || se.Code() != ErrInterrupt {
 		t.Errorf("Expected interrupt but got %#v", err)
 	}

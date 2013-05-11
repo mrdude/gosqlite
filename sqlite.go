@@ -63,7 +63,12 @@ func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often red
 type Errno int
 
 func (e Errno) Error() string {
-	s := errText[e]
+	var s string
+	if e == ErrSpecific {
+		s = "Wrapper specific error"
+	} else {
+		s = C.GoString(C.sqlite3_errstr(C.int(e)))
+	}
 	if s == "" {
 		return fmt.Sprintf("errno %d", int(e))
 	}
@@ -101,38 +106,6 @@ var (
 	Done                = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
 	ErrSpecific         = Errno(-1)                  /* Wrapper specific error */
 )
-
-var errText = map[Errno]string{
-	C.SQLITE_ERROR:      "SQL error or missing database",
-	C.SQLITE_INTERNAL:   "Internal logic error in SQLite",
-	C.SQLITE_PERM:       "Access permission denied",
-	C.SQLITE_ABORT:      "Callback routine requested an abort",
-	C.SQLITE_BUSY:       "The database file is locked",
-	C.SQLITE_LOCKED:     "A table in the database is locked",
-	C.SQLITE_NOMEM:      "A malloc() failed",
-	C.SQLITE_READONLY:   "Attempt to write a readonly database",
-	C.SQLITE_INTERRUPT:  "Operation terminated by sqlite3_interrupt()",
-	C.SQLITE_IOERR:      "Some kind of disk I/O error occurred",
-	C.SQLITE_CORRUPT:    "The database disk image is malformed",
-	C.SQLITE_NOTFOUND:   "Unknown opcode in sqlite3_file_control()",
-	C.SQLITE_FULL:       "Insertion failed because database is full",
-	C.SQLITE_CANTOPEN:   "Unable to open the database file",
-	C.SQLITE_PROTOCOL:   "Database lock protocol error",
-	C.SQLITE_EMPTY:      "Database is empty",
-	C.SQLITE_SCHEMA:     "The database schema changed",
-	C.SQLITE_TOOBIG:     "String or BLOB exceeds size limit",
-	C.SQLITE_CONSTRAINT: "Abort due to constraint violation",
-	C.SQLITE_MISMATCH:   "Data type mismatch",
-	C.SQLITE_MISUSE:     "Library used incorrectly",
-	C.SQLITE_NOLFS:      "Uses OS features not supported on host",
-	C.SQLITE_AUTH:       "Authorization denied",
-	C.SQLITE_FORMAT:     "Auxiliary database format error",
-	C.SQLITE_RANGE:      "2nd parameter to sqlite3_bind out of range",
-	C.SQLITE_NOTADB:     "File opened that is not a database file",
-	Row:                 "sqlite3_step() has another row ready",
-	Done:                "sqlite3_step() has finished executing",
-	ErrSpecific:         "Wrapper specific error",
-}
 
 func (c *Conn) error(rv C.int, details ...string) error {
 	if c == nil {

@@ -68,6 +68,7 @@ func TestBlobMisuse(t *testing.T) {
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", 0)
 	assert(t, "error expected", bw == nil && err != nil)
+	//println(err.Error())
 	err = bw.Close()
 	assert(t, "error expected", err != nil)
 }

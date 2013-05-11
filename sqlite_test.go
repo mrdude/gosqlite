@@ -59,6 +59,7 @@ func TestOpen(t *testing.T) {
 func TestOpenFailure(t *testing.T) {
 	db, err := Open("doesnotexist.sqlite", OpenReadOnly)
 	assert(t, "open failure expected", db == nil && err != nil)
+	//println(err.Error())
 }
 
 func TestEnableFKey(t *testing.T) {
@@ -220,6 +221,7 @@ func TestReadonlyMisuse(t *testing.T) {
 	_, err := db.Readonly("doesnotexist")
 	assert(t, "error expected", err != nil)
 	err.Error()
+	//println(err.Error())
 }
 
 func TestConnSettings(t *testing.T) {

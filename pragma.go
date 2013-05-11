@@ -135,6 +135,54 @@ func (c *Conn) SetSynchronous(dbName string, mode int) error {
 	return c.exec(pragma(dbName, fmt.Sprintf("synchronous=%d", mode)))
 }
 
+type FkViolation struct {
+	Table  string
+	Rowid  int64
+	Parent string
+	Fkid   int
+}
+
+// ForeignKeyCheck checks the database, or the table, for foreign key constraints that are violated
+// and returns one row of output for each violation.
+// Database name is optional (default is 'main').
+// Table name is optional (default is all tables).
+// (See http://sqlite.org/pragma.html#pragma_foreign_key_check)
+func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
+	var pragma string
+	if len(dbName) == 0 {
+		if len(table) == 0 {
+			pragma = "PRAGMA foreign_key_check"
+		} else {
+			pragma = Mprintf("PRAGMA foreign_key_check(%Q)", table)
+		}
+	} else {
+		if len(table) == 0 {
+			pragma = Mprintf("PRAGMA %Q.foreign_key_check", table)
+		} else {
+			pragma = Mprintf2("PRAGMA %Q.foreign_key_check(%Q)", dbName, table)
+		}
+	}
+	s, err := c.prepare(pragma)
+	if err != nil {
+		return nil, err
+	}
+	defer s.finalize()
+	// table|rowid|parent|fkid
+	var violations []FkViolation = make([]FkViolation, 0, 20)
+	err = s.Select(func(s *Stmt) (err error) {
+		v := FkViolation{}
+		if err = s.Scan(&v.Table, &v.Rowid, &v.Parent, &v.Fkid); err != nil {
+			return
+		}
+		violations = append(violations, v)
+		return
+	})
+	if err != nil {
+		return nil, err
+	}
+	return violations, nil
+}
+
 func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
 		return "PRAGMA " + pragmaName

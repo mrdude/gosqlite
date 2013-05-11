@@ -232,6 +232,7 @@ func TestStmtMisuse(t *testing.T) {
 
 	s, err := db.Prepare("MISUSE")
 	assert(t, "error expected", s == nil && err != nil)
+	//println(err.Error())
 	err = s.Finalize()
 	assert(t, "error expected", err != nil)
 }

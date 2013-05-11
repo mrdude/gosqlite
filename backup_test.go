@@ -45,4 +45,5 @@ func TestBackupMisuse(t *testing.T) {
 	assert(t, "source and destination must be distinct", bck == nil && err != nil)
 	err = bck.Run(10, 0, nil)
 	assert(t, "misuse expected", err != nil)
+	//println(err.Error())
 }
