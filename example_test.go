@@ -38,6 +38,7 @@ func Example() {
 		fmt.Println(name)
 		return
 	})
+	check(err)
 	// Output: gosqlite driver
 }
 
@@ -117,8 +118,16 @@ func ExampleStmt_NamedScan() {
 		fmt.Println(id, name)
 		return
 	})
+	check(err)
 	// Output: 1 Go
 	// 2 SQLite
+}
+
+type YesOrNo bool
+
+func (b *YesOrNo) Scan(src interface{}) error {
+	*b = YesOrNo(src == "Y" || src == "yes")
+	return nil
 }
 
 func ExampleStmt_Scan() {
@@ -132,20 +141,16 @@ func ExampleStmt_Scan() {
 
 	var id int
 	var name string
-	var status bool
-
-	converter := func(value interface{}) (bool, error) {
-		status = value == "Y" || value == "yes"
-		return false, nil
-	}
+	var status YesOrNo
 
 	err = s.Select(func(s *sqlite.Stmt) (err error) {
-		if err = s.Scan(&id, &name, converter); err != nil {
+		if err = s.Scan(&id, &name, &status); err != nil {
 			return
 		}
 		fmt.Println(id, name, status)
 		return
 	})
+	check(err)
 	// Output: 1 Go true
 	// 2 SQLite true
 }

@@ -32,6 +32,7 @@ static int my_prepare_v2(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt 
 import "C"
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -682,11 +683,13 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 		}
 	case *time.Time: // go fix doesn't like this type!
 		*value, isNull, err = s.ScanTime(index)
+	case sql.Scanner:
+		v := s.ScanValue(index, false)
+		err = value.Scan(v)
+		isNull = v == nil
 	case *interface{}:
 		*value = s.ScanValue(index, false)
 		isNull = *value == nil
-	case func(interface{}) (bool, error):
-		isNull, err = value(s.ScanValue(index, false))
 	default:
 		return false, s.specificError("unsupported type in Scan: %T", value)
 	}
