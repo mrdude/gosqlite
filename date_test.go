@@ -33,7 +33,7 @@ func TestBindTime(t *testing.T) {
 	}
 }
 
-func TestScan(t *testing.T) {
+func TestScanTime(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	var dt time.Time
@@ -69,6 +69,18 @@ func TestScan(t *testing.T) {
 	checkNoError(t, err, "Error reading date: %#v")
 	if unix.IsZero() {
 		t.Error("Unexpected zero julian day")
+	}
+}
+
+func TestScanNullTime(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	var unix UnixTime
+	err := db.OneValue("SELECT NULL", &unix)
+	checkNoError(t, err, "Error scanning null time: %#v")
+	if !(time.Time)(unix).IsZero() {
+		t.Error("Expected zero time")
 	}
 }
 

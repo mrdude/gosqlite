@@ -43,7 +43,7 @@ type UnixTime time.Time
 
 func (t *UnixTime) Scan(src interface{}) error {
 	if src == nil {
-		t = nil
+		//t = nil
 		return nil
 	} else if unixepoch, ok := src.(int64); ok {
 		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
@@ -63,7 +63,7 @@ type JulianTime time.Time
 
 func (t *JulianTime) Scan(src interface{}) error {
 	if src == nil {
-		t = nil
+		//t = nil
 		return nil
 	} else if jd, ok := src.(float64); ok {
 		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
@@ -83,7 +83,7 @@ type TimeStamp time.Time
 
 func (t *TimeStamp) Scan(src interface{}) error {
 	if src == nil {
-		t = nil
+		//t = nil
 		return nil
 	} else if txt, ok := src.(string); ok {
 		v, err := time.Parse("2006-01-02T15:04:05.999Z07:00", txt)
