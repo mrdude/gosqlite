@@ -48,16 +48,14 @@ func (t *UnixTime) Scan(src interface{}) error {
 	} else if unixepoch, ok := src.(int64); ok {
 		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
 		return nil
-	} else {
-		return fmt.Errorf("Unsupported UnixTime src: %T", src)
 	}
+	return fmt.Errorf("Unsupported UnixTime src: %T", src)
 }
 func (t UnixTime) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
-	} else {
-		return (time.Time)(t).Unix(), nil
 	}
+	return (time.Time)(t).Unix(), nil
 }
 
 // JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
@@ -70,16 +68,14 @@ func (t *JulianTime) Scan(src interface{}) error {
 	} else if jd, ok := src.(float64); ok {
 		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
 		return nil
-	} else {
-		return fmt.Errorf("Unsupported JulianTime src: %T", src)
 	}
+	return fmt.Errorf("Unsupported JulianTime src: %T", src)
 }
 func (t JulianTime) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
-	} else {
-		return JulianDay((time.Time)(t)), nil
 	}
+	return JulianDay((time.Time)(t)), nil
 }
 
 // TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
@@ -96,14 +92,12 @@ func (t *TimeStamp) Scan(src interface{}) error {
 		}
 		*t = TimeStamp(v)
 		return nil
-	} else {
-		return fmt.Errorf("Unsupported TimeStamp src: %T", src)
 	}
+	return fmt.Errorf("Unsupported TimeStamp src: %T", src)
 }
 func (t TimeStamp) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
-	} else {
-		return (time.Time)(t).Format("2006-01-02T15:04:05.999Z07:00"), nil
 	}
+	return (time.Time)(t).Format("2006-01-02T15:04:05.999Z07:00"), nil
 }
