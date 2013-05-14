@@ -5,6 +5,8 @@
 package sqlite
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
 
@@ -34,4 +36,74 @@ func JulianDay(t time.Time) float64 {
 		ns += 0.5
 	}
 	return ns/dayInSeconds + julianDay
+}
+
+// UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost) (default)
+type UnixTime time.Time
+
+func (t *UnixTime) Scan(src interface{}) error {
+	if src == nil {
+		t = nil
+		return nil
+	} else if unixepoch, ok := src.(int64); ok {
+		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
+		return nil
+	} else {
+		return fmt.Errorf("Unsupported UnixTime src: %T", src)
+	}
+}
+func (t UnixTime) Value() (driver.Value, error) {
+	if (time.Time)(t).IsZero() {
+		return nil, nil
+	} else {
+		return (time.Time)(t).Unix(), nil
+	}
+}
+
+// JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
+type JulianTime time.Time
+
+func (t *JulianTime) Scan(src interface{}) error {
+	if src == nil {
+		t = nil
+		return nil
+	} else if jd, ok := src.(float64); ok {
+		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
+		return nil
+	} else {
+		return fmt.Errorf("Unsupported JulianTime src: %T", src)
+	}
+}
+func (t JulianTime) Value() (driver.Value, error) {
+	if (time.Time)(t).IsZero() {
+		return nil, nil
+	} else {
+		return JulianDay((time.Time)(t)), nil
+	}
+}
+
+// TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
+type TimeStamp time.Time
+
+func (t *TimeStamp) Scan(src interface{}) error {
+	if src == nil {
+		t = nil
+		return nil
+	} else if txt, ok := src.(string); ok {
+		v, err := time.Parse("2006-01-02T15:04:05.999Z07:00", txt)
+		if err != nil {
+			return err
+		}
+		*t = TimeStamp(v)
+		return nil
+	} else {
+		return fmt.Errorf("Unsupported TimeStamp src: %T", src)
+	}
+}
+func (t TimeStamp) Value() (driver.Value, error) {
+	if (time.Time)(t).IsZero() {
+		return nil, nil
+	} else {
+		return (time.Time)(t).Format("2006-01-02T15:04:05.999Z07:00"), nil
+	}
 }

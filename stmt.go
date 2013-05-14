@@ -33,6 +33,7 @@ import "C"
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"time"
@@ -311,21 +312,6 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	return nil
 }
 
-// UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost) (default)
-type UnixTime time.Time
-
-// JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
-type JulianTime time.Time
-
-// YearMonthDay is an alias used to persist time as 'YYYY-MM-DD' string
-//type YearMonthDay time.Time
-
-// TimeOfDay is an alias used to persist time as 'HH:MM:SS.SSS' string
-//type TimeOfDay time.Time versus Duration
-
-// TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
-type TimeStamp time.Time
-
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindByIndex(index int, value interface{}) error {
@@ -355,24 +341,16 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			p = &value[0]
 		}
 		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
-	case JulianTime:
-		rv = C.sqlite3_bind_double(s.stmt, i, C.double(JulianDay(time.Time(value))))
-	/*case YearMonthDay:
-		cs, l := cstring((time.Time)(value).Format("2006-01-02"))
-		rv = C.my_bind_text(s.stmt, i, cs, l)
-	case TimeOfDay:
-		cs, l := cstring((time.Time)(value).Format("15:04:05.000"))
-		rv = C.my_bind_text(s.stmt, i, cs, l)
-	*/
-	case TimeStamp:
-		cs, l := cstring((time.Time)(value).Format("2006-01-02T15:04:05.999Z07:00"))
-		rv = C.my_bind_text(s.stmt, i, cs, l)
-	case UnixTime:
-		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64((time.Time)(value).Unix()))
 	case time.Time:
 		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
+	case driver.Valuer:
+		v, err := value.Value()
+		if err != nil {
+			return err
+		}
+		return s.BindByIndex(index, v)
 	default:
 		name, _ := s.BindParameterName(index)
 		return s.specificError("unsupported type in Bind: %T (index: %d, name: %q)", value, index, name)
