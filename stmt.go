@@ -662,12 +662,11 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *time.Time: // go fix doesn't like this type!
 		*value, isNull, err = s.ScanTime(index)
 	case sql.Scanner:
-		v := s.ScanValue(index, false)
+		var v interface{}
+		v, isNull = s.ScanValue(index, false)
 		err = value.Scan(v)
-		isNull = v == nil
 	case *interface{}:
-		*value = s.ScanValue(index, false)
-		isNull = *value == nil
+		*value, isNull = s.ScanValue(index, false)
 	default:
 		return false, s.specificError("unsupported type in Scan: %T", value)
 	}
@@ -687,38 +686,36 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 //
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanValue(index int, blob bool) (value interface{}) {
+func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
 	switch s.ColumnType(index) {
 	case Null:
-		value = nil
+		return nil, true
 	case Text:
 		if blob {
 			p := C.sqlite3_column_blob(s.stmt, C.int(index))
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-			value = C.GoBytes(p, n)
+			return C.GoBytes(p, n), false
 		} else {
 			p := C.sqlite3_column_text(s.stmt, C.int(index))
-			value = C.GoString((*C.char)(unsafe.Pointer(p)))
+			return C.GoString((*C.char)(unsafe.Pointer(p))), false
 		}
 	case Integer:
-		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		return int64(C.sqlite3_column_int64(s.stmt, C.int(index))), false
 	case Float:
-		value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
+		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false
 	case Blob:
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
-		value = C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
-	default:
-		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
+		return C.GoBytes(p, n), false // The memory space used to hold strings and BLOBs is freed automatically.
 	}
-	return
+	panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
 }
 
 // ScanValues is like ScanValue on several columns.
 func (s *Stmt) ScanValues(values []interface{}) {
 	for i := range values {
-		values[i] = s.ScanValue(i, false)
+		values[i], _ = s.ScanValue(i, false)
 	}
 }
 
