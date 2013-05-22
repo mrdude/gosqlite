@@ -8,6 +8,7 @@ import (
 	. "github.com/gwenn/gosqlite"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func checkFinalize(s *Stmt, t *testing.T) {
@@ -398,4 +399,57 @@ func TestScanBytes(t *testing.T) {
 	}
 	blob, _ := s.ScanBlob(0)
 	assertEquals(t, "expected %v but got %v", "test", string(blob))
+}
+
+func TestBindEmptyZero(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	var zero time.Time
+	s, err := db.Prepare("SELECT ?, ?", "", zero)
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+
+	var ps *string
+	var zt time.Time
+	err = s.Scan(&ps, &zt)
+	checkNoError(t, err, "scan error: %s")
+	assert(t, "Null pointers expected", ps == nil && zt.IsZero())
+	_, null := s.ScanValue(0, false)
+	assert(t, "Null string expected", null)
+	_, null = s.ScanValue(1, false)
+	assert(t, "Null time expected", null)
+}
+
+func TestBindEmptyZeroNotTransformedToNull(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	NullIfEmptyString = false
+	NullIfZeroTime = false
+	defer func() {
+		NullIfEmptyString = true
+		NullIfZeroTime = true
+	}()
+
+	var zero time.Time
+	s, err := db.Prepare("SELECT ?, ?", "", zero)
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+	if !Must(s.Next()) {
+		t.Fatal("no result")
+	}
+
+	var st string
+	var zt time.Time
+	err = s.Scan(&st, &zt)
+	checkNoError(t, err, "scan error: %s")
+	assert(t, "Null pointers expected", len(st) == 0 && zt.IsZero())
+	_, null := s.ScanValue(0, false)
+	assert(t, "Empty string expected", !null)
+	_, null = s.ScanValue(1, false)
+	assert(t, "Zero time expected", !null)
 }

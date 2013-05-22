@@ -312,6 +312,12 @@ func (s *Stmt) Bind(args ...interface{}) error {
 	return nil
 }
 
+// NullIfEmpty transforms empty string to null when true (true by default)
+var NullIfEmptyString bool = true
+
+// NullIfZeroTime transforms zero time (time.Time.IsZero) to null when true (true by default)
+var NullIfZeroTime bool = true
+
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindByIndex(index int, value interface{}) error {
@@ -321,8 +327,12 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case nil:
 		rv = C.sqlite3_bind_null(s.stmt, i)
 	case string:
-		cs, l := cstring(value)
-		rv = C.my_bind_text(s.stmt, i, cs, l)
+		if NullIfEmptyString && len(value) == 0 {
+			rv = C.sqlite3_bind_null(s.stmt, i)
+		} else {
+			cs, l := cstring(value)
+			rv = C.my_bind_text(s.stmt, i, cs, l)
+		}
 	case int:
 		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
 	case int64:
@@ -342,7 +352,11 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		}
 		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
 	case time.Time:
-		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
+		if NullIfZeroTime && value.IsZero() {
+			rv = C.sqlite3_bind_null(s.stmt, i)
+		} else {
+			rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
+		}
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
 	case driver.Valuer:
@@ -568,8 +582,9 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 //    (*)*bool
 //    (*)*float64
 //    (*)*[]byte
+//    *time.Time
+//    sql.Scanner
 //    *interface{}
-//    func(interface{}) (bool, error)
 //
 // Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
