@@ -36,6 +36,8 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
 	"time"
 	"unsafe"
 )
@@ -366,6 +368,32 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		}
 		return s.BindByIndex(index, v)
 	default:
+		return s.BindReflect(index, value)
+	}
+	return s.error(rv, "Stmt.Bind")
+}
+
+func (s *Stmt) BindReflect(index int, value interface{}) error {
+	i := C.int(index)
+	var rv C.int
+	v := reflect.ValueOf(value)
+	switch v.Kind() {
+	case reflect.String:
+		cs, l := cstring(v.String())
+		rv = C.my_bind_text(s.stmt, i, cs, l)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(v.Int()))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		ui := v.Uint()
+		if ui > math.MaxInt64 {
+			return s.specificError("int overflow")
+		}
+		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(ui))
+	case reflect.Bool:
+		rv = C.sqlite3_bind_int(s.stmt, i, btocint(v.Bool()))
+	case reflect.Float32, reflect.Float64:
+		rv = C.sqlite3_bind_double(s.stmt, i, C.double(v.Float()))
+	default:
 		name, _ := s.BindParameterName(index)
 		return s.specificError("unsupported type in Bind: %T (index: %d, name: %q)", value, index, name)
 	}
@@ -683,7 +711,54 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	case *interface{}:
 		*value, isNull = s.ScanValue(index, false)
 	default:
-		return false, s.specificError("unsupported type in Scan: %T", value)
+		return s.ScanReflect(index, value)
+	}
+	return isNull, err
+}
+
+func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return false, s.specificError("ScanReflect unsupported type %T", v)
+	}
+	var isNull bool
+	var err error
+	dv := reflect.Indirect(rv)
+	switch dv.Kind() {
+	case reflect.String:
+		var t string
+		t, isNull = s.ScanText(index)
+		dv.SetString(t)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		var i int64
+		i, isNull, err = s.ScanInt64(index)
+		if err == nil {
+			dv.SetInt(i)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		var i int64
+		i, isNull, err = s.ScanInt64(index)
+		if err == nil {
+			if i < 0 {
+				dv.SetUint(uint64(i))
+			} else {
+				err = s.specificError("negative value: %d", i)
+			}
+		}
+	case reflect.Bool:
+		var b bool
+		b, isNull, err = s.ScanBool(index)
+		if err == nil {
+			dv.SetBool(b)
+		}
+	case reflect.Float32, reflect.Float64:
+		var f float64
+		f, isNull, err = s.ScanDouble(index)
+		if err == nil {
+			dv.SetFloat(f)
+		}
+	default:
+		return false, s.specificError("unsupported type in Scan: %T", v)
 	}
 	return isNull, err
 }
