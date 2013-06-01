@@ -740,9 +740,9 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 		i, isNull, err = s.ScanInt64(index)
 		if err == nil {
 			if i < 0 {
-				dv.SetUint(uint64(i))
-			} else {
 				err = s.specificError("negative value: %d", i)
+			} else {
+				dv.SetUint(uint64(i))
 			}
 		}
 	case reflect.Bool:
