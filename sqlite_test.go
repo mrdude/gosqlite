@@ -139,8 +139,8 @@ func TestInsert(t *testing.T) {
 	}
 	checkNoError(t, db.Commit(), "Error: %s")
 
-	lastId := db.LastInsertRowid()
-	assertEquals(t, "last insert row id error: expected %d but got %d", int64(1000), lastId)
+	lastID := db.LastInsertRowid()
+	assertEquals(t, "last insert row id error: expected %d but got %d", int64(1000), lastID)
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer checkFinalize(cs, t)

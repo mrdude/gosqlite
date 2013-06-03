@@ -75,36 +75,36 @@ func (e Errno) Error() string {
 	return s
 }
 
-var (
-	ErrError      error = Errno(C.SQLITE_ERROR)      /* SQL error or missing database */
-	ErrInternal   error = Errno(C.SQLITE_INTERNAL)   /* Internal logic error in SQLite */
-	ErrPerm       error = Errno(C.SQLITE_PERM)       /* Access permission denied */
-	ErrAbort      error = Errno(C.SQLITE_ABORT)      /* Callback routine requested an abort */
-	ErrBusy       error = Errno(C.SQLITE_BUSY)       /* The database file is locked */
-	ErrLocked     error = Errno(C.SQLITE_LOCKED)     /* A table in the database is locked */
-	ErrNoMem      error = Errno(C.SQLITE_NOMEM)      /* A malloc() failed */
-	ErrReadOnly   error = Errno(C.SQLITE_READONLY)   /* Attempt to write a readonly database */
-	ErrInterrupt  error = Errno(C.SQLITE_INTERRUPT)  /* Operation terminated by sqlite3_interrupt()*/
-	ErrIOErr      error = Errno(C.SQLITE_IOERR)      /* Some kind of disk I/O error occurred */
-	ErrCorrupt    error = Errno(C.SQLITE_CORRUPT)    /* The database disk image is malformed */
-	ErrNotFound   error = Errno(C.SQLITE_NOTFOUND)   /* Unknown opcode in sqlite3_file_control() */
-	ErrFull       error = Errno(C.SQLITE_FULL)       /* Insertion failed because database is full */
-	ErrCantOpen   error = Errno(C.SQLITE_CANTOPEN)   /* Unable to open the database file */
-	ErrProtocol   error = Errno(C.SQLITE_PROTOCOL)   /* Database lock protocol error */
-	ErrEmpty      error = Errno(C.SQLITE_EMPTY)      /* Database is empty */
-	ErrSchema     error = Errno(C.SQLITE_SCHEMA)     /* The database schema changed */
-	ErrTooBig     error = Errno(C.SQLITE_TOOBIG)     /* String or BLOB exceeds size limit */
-	ErrConstraint error = Errno(C.SQLITE_CONSTRAINT) /* Abort due to constraint violation */
-	ErrMismatch   error = Errno(C.SQLITE_MISMATCH)   /* Data type mismatch */
-	ErrMisuse     error = Errno(C.SQLITE_MISUSE)     /* Library used incorrectly */
-	ErrNolfs      error = Errno(C.SQLITE_NOLFS)      /* Uses OS features not supported on host */
-	ErrAuth       error = Errno(C.SQLITE_AUTH)       /* Authorization denied */
-	ErrFormat     error = Errno(C.SQLITE_FORMAT)     /* Auxiliary database format error */
-	ErrRange      error = Errno(C.SQLITE_RANGE)      /* 2nd parameter to sqlite3_bind out of range */
-	ErrNotDB      error = Errno(C.SQLITE_NOTADB)     /* File opened that is not a database file */
-	Row                 = Errno(C.SQLITE_ROW)        /* sqlite3_step() has another row ready */
-	Done                = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
-	ErrSpecific         = Errno(-1)                  /* Wrapper specific error */
+const (
+	ErrError      = Errno(C.SQLITE_ERROR)      /* SQL error or missing database */
+	ErrInternal   = Errno(C.SQLITE_INTERNAL)   /* Internal logic error in SQLite */
+	ErrPerm       = Errno(C.SQLITE_PERM)       /* Access permission denied */
+	ErrAbort      = Errno(C.SQLITE_ABORT)      /* Callback routine requested an abort */
+	ErrBusy       = Errno(C.SQLITE_BUSY)       /* The database file is locked */
+	ErrLocked     = Errno(C.SQLITE_LOCKED)     /* A table in the database is locked */
+	ErrNoMem      = Errno(C.SQLITE_NOMEM)      /* A malloc() failed */
+	ErrReadOnly   = Errno(C.SQLITE_READONLY)   /* Attempt to write a readonly database */
+	ErrInterrupt  = Errno(C.SQLITE_INTERRUPT)  /* Operation terminated by sqlite3_interrupt()*/
+	ErrIOErr      = Errno(C.SQLITE_IOERR)      /* Some kind of disk I/O error occurred */
+	ErrCorrupt    = Errno(C.SQLITE_CORRUPT)    /* The database disk image is malformed */
+	ErrNotFound   = Errno(C.SQLITE_NOTFOUND)   /* Unknown opcode in sqlite3_file_control() */
+	ErrFull       = Errno(C.SQLITE_FULL)       /* Insertion failed because database is full */
+	ErrCantOpen   = Errno(C.SQLITE_CANTOPEN)   /* Unable to open the database file */
+	ErrProtocol   = Errno(C.SQLITE_PROTOCOL)   /* Database lock protocol error */
+	ErrEmpty      = Errno(C.SQLITE_EMPTY)      /* Database is empty */
+	ErrSchema     = Errno(C.SQLITE_SCHEMA)     /* The database schema changed */
+	ErrTooBig     = Errno(C.SQLITE_TOOBIG)     /* String or BLOB exceeds size limit */
+	ErrConstraint = Errno(C.SQLITE_CONSTRAINT) /* Abort due to constraint violation */
+	ErrMismatch   = Errno(C.SQLITE_MISMATCH)   /* Data type mismatch */
+	ErrMisuse     = Errno(C.SQLITE_MISUSE)     /* Library used incorrectly */
+	ErrNolfs      = Errno(C.SQLITE_NOLFS)      /* Uses OS features not supported on host */
+	ErrAuth       = Errno(C.SQLITE_AUTH)       /* Authorization denied */
+	ErrFormat     = Errno(C.SQLITE_FORMAT)     /* Auxiliary database format error */
+	ErrRange      = Errno(C.SQLITE_RANGE)      /* 2nd parameter to sqlite3_bind out of range */
+	ErrNotDB      = Errno(C.SQLITE_NOTADB)     /* File opened that is not a database file */
+	Row           = Errno(C.SQLITE_ROW)        /* sqlite3_step() has another row ready */
+	Done          = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
+	ErrSpecific   = Errno(-1)                  /* Wrapper specific error */
 )
 
 func (c *Conn) error(rv C.int, details ...string) error {

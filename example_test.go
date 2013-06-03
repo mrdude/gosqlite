@@ -91,9 +91,9 @@ func ExampleStmt_Insert() {
 	defer s.Finalize()
 	data := []string{"Go", "SQLite", "Driver"}
 	for _, d := range data {
-		rowId, err := s.Insert(d)
+		rowID, err := s.Insert(d)
 		check(err)
-		fmt.Println(rowId)
+		fmt.Println(rowID)
 	}
 	// Output: 1
 	// 2

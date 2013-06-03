@@ -315,10 +315,10 @@ func (s *Stmt) Bind(args ...interface{}) error {
 }
 
 // NullIfEmpty transforms empty string to null when true (true by default)
-var NullIfEmptyString bool = true
+var NullIfEmptyString = true
 
 // NullIfZeroTime transforms zero time (time.Time.IsZero) to null when true (true by default)
-var NullIfZeroTime bool = true
+var NullIfZeroTime = true
 
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // The leftmost SQL parameter has an index of 1.
@@ -485,12 +485,12 @@ func (t Type) String() string {
 	return typeText[t]
 }
 
-var (
-	Integer Type = Type(C.SQLITE_INTEGER)
-	Float   Type = Type(C.SQLITE_FLOAT)
-	Blob    Type = Type(C.SQLITE_BLOB)
-	Null    Type = Type(C.SQLITE_NULL)
-	Text    Type = Type(C.SQLITE3_TEXT)
+const (
+	Integer = Type(C.SQLITE_INTEGER)
+	Float   = Type(C.SQLITE_FLOAT)
+	Blob    = Type(C.SQLITE_BLOB)
+	Null    = Type(C.SQLITE_NULL)
+	Text    = Type(C.SQLITE3_TEXT)
 )
 
 var typeText = map[Type]string{
@@ -785,10 +785,9 @@ func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
 			p := C.sqlite3_column_blob(s.stmt, C.int(index))
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 			return C.GoBytes(p, n), false
-		} else {
-			p := C.sqlite3_column_text(s.stmt, C.int(index))
-			return C.GoString((*C.char)(unsafe.Pointer(p))), false
 		}
+		p := C.sqlite3_column_text(s.stmt, C.int(index))
+		return C.GoString((*C.char)(unsafe.Pointer(p))), false
 	case Integer:
 		return int64(C.sqlite3_column_int64(s.stmt, C.int(index))), false
 	case Float:

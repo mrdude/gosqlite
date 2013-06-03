@@ -17,7 +17,7 @@ import (
 	"unsafe"
 )
 
-// io.ReadCloser adapter to BLOB
+// BlobReader is an io.ReadCloser adapter for BLOB
 // (See http://sqlite.org/c3ref/blob.html)
 type BlobReader struct {
 	c      *Conn
@@ -26,7 +26,7 @@ type BlobReader struct {
 	offset int
 }
 
-// io.ReadWriteCloser adapter to BLOB
+// BlobReadWriter is an io.ReadWriteCloser adapter for BLOB
 type BlobReadWriter struct {
 	BlobReader
 }
@@ -38,7 +38,7 @@ type ZeroBlobLength int
 //
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, error) {
-	bl, err := c.blob_open(db, table, column, row, false)
+	bl, err := c.blobOpen(db, table, column, row, false)
 	if err != nil {
 		return nil, err
 	}
@@ -48,14 +48,14 @@ func (c *Conn) NewBlobReader(db, table, column string, row int64) (*BlobReader, 
 // NewBlobReadWriter opens a BLOB for incremental I/O.
 // (See http://sqlite.org/c3ref/blob_open.html)
 func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobReadWriter, error) {
-	bl, err := c.blob_open(db, table, column, row, true)
+	bl, err := c.blobOpen(db, table, column, row, true)
 	if err != nil {
 		return nil, err
 	}
 	return &BlobReadWriter{BlobReader{c, bl, -1, 0}}, nil
 }
 
-func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sqlite3_blob, error) {
+func (c *Conn) blobOpen(db, table, column string, row int64, write bool) (*C.sqlite3_blob, error) {
 	zDb := C.CString(db)
 	defer C.free(unsafe.Pointer(zDb))
 	zTable := C.CString(table)
@@ -68,7 +68,7 @@ func (c *Conn) blob_open(db, table, column string, row int64, write bool) (*C.sq
 		if bl != nil {
 			C.sqlite3_blob_close(bl)
 		}
-		return nil, c.error(rv, fmt.Sprintf("Conn.blob_open(db: %q, tbl: %q, col: %q, row: %d)", db, table, column, row))
+		return nil, c.error(rv, fmt.Sprintf("Conn.blobOpen(db: %q, tbl: %q, col: %q, row: %d)", db, table, column, row))
 	}
 	if bl == nil {
 		return nil, errors.New("sqlite succeeded without returning a blob")

@@ -26,7 +26,7 @@ func init() {
 	ConfigMemStatus(false)
 }
 
-// Adapter to database/sql/driver
+// Driver is an adapter to database/sql/driver
 type Driver struct {
 }
 type connImpl struct {

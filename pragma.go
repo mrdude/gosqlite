@@ -168,7 +168,7 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 	}
 	defer s.finalize()
 	// table|rowid|parent|fkid
-	var violations []FkViolation = make([]FkViolation, 0, 20)
+	var violations = make([]FkViolation, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		v := FkViolation{}
 		if err = s.Scan(&v.Table, &v.Rowid, &v.Parent, &v.Fkid); err != nil {

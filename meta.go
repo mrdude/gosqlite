@@ -48,7 +48,7 @@ func (c *Conn) Databases() (map[string]string, error) {
 		return nil, err
 	}
 	defer s.finalize()
-	var databases map[string]string = make(map[string]string)
+	var databases = make(map[string]string)
 	var name, file string
 	err = s.Select(func(s *Stmt) (err error) {
 		if err = s.Scan(nil, &name, &file); err != nil {
@@ -77,7 +77,7 @@ func (c *Conn) Tables(dbName string) ([]string, error) {
 		return nil, err
 	}
 	defer s.finalize()
-	var tables []string = make([]string, 0, 20)
+	var tables = make([]string, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		name, _ := s.ScanText(0)
 		tables = append(tables, name)
@@ -116,7 +116,7 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 		return nil, err
 	}
 	defer s.finalize()
-	var columns []Column = make([]Column, 0, 20)
+	var columns = make([]Column, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		c := Column{}
 		if err = s.Scan(&c.Cid, &c.Name, &c.DataType, &c.NotNull, &c.DfltValue, &c.Pk); err != nil {
@@ -251,7 +251,7 @@ func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
 		return nil, err
 	}
 	defer s.finalize()
-	var indexes []Index = make([]Index, 0, 5)
+	var indexes = make([]Index, 0, 5)
 	err = s.Select(func(s *Stmt) (err error) {
 		i := Index{}
 		if err = s.Scan(nil, &i.Name, &i.Unique); err != nil {
@@ -281,7 +281,7 @@ func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 		return nil, err
 	}
 	defer s.finalize()
-	var columns []Column = make([]Column, 0, 5)
+	var columns = make([]Column, 0, 5)
 	err = s.Select(func(s *Stmt) (err error) {
 		c := Column{}
 		if err = s.Scan(nil, &c.Cid, &c.Name); err != nil {
