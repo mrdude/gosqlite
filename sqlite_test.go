@@ -249,16 +249,14 @@ func TestTransaction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	createTable(db, t)
-	gerr, serr := db.Transaction(Immediate, func(_ *Conn) error {
-		err, nerr := db.Transaction(Immediate, func(__ *Conn) error {
+	err := db.Transaction(Immediate, func(_ *Conn) error {
+		err := db.Transaction(Immediate, func(__ *Conn) error {
 			return db.Exec("INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
 		})
-		checkNoError(t, err, "Applicative error: %s")
-		checkNoError(t, nerr, "SQLite error: %s")
+		checkNoError(t, err, "error: %s")
 		return err
 	})
-	checkNoError(t, gerr, "Applicative error: %s")
-	checkNoError(t, serr, "SQLite error: %s")
+	checkNoError(t, err, "error: %s")
 }
 
 func assertEquals(t *testing.T, format string, expected, actual interface{}) {

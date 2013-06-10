@@ -446,36 +446,42 @@ func (c *Conn) Rollback() error {
 // If the transaction occurs within another transaction (only one that is started using this method) a Savepoint is created.
 // Two errors may be returned: the first is the one returned by the f function,
 // the second is the one returned by begin/commit/rollback.
-func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (gerr error, serr error) {
+// (See http://sqlite.org/tclsqlite.html#transaction)
+func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (err error) {
 	if c.nTransaction == 0 {
-		serr = c.BeginTransaction(t)
+		err = c.BeginTransaction(t)
 	} else {
-		serr = c.Savepoint(strconv.Itoa(int(c.nTransaction)))
+		err = c.Savepoint(strconv.Itoa(int(c.nTransaction)))
 	}
-	if serr != nil {
+	if err != nil {
 		return
 	}
 	c.nTransaction++
 	defer func() {
 		c.nTransaction--
-		if gerr != nil {
-			if c.nTransaction == 0 {
-				serr = c.Rollback()
+		if err != nil {
+			_, ko := err.(*ConnError)
+			if c.nTransaction == 0 || ko {
+				c.Rollback()
 			} else {
-				serr = c.RollbackSavepoint(strconv.Itoa(int(c.nTransaction)))
+				if rerr := c.RollbackSavepoint(strconv.Itoa(int(c.nTransaction))); rerr != nil {
+					Log(-1, rerr.Error())
+				} else if rerr := c.ReleaseSavepoint(strconv.Itoa(int(c.nTransaction))); rerr != nil {
+					Log(-1, rerr.Error())
+				}
 			}
 		} else {
 			if c.nTransaction == 0 {
-				serr = c.Commit()
+				err = c.Commit()
 			} else {
-				serr = c.ReleaseSavepoint(strconv.Itoa(int(c.nTransaction)))
+				err = c.ReleaseSavepoint(strconv.Itoa(int(c.nTransaction)))
 			}
-			if serr != nil {
+			if err != nil {
 				c.Rollback()
 			}
 		}
 	}()
-	gerr = f(c)
+	err = f(c)
 	return
 }
 
