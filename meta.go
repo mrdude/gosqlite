@@ -89,6 +89,7 @@ func (c *Conn) Tables(dbName string) ([]string, error) {
 	return tables, nil
 }
 
+// Column is the description of one table's column
 // See Conn.Columns/IndexColumns
 type Column struct {
 	Cid       int
@@ -180,13 +181,15 @@ func (s *Stmt) ColumnOriginName(index int) string {
 	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index)))
 }
 
-// ColumnDeclaredType returns the declared type of the table column of a particular result column in SELECT statement. If the result column is an expression or subquery, then a NULL pointer is returned.
+// ColumnDeclaredType returns the declared type of the table column of a particular result column in SELECT statement.
+// If the result column is an expression or subquery, then a NULL pointer is returned.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_decltype.html)
 func (s *Stmt) ColumnDeclaredType(index int) string {
 	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
 }
 
+// ForeignKey is the description of one table's foreign key
 // See Conn.ForeignKeys
 type ForeignKey struct {
 	Table string
@@ -231,6 +234,7 @@ func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
 	return fks, nil
 }
 
+// Index is the description of one table's index
 // See Conn.Indexes
 type Index struct {
 	Name   string

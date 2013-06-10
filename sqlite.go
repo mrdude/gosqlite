@@ -229,7 +229,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 }
 
 func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth {
-	fmt.Fprintf(os.Stderr, "%p: %s, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
+	fmt.Fprintf(os.Stderr, "%p: %v, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
 	return AuthOk
 }
 

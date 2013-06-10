@@ -41,6 +41,7 @@ func JulianDay(t time.Time) float64 {
 // UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost) (default)
 type UnixTime time.Time
 
+// Scan implements the database/sql/Scanner interface.
 func (t *UnixTime) Scan(src interface{}) error {
 	if src == nil {
 		//t = nil
@@ -51,6 +52,8 @@ func (t *UnixTime) Scan(src interface{}) error {
 	}
 	return fmt.Errorf("Unsupported UnixTime src: %T", src)
 }
+
+// Value implements the database/sql/driver/Valuer interface
 func (t UnixTime) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
@@ -61,6 +64,7 @@ func (t UnixTime) Value() (driver.Value, error) {
 // JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
 type JulianTime time.Time
 
+// Scan implements the database/sql/Scanner interface.
 func (t *JulianTime) Scan(src interface{}) error {
 	if src == nil {
 		//t = nil
@@ -71,6 +75,8 @@ func (t *JulianTime) Scan(src interface{}) error {
 	}
 	return fmt.Errorf("Unsupported JulianTime src: %T", src)
 }
+
+// Value implements the database/sql/driver/Valuer interface
 func (t JulianTime) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
@@ -81,6 +87,7 @@ func (t JulianTime) Value() (driver.Value, error) {
 // TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
 type TimeStamp time.Time
 
+// Scan implements the database/sql/Scanner interface.
 func (t *TimeStamp) Scan(src interface{}) error {
 	if src == nil {
 		//t = nil
@@ -95,6 +102,8 @@ func (t *TimeStamp) Scan(src interface{}) error {
 	}
 	return fmt.Errorf("Unsupported TimeStamp src: %T", src)
 }
+
+// Value implements the database/sql/driver/Valuer interface
 func (t TimeStamp) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil

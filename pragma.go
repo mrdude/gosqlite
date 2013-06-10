@@ -135,6 +135,7 @@ func (c *Conn) SetSynchronous(dbName string, mode int) error {
 	return c.exec(pragma(dbName, fmt.Sprintf("synchronous=%d", mode)))
 }
 
+// FkViolation is the description of one foreign key constraint violation.
 type FkViolation struct {
 	Table  string
 	Rowid  int64

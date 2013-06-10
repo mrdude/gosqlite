@@ -31,7 +31,7 @@ type BlobReadWriter struct {
 	BlobReader
 }
 
-// Zeroblobs are used to reserve space for a BLOB that is later written.
+// ZeroBlobLength is used to reserve space for a BLOB that is later written.
 type ZeroBlobLength int
 
 // NewBlobReader opens a BLOB for incremental I/O in read-only mode.

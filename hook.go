@@ -18,6 +18,7 @@ import (
 	"unsafe"
 )
 
+// CommitHook is the callback function signature.
 // If the callback on a commit hook function returns true, then the commit is converted into a rollback.
 type CommitHook func(udp interface{}) bool
 
@@ -45,6 +46,7 @@ func (c *Conn) CommitHook(f CommitHook, udp interface{}) {
 	C.goSqlite3CommitHook(c.db, unsafe.Pointer(c.commitHook))
 }
 
+// RollbackHook is the callback function signature.
 type RollbackHook func(udp interface{})
 
 type sqliteRollbackHook struct {
@@ -71,6 +73,7 @@ func (c *Conn) RollbackHook(f RollbackHook, udp interface{}) {
 	C.goSqlite3RollbackHook(c.db, unsafe.Pointer(c.rollbackHook))
 }
 
+// UpdateHook is the callback function signature.
 type UpdateHook func(udp interface{}, a Action, dbName, tableName string, rowId int64)
 
 type sqliteUpdateHook struct {
@@ -84,7 +87,8 @@ func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, ro
 	arg.f(arg.udp, Action(action), C.GoString(dbName), C.GoString(tableName), int64(rowId))
 }
 
-// UpdateHook registers a callback to be invoked each time a row is updated, inserted or deleted using this database connection.
+// UpdateHook registers a callback to be invoked each time a row is updated,
+// inserted or deleted using this database connection.
 // (See http://sqlite.org/c3ref/update_hook.html)
 func (c *Conn) UpdateHook(f UpdateHook, udp interface{}) {
 	if f == nil {

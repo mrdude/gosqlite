@@ -76,14 +76,14 @@ type FunctionContext struct {
 	argv **C.sqlite3_value
 }
 
-// Context associated to scalar function
+// ScalarContext is used to represent context associated to scalar function
 type ScalarContext struct {
 	FunctionContext
 	ad  map[int]interface{} // Function Auxiliary Data
 	udf *sqliteFunction
 }
 
-// Context associated to aggregate function
+// AggregateContext is used to represent context associated to aggregate function
 type AggregateContext struct {
 	FunctionContext
 	Aggregate interface{}
@@ -320,9 +320,16 @@ func (c *FunctionContext) Value(i int) (value interface{}) {
 	return
 }
 
+// ScalarFunction is the expected signature of scalar function implemented in Go
 type ScalarFunction func(ctx *ScalarContext, nArg int)
+
+// StepFunction is the expected signature of step function implemented in Go
 type StepFunction func(ctx *AggregateContext, nArg int)
+
+// FinalFunction is the expected signature of final function implemented in Go
 type FinalFunction func(ctx *AggregateContext)
+
+// DestroyFunctionData is the expected signature of function used to finalize user data.
 type DestroyFunctionData func(pApp interface{})
 
 type sqliteFunction struct {
@@ -413,7 +420,8 @@ func goXDestroy(pApp unsafe.Pointer) {
 // CreateScalarFunction creates or redefines SQL scalar functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
-func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{}, f ScalarFunction, d DestroyFunctionData) error {
+func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{},
+	f ScalarFunction, d DestroyFunctionData) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
 	if f == nil {

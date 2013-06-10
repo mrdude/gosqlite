@@ -36,7 +36,7 @@ func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backu
 	return &Backup{sb, dst, src}, nil
 }
 
-// Online backup
+// The Backup object records state information about an ongoing online backup operation.
 // (See http://sqlite.org/c3ref/backup.html)
 type Backup struct {
 	sb       *C.sqlite3_backup
@@ -56,7 +56,7 @@ func (b *Backup) Step(npage int) error {
 	return Errno(rv)
 }
 
-// Backup progression
+// BackupStatus reports backup progression
 type BackupStatus struct {
 	Remaining int
 	PageCount int
