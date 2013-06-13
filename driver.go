@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	sql.Register("sqlite3", &Driver{})
+	sql.Register("sqlite3", &impl{})
 	if os.Getenv("SQLITE_LOG") != "" {
 		ConfigLog(func(d interface{}, err error, msg string) {
 			log.Printf("%s: %s, %s\n", d, err, msg)
@@ -26,37 +26,37 @@ func init() {
 	ConfigMemStatus(false)
 }
 
-// Driver is an adapter to database/sql/driver
-type Driver struct {
+// impl is an adapter to database/sql/driver
+type impl struct {
 }
-type connImpl struct {
+type conn struct {
 	c *Conn
 }
-type stmtImpl struct {
+type stmt struct {
 	s            *Stmt
 	rowsRef      bool // true if there is a rowsImpl associated to this statement that has not been closed.
 	pendingClose bool
 }
 type rowsImpl struct {
-	s           *stmtImpl
+	s           *stmt
 	columnNames []string // cache
 }
 
 // Open opens a new database connection.
 // ":memory:" for memory db,
 // "" for temp file db
-func (d *Driver) Open(name string) (driver.Conn, error) {
+func (d *impl) Open(name string) (driver.Conn, error) {
 	c, err := Open(name, OpenUri, OpenNoMutex, OpenReadWrite, OpenCreate)
 	if err != nil {
 		return nil, err
 	}
 	c.BusyTimeout(time.Duration(10) * time.Second)
-	return &connImpl{c}, nil
+	return &conn{c}, nil
 }
 
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
-func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error) {
+func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	// https://code.google.com/p/go-wiki/wiki/cgo#Turning_C_arrays_into_Go_slices
 	var iargs []interface{}
 	if len(args) > 0 {
@@ -72,42 +72,42 @@ func (c *connImpl) Exec(query string, args []driver.Value) (driver.Result, error
 }
 
 // TODO How to know that the last Stmt has done an INSERT? An authorizer?
-func (c *connImpl) LastInsertId() (int64, error) {
+func (c *conn) LastInsertId() (int64, error) {
 	return c.c.LastInsertRowid(), nil
 }
 
 // TODO How to know that the last Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
-func (c *connImpl) RowsAffected() (int64, error) {
+func (c *conn) RowsAffected() (int64, error) {
 	return int64(c.c.Changes()), nil
 }
 
-func (c *connImpl) Prepare(query string) (driver.Stmt, error) {
+func (c *conn) Prepare(query string) (driver.Stmt, error) {
 	s, err := c.c.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
-	return &stmtImpl{s: s}, nil
+	return &stmt{s: s}, nil
 }
 
-func (c *connImpl) Close() error {
+func (c *conn) Close() error {
 	return c.c.Close()
 }
 
-func (c *connImpl) Begin() (driver.Tx, error) {
+func (c *conn) Begin() (driver.Tx, error) {
 	if err := c.c.Begin(); err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (c *connImpl) Commit() error {
+func (c *conn) Commit() error {
 	return c.c.Commit()
 }
-func (c *connImpl) Rollback() error {
+func (c *conn) Rollback() error {
 	return c.c.Rollback()
 }
 
-func (s *stmtImpl) Close() error {
+func (s *stmt) Close() error {
 	if s.rowsRef { // Currently, it never happens because the sql.Stmt doesn't call driver.Stmt in this case
 		s.pendingClose = true
 		return nil
@@ -115,11 +115,11 @@ func (s *stmtImpl) Close() error {
 	return s.s.Finalize()
 }
 
-func (s *stmtImpl) NumInput() int {
+func (s *stmt) NumInput() int {
 	return s.s.BindParameterCount()
 }
 
-func (s *stmtImpl) Exec(args []driver.Value) (driver.Result, error) {
+func (s *stmt) Exec(args []driver.Value) (driver.Result, error) {
 	if err := s.bind(args); err != nil {
 		return nil, err
 	}
@@ -130,16 +130,16 @@ func (s *stmtImpl) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 // TODO How to know that this Stmt has done an INSERT? An authorizer?
-func (s *stmtImpl) LastInsertId() (int64, error) {
+func (s *stmt) LastInsertId() (int64, error) {
 	return s.s.c.LastInsertRowid(), nil
 }
 
 // TODO How to know that this Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
-func (s *stmtImpl) RowsAffected() (int64, error) {
+func (s *stmt) RowsAffected() (int64, error) {
 	return int64(s.s.c.Changes()), nil
 }
 
-func (s *stmtImpl) Query(args []driver.Value) (driver.Rows, error) {
+func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
 	if s.rowsRef {
 		return nil, errors.New("Previously returned Rows still not closed")
 	}
@@ -150,7 +150,7 @@ func (s *stmtImpl) Query(args []driver.Value) (driver.Rows, error) {
 	return &rowsImpl{s, nil}, nil
 }
 
-func (s *stmtImpl) bind(args []driver.Value) error {
+func (s *stmt) bind(args []driver.Value) error {
 	for i, v := range args {
 		if err := s.s.BindByIndex(i+1, v); err != nil {
 			return err
