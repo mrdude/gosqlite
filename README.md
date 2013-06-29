@@ -4,25 +4,27 @@ Yet another SQLite binding based on:
 
 This binding implements the "database/sql/driver" interface.
 
-See [package documentation](http://go.pkgdoc.org/github.com/gwenn/gosqlite).
+See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
 
 [![Build Status][1]][2]
 
 [1]: https://secure.travis-ci.org/gwenn/gosqlite.png
 [2]: http://www.travis-ci.org/gwenn/gosqlite
 
+### Changes:
+
 Open supports flags.  
-Conn#Exec handles multiple statements (separated by semicolons) properly.  
-Conn#Prepare can optionnaly #Bind as well.  
-Conn#Prepare can reuse already prepared Stmt.  
-Conn#Close ensures that all dangling statements are finalized.  
-Stmt#Exec is renamed in Stmt#Bind and a new Stmt#Exec method is introduced to #Bind and #Step.  
-Stmt#Bind uses native sqlite3_bind_x methods and failed if unsupported type.  
-Stmt#NamedBind can be used to bind by name.  
-Stmt#Next returns a (bool, os.Error) couple like Reader#Read.  
-Stmt#Scan uses native sqlite3_column_x methods.  
-Stmt#NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).  
-Stmt#ScanByIndex/ScanByName are added to test NULL value.
+Conn.Exec handles multiple statements (separated by semicolons) properly.  
+Conn.Prepare can optionnaly bind as well.  
+Conn.Prepare can reuse already prepared Stmt.  
+Conn.Close ensures that all dangling statements are finalized.  
+Stmt.Exec is renamed in Stmt.Bind and a new Stmt.Exec method is introduced to bind and step.  
+Stmt.Bind uses native sqlite3_bind_x methods and failed if unsupported type.  
+Stmt.NamedBind can be used to bind by name.  
+Stmt.Next returns a (bool, os.Error) couple like Reader.Read.  
+Stmt.Scan uses native sqlite3_column_x methods.  
+Stmt.NamedScan is added. It's compliant with [go-dbi](https://github.com/thomaslee/go-dbi/).  
+Stmt.ScanByIndex/ScanByName are added to test NULL value.
 
 Currently, the weak point of the binding is the *Scan* methods:
 The original implementation is using this strategy:
@@ -44,38 +46,39 @@ SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
 https://github.com/mattn/go-sqlite3 (Nov 11, 2011)  
 https://code.google.com/p/go-sqlite (Feb 12, 2013)  
 
-### Misc:
-Conn#Exists  
-Conn#OneValue  
+### Additions:
 
-Conn#OpenVfs  
-Conn#EnableFkey/IsFKeyEnabled  
-Conn#Changes/TotalChanges  
-Conn#LastInsertRowid  
-Conn#Interrupt  
-Conn#Begin/BeginTransaction(type)/Commit/Rollback  
-Conn#GetAutocommit  
-Conn#EnableLoadExtension/LoadExtension  
-Conn#IntegrityCheck  
+Conn.Exists  
+Conn.OneValue  
 
-Stmt#Insert/ExecDml/Select/SelectOneRow  
-Stmt#BindParameterCount/BindParameterIndex(name)/BindParameterName(index)  
-Stmt#ClearBindings  
-Stmt#ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)  
-Stmt#ReadOnly  
-Stmt#Busy  
+Conn.OpenVfs  
+Conn.EnableFkey/IsFKeyEnabled  
+Conn.Changes/TotalChanges  
+Conn.LastInsertRowid  
+Conn.Interrupt  
+Conn.Begin/BeginTransaction(type)/Commit/Rollback  
+Conn.GetAutocommit  
+Conn.EnableLoadExtension/LoadExtension  
+Conn.IntegrityCheck  
+
+Stmt.Insert/ExecDml/Select/SelectOneRow  
+Stmt.BindParameterCount/BindParameterIndex(name)/BindParameterName(index)  
+Stmt.ClearBindings  
+Stmt.ColumnCount/ColumnNames/ColumnIndex(name)/ColumnName(index)/ColumnType(index)  
+Stmt.ReadOnly  
+Stmt.Busy  
 
 Blob:  
 ZeroBlobLength  
-Conn#NewBlobReader  
-Conn#NewBlobReadWriter  
+Conn.NewBlobReader  
+Conn.NewBlobReadWriter  
 
 Meta:  
-Conn#Databases  
-Conn#Tables  
-Conn#Columns  
-Conn#ForeignKeys  
-Conn#Indexes/IndexColumns  
+Conn.Databases  
+Conn.Tables  
+Conn.Columns  
+Conn.ForeignKeys  
+Conn.Indexes/IndexColumns  
 
 Time:  
 JulianDay  
@@ -83,28 +86,32 @@ JulianDayToUTC
 JulianDayToLocalTime  
 
 Trace:  
-Conn#BusyHandler  
-Conn#Profile  
-Conn#ProgressHandler  
-Conn#SetAuthorizer  
-Conn#Trace  
-Stmt#Status  
+Conn.BusyHandler  
+Conn.Profile  
+Conn.ProgressHandler  
+Conn.SetAuthorizer  
+Conn.Trace  
+Stmt.Status  
 
 Hook:  
-Conn#CommitHook  
-Conn#RollbackHook  
-Conn#UpdateHook  
+Conn.CommitHook  
+Conn.RollbackHook  
+Conn.UpdateHook  
 
 Function:  
-Conn#CreateScalarFunction  
-Conn#CreateAggregateFunction  
+Conn.CreateScalarFunction  
+Conn.CreateAggregateFunction  
+
+Virtual Table (partial support):  
+Conn.CreateModule  
+Conn.DeclareVTab  
 
 ### GC:
 Although Go is gced, there is no destructor (see http://www.airs.com/blog/archives/362).  
 In the gosqlite wrapper, no finalizer is used.  
-So users must ensure that C ressources (database connections, prepared statements, BLOBs, Backups) are destroyed/deallocated by calling Conn#Close, Stmt#Finalize, BlobReader#Close, Backup#Close.
+So users must ensure that C ressources (database connections, prepared statements, BLOBs, Backups) are destroyed/deallocated by calling Conn.Close, Stmt.Finalize, BlobReader.Close, Backup.Close.
 
-Therefore, sqlite3_close/sqlite3_next_stmt are used by Conn#Close to free the database connection and all dangling statements (not sqlite3_close_v2) (see http://sqlite.org/c3ref/close.html).
+Therefore, sqlite3_close/sqlite3_next_stmt are used by Conn.Close to free the database connection and all dangling statements (not sqlite3_close_v2) (see http://sqlite.org/c3ref/close.html).
 
 ### Benchmarks:
 $ go test -bench . -benchmem
