@@ -46,6 +46,7 @@ type rowsImpl struct {
 // ":memory:" for memory db,
 // "" for temp file db
 func (d *impl) Open(name string) (driver.Conn, error) {
+	// OpenNoMutex == multi-thread mode (http://sqlite.org/compile.html#threadsafe and http://sqlite.org/threadsafe.html)
 	c, err := Open(name, OpenUri, OpenNoMutex, OpenReadWrite, OpenCreate)
 	if err != nil {
 		return nil, err

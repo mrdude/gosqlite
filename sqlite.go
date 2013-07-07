@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 	"unsafe"
@@ -202,14 +201,14 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	}
 
 	var db *C.sqlite3
-	name := C.CString(filename)
-	defer C.free(unsafe.Pointer(name))
+	cname := C.CString(filename)
+	defer C.free(unsafe.Pointer(cname))
 	var vfs *C.char
 	if len(vfsname) > 0 {
 		vfs = C.CString(vfsname)
 		defer C.free(unsafe.Pointer(vfs))
 	}
-	rv := C.sqlite3_open_v2(name, &db, C.int(openFlags), vfs)
+	rv := C.sqlite3_open_v2(cname, &db, C.int(openFlags), vfs)
 	if rv != C.SQLITE_OK {
 		if db != nil {
 			C.sqlite3_close(db)
@@ -352,6 +351,7 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 
 // OneValue is used with SELECT that returns only one row with only one column.
 // Returns io.EOF when there is no row.
+// No check is performed to ensure that there is no more than one row.
 func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) error {
 	s, err := c.Prepare(query, args...)
 	if err != nil {
@@ -590,24 +590,4 @@ func EnableSharedCache(b bool) error {
 		return nil
 	}
 	return Errno(rv)
-}
-
-// Must is a helper that wraps a call to a function returning (bool, os.Error)
-// and panics if the error is non-nil.
-func Must(b bool, err error) bool {
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func btocint(b bool) C.int {
-	if b {
-		return 1
-	}
-	return 0
-}
-func cstring(s string) (*C.char, C.int) {
-	cs := *(*reflect.StringHeader)(unsafe.Pointer(&s))
-	return (*C.char)(unsafe.Pointer(cs.Data)), C.int(cs.Len)
 }

@@ -297,7 +297,7 @@ func (s *Stmt) NamedBind(args ...interface{}) error {
 }
 
 // Bind binds parameters by their index.
-// Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type.
+// Calls sqlite3_bind_parameter_count and sqlite3_bind_(blob|double|int|int64|null|text) depending on args type/kind.
 // (See http://sqlite.org/c3ref/bind_blob.html)
 func (s *Stmt) Bind(args ...interface{}) error {
 	n := s.BindParameterCount()
@@ -321,6 +321,7 @@ var NullIfEmptyString = true
 var NullIfZeroTime = true
 
 // BindByIndex binds value to the specified host parameter of the prepared statement.
+// Value's type/kind is used to find the storage class.
 // The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	i := C.int(index)
@@ -373,6 +374,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	return s.error(rv, "Stmt.Bind")
 }
 
+// BindReflect binds value to the specified host parameter of the prepared statement.
+// Value's (reflect) Kind is used to find the storage class.
+// The leftmost SQL parameter has an index of 1.
 func (s *Stmt) BindReflect(index int, value interface{}) error {
 	i := C.int(index)
 	var rv C.int
@@ -423,7 +427,7 @@ func (s *Stmt) Next() (bool, error) {
 	if err == Row {
 		return true, nil
 	}
-	C.sqlite3_reset(s.stmt)
+	C.sqlite3_reset(s.stmt) // Release implicit lock as soon as possible (see dbEvalStep in tclsqlite3.c)
 	if err != Done {
 		return false, s.error(rv, "Stmt.Next")
 	}
@@ -543,7 +547,7 @@ func (s *Stmt) NamedScan(args ...interface{}) error {
 //
 // NULL value is converted to 0 if arg type is *int,*int64,*float,*float64, to "" for *string, to []byte{} for *[]byte and to false for *bool.
 // To avoid NULL conversion, arg type must be **T.
-// Calls sqlite3_column_(blob|double|int|int64|text) depending on args type.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on args type/kind.
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) Scan(args ...interface{}) error {
 	n := s.ColumnCount()
@@ -590,7 +594,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 
 // ScanByName scans result value from a query.
 // Returns true when column is null.
-// Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type/kind.
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 	index, err := s.ColumnIndex(name)
@@ -604,18 +608,19 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 // The leftmost column/index is number 0.
 //
 // Destination type is specified by the caller (except when value type is *interface{}).
-// The value must be of one of the following types:
-//    (*)*string,
-//    (*)*int, (*)*int64, (*)*byte,
+// The value must be of one of the following types/kinds:
+//    (*)*string
+//    (*)*int,int8,int16,int32,int64
+//    (*)*uint,uint8,uint16,uint32,uint64
 //    (*)*bool
-//    (*)*float64
+//    (*)*float32,float64
 //    (*)*[]byte
 //    *time.Time
 //    sql.Scanner
 //    *interface{}
 //
 // Returns true when column is null.
-// Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type.
+// Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type/kind.
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	var isNull bool
@@ -716,6 +721,18 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	return isNull, err
 }
 
+// ScanReflect scans result value from a query.
+// The leftmost column/index is number 0.
+//
+// Destination type is specified by the caller.
+// The value must be of one of the following kinds:
+//    *string
+//    *int,int8,int16,int32,int64
+//    *uint,uint8,uint16,uint32,uint64
+//    *bool
+//    *float32,float64
+//
+// Returns true when column is null.
 func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {

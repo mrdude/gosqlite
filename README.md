@@ -11,6 +11,12 @@ See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
 [1]: https://secure.travis-ci.org/gwenn/gosqlite.png
 [2]: http://www.travis-ci.org/gwenn/gosqlite
 
+### Features (not supported by database/sql/driver):
+
+* Dynamic type: currently, the SQLite3 manifest typing is respected. There is no use of the column declared type to guess the target/go type when scanning. On your side, you should try to not break column affinity rules (such as declaring a column with TIMESTAMP type (NUMERIC affinity) storing values with '2006-01-02T15:04:05.999Z07:00' format (TEXT type))...
+* Partial scan: scan values may be partially scanned (by index or name) or skipped/ignored by passing nil pointer(s).
+* Null value: by default, empty string and zero time are bound to null for prepared statement's parameters (no need for NullString, NullTime but still supported).
+
 ### Changes:
 
 Open supports flags.  
@@ -84,6 +90,7 @@ Time:
 JulianDay  
 JulianDayToUTC  
 JulianDayToLocalTime  
+UnixTime, JulianTime and TimeStamp used to persist go time in formats supported by SQLite3 date functions.
 
 Trace:  
 Conn.BusyHandler  
