@@ -180,7 +180,7 @@ func (s *Stmt) Insert(args ...interface{}) (int64, error) {
 	if n == 0 { // No change => no insert...
 		return -1, nil
 	}
-	return s.c.LastInsertRowid(), nil // TODO what happens with INSERT OR IGNORE ...
+	return s.c.LastInsertRowid(), nil
 }
 
 // Select helps executing SELECT statement:
@@ -367,7 +367,6 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("BindByIndex: %s\n", v)
 		return s.BindByIndex(index, v)
 	default:
 		return s.BindReflect(index, value)
@@ -569,7 +568,7 @@ func (s *Stmt) Scan(args ...interface{}) error {
 // (See http://sqlite.org/c3ref/sql.html)
 func (s *Stmt) SQL() string {
 	if s.sql == "" {
-		s.sql = C.GoString(C.sqlite3_sql(s.stmt)) // TODO How to avoid copy?
+		s.sql = C.GoString(C.sqlite3_sql(s.stmt))
 	}
 	return s.sql
 }
@@ -989,7 +988,6 @@ func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 				layout = "2006-01-02 15:04:05.999Z07:00"
 			}
 		}
-		fmt.Printf("ScanTime: %s\n", txt)
 		value, err = time.Parse(layout, txt) // UTC except when timezone is specified
 	case Integer:
 		unixepoch := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
