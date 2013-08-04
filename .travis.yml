@@ -1,4 +1,7 @@
 language: go
+go:
+  - 1.1
+  - tip
 before_install:
  - echo "yes" | sudo add-apt-repository ppa:travis-ci/sqlite3
  - sudo apt-get update -qq
