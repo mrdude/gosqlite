@@ -110,7 +110,9 @@ func TestBindTimeAsString(t *testing.T) {
 
 	err = db.OneValue("SELECT /*datetime(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
-	assertEquals(t, "TimeStamp: %s vs %s", now, tim)
+	if !now.Equal(tim) {
+		t.Errorf("TimeStamp: %s vs %s", now, tim)
+	}
 }
 
 func TestBindTimeAsNumeric(t *testing.T) {
