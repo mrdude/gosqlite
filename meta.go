@@ -89,7 +89,7 @@ type Column struct {
 	DataType  string
 	NotNull   bool
 	DfltValue string // FIXME type ?
-	Pk        bool
+	Pk        int
 	Autoinc   bool
 	CollSeq   string
 }
@@ -145,7 +145,7 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 		return nil, c.error(rv, fmt.Sprintf("Conn.Column(db: %q, tbl: %q, col: %q)", dbName, tableName, columnName))
 	}
 	// TODO How to avoid copy?
-	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", primaryKey == 1,
+	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", int(primaryKey),
 		autoinc == 1, C.GoString(zCollSeq)}, nil
 }
 

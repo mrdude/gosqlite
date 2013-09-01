@@ -101,6 +101,8 @@ const (
 	ErrFormat     = Errno(C.SQLITE_FORMAT)     /* Auxiliary database format error */
 	ErrRange      = Errno(C.SQLITE_RANGE)      /* 2nd parameter to sqlite3_bind out of range */
 	ErrNotDB      = Errno(C.SQLITE_NOTADB)     /* File opened that is not a database file */
+	Notice        = Errno(C.SQLITE_NOTICE)     /* Notifications from sqlite3_log() */
+	Warning       = Errno(C.SQLITE_WARNING)    /* Warnings from sqlite3_log() */
 	Row           = Errno(C.SQLITE_ROW)        /* sqlite3_step() has another row ready */
 	Done          = Errno(C.SQLITE_DONE)       /* sqlite3_step() has finished executing */
 	ErrSpecific   = Errno(-1)                  /* Wrapper specific error */

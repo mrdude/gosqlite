@@ -68,7 +68,7 @@ func TestColumn(t *testing.T) {
 	column, err := db.Column("", "test", "id")
 	checkNoError(t, err, "error getting column metadata: %s")
 	assertEquals(t, "wrong column name: %q <> %q", "id", column.Name)
-	assert(t, "expecting primary key flag to be true", column.Pk)
+	assertEquals(t, "wrong primary key index: %d <> %d", 1, column.Pk)
 	assert(t, "expecting autoinc flag to be false", !column.Autoinc)
 
 	column, err = db.Column("main", "test", "id")
