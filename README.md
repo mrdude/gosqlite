@@ -14,10 +14,13 @@ See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
 ### Custom build
 If your OS does not bundle SQLite3 development files (or old ones):
 - download and copy SQLite3 files
-```
+
+```shell
 $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gwenn/gosqlite
 ```
+
 - patch sqlite.go file
+
 ```
 -#cgo LDFLAGS: -lsqlite3
 +#cgo CFLAGS: -I.
