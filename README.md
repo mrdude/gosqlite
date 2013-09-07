@@ -11,6 +11,19 @@ See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
 [1]: https://secure.travis-ci.org/gwenn/gosqlite.png
 [2]: http://www.travis-ci.org/gwenn/gosqlite
 
+### Custom build
+If your OS does not bundle SQLite3 development files (or old ones):
+- download and copy SQLite3 files
+```
+$ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gwenn/gosqlite
+```
+- patch sqlite.go file
+```
+-#cgo LDFLAGS: -lsqlite3
++#cgo CFLAGS: -I.
++#cgo CFLAGS: -DSQLITE_ENABLE_COLUMN_METADATA=1
+```
+
 ### Features (not supported by database/sql/driver):
 
 * Dynamic type: currently, the SQLite3 manifest typing is respected. There is no use of the column declared type to guess the target/go type when scanning. On your side, you should try to not break column affinity rules (such as declaring a column with TIMESTAMP type (NUMERIC affinity) storing values with '2006-01-02T15:04:05.999Z07:00' format (TEXT type))...
