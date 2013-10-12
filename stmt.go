@@ -152,7 +152,11 @@ func (s *Stmt) Exec(args ...interface{}) error {
 func (s *Stmt) exec() error {
 	rv := C.sqlite3_step(s.stmt)
 	C.sqlite3_reset(s.stmt)
-	if Errno(rv) != Done {
+	err := Errno(rv)
+	if err != Done {
+		if err == Row {
+			return s.error(rv, "Don't use exec with anything that returns data such as SELECT")
+		}
 		return s.error(rv, "Stmt.exec")
 	}
 	return nil
