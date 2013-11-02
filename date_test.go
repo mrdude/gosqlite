@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 	"time"
@@ -105,8 +106,8 @@ func TestBindTimeAsString(t *testing.T) {
 	var tim time.Time
 	//err = db.OneValue("SELECT /*date(*/time/*)*/ FROM test where ROWID = ?", &tim, id1)
 	//checkNoError(t, err, "error selecting YearMonthDay: %s")
-	//assertEquals(t, "Year MonthDay: %d vs %d", now.Year(), tim.Year())
-	//assertEquals(t, "YearMonth Day: %d vs %d", now.YearDay(), tim.YearDay())
+	//assert.Equal(t, now.Year(), tim.Year(), "year")
+	//assert.Equal(t, now.YearDay(), tim.YearDay(), "yearDay")
 
 	err = db.OneValue("SELECT /*datetime(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
@@ -137,9 +138,9 @@ func TestBindTimeAsNumeric(t *testing.T) {
 	var tim time.Time
 	err = db.OneValue("SELECT /*datetime(*/ time/*, 'unixepoch')*/ FROM test where ROWID = ?", &tim, id1)
 	checkNoError(t, err, "error selecting UnixTime: %s")
-	assertEquals(t, "Year: %s vs %s", now, tim)
+	assert.Equal(t, now, tim)
 
 	err = db.OneValue("SELECT /*julianday(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
 	checkNoError(t, err, "error selecting JulianTime: %s")
-	assertEquals(t, "Year: %s vs %s", now, tim)
+	assert.Equal(t, now, tim)
 }

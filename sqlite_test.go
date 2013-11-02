@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"reflect"
 	"strings"
@@ -58,7 +59,7 @@ func TestOpen(t *testing.T) {
 
 func TestOpenFailure(t *testing.T) {
 	db, err := Open("doesnotexist.sqlite", OpenReadOnly)
-	assert(t, "open failure expected", db == nil && err != nil)
+	assert.T(t, db == nil && err != nil, "open failure expected")
 	//println(err.Error())
 }
 
@@ -68,7 +69,7 @@ func TestEnableFKey(t *testing.T) {
 	b := Must(db.IsFKeyEnabled())
 	if !b {
 		b = Must(db.EnableFKey(true))
-		assert(t, "cannot enabled FK", b)
+		assert.T(t, b, "cannot enable FK")
 	}
 }
 
@@ -78,14 +79,14 @@ func TestEnableTriggers(t *testing.T) {
 	b := Must(db.AreTriggersEnabled())
 	if !b {
 		b = Must(db.EnableTriggers(true))
-		assert(t, "cannot enabled triggers", b)
+		assert.T(t, b, "cannot enable triggers")
 	}
 }
 
 func TestEnableExtendedResultCodes(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enabled extended result codes: %s")
+	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enable extended result codes: %s")
 }
 
 func TestCreateTable(t *testing.T) {
@@ -121,9 +122,9 @@ func TestExists(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	b := Must(db.Exists("SELECT 1 WHERE 1 = 0"))
-	assert(t, "No row expected", !b)
+	assert.T(t, !b, "no row expected")
 	b = Must(db.Exists("SELECT 1 WHERE 1 = 1"))
-	assert(t, "One row expected", b)
+	assert.T(t, b, "one row expected")
 }
 
 func TestInsert(t *testing.T) {
@@ -135,32 +136,32 @@ func TestInsert(t *testing.T) {
 		ierr := db.Exec("INSERT INTO test (float_num, int_num, a_string) VALUES (?, ?, ?)", float64(i)*float64(3.14), i, "hello")
 		checkNoError(t, ierr, "insert error: %s")
 		c := db.Changes()
-		assertEquals(t, "insert error: expected %d changes but got %d", 1, c)
+		assert.Equal(t, 1, c, "changes")
 	}
 	checkNoError(t, db.Commit(), "Error: %s")
 
 	lastID := db.LastInsertRowid()
-	assertEquals(t, "last insert row id error: expected %d but got %d", int64(1000), lastID)
+	assert.Equal(t, int64(1000), lastID, "last insert row id")
 
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer checkFinalize(cs, t)
 
 	paramCount := cs.BindParameterCount()
-	assertEquals(t, "bind parameter count error: expected %d but got %d", 0, paramCount)
+	assert.Equal(t, 0, paramCount, "bind parameter count")
 	columnCount := cs.ColumnCount()
-	assertEquals(t, "column count error: expected %d but got %d", 1, columnCount)
+	assert.Equal(t, 1, columnCount, "column count")
 
 	if !Must(cs.Next()) {
 		t.Fatal("no result for count")
 	}
-	assertEquals(t, "column & data count not equal: %d versus %d", columnCount, cs.DataCount())
+	assert.Equal(t, columnCount, cs.DataCount(), "column & data count expected to be equal")
 	var i int
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
-	assertEquals(t, "count should be %d, but it is %d", 1000, i)
+	assert.Equal(t, 1000, i, "count")
 	if Must(cs.Next()) {
 		t.Fatal("Only one row expected")
 	}
-	assert(t, "Statement not reset", !cs.Busy())
+	assert.T(t, !cs.Busy(), "expected statement to be reset")
 }
 
 /*
@@ -193,9 +194,9 @@ func TestConnExecWithSelect(t *testing.T) {
 	defer checkClose(db, t)
 
 	err := db.Exec("SELECT 1")
-	assert(t, "error expected", err != nil)
+	assert.T(t, err != nil, "error expected")
 	if serr, ok := err.(*StmtError); ok {
-		assertEquals(t, "expected %q but got %q", Row, serr.Code())
+		assert.Equal(t, Row, serr.Code())
 	} else {
 		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
 	}
@@ -205,21 +206,21 @@ func TestConnInitialState(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	autoCommit := db.GetAutocommit()
-	assert(t, "autocommit expected to be active by default", autoCommit)
+	assert.T(t, autoCommit, "autocommit expected to be active by default")
 	totalChanges := db.TotalChanges()
-	assertEquals(t, "expected total changes: %d, actual: %d", 0, totalChanges)
+	assert.Equal(t, 0, totalChanges, "total changes")
 	err := db.LastError()
-	assertEquals(t, "expected last error: %v, actual: %v", nil, err)
+	assert.Equal(t, nil, err, "expected last error to be nil")
 	readonly, err := db.Readonly("main")
 	checkNoError(t, err, "Readonly status error: %s")
-	assert(t, "readonly expected to be unset by default", !readonly)
+	assert.T(t, !readonly, "readonly expected to be unset by default")
 }
 
 func TestReadonlyMisuse(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	_, err := db.Readonly("doesnotexist")
-	assert(t, "error expected", err != nil)
+	assert.T(t, err != nil, "error expected")
 	err.Error()
 	//println(err.Error())
 }
@@ -234,7 +235,7 @@ func TestConnSettings(t *testing.T) {
 }
 
 func TestComplete(t *testing.T) {
-	assert(t, "expected complete statement", Complete("SELECT 1;"))
+	assert.T(t, Complete("SELECT 1;"), "expected complete statement")
 }
 
 func TestExecMisuse(t *testing.T) {
@@ -242,7 +243,7 @@ func TestExecMisuse(t *testing.T) {
 	defer checkClose(db, t)
 	createTable(db, t)
 	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
-	assert(t, "exec misuse expected", err != nil)
+	assert.T(t, err != nil, "exec misuse expected")
 }
 
 func TestTransaction(t *testing.T) {
@@ -257,15 +258,4 @@ func TestTransaction(t *testing.T) {
 		return err
 	})
 	checkNoError(t, err, "error: %s")
-}
-
-func assertEquals(t *testing.T, format string, expected, actual interface{}) {
-	if expected != actual {
-		t.Errorf(format, expected, actual)
-	}
-}
-func assert(t *testing.T, msg string, actual bool) {
-	if !actual {
-		t.Error(msg)
-	}
 }

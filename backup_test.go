@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 )
@@ -42,8 +43,8 @@ func TestBackupMisuse(t *testing.T) {
 	defer checkClose(db, t)
 
 	bck, err := NewBackup(db, "", db, "")
-	assert(t, "source and destination must be distinct", bck == nil && err != nil)
+	assert.T(t, bck == nil && err != nil, "source and destination must be distinct")
 	err = bck.Run(10, 0, nil)
-	assert(t, "misuse expected", err != nil)
+	assert.T(t, err != nil, "misuse expected")
 	//println(err.Error())
 }

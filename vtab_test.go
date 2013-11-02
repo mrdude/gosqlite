@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 )
@@ -26,13 +27,13 @@ type testVTabCursor struct {
 
 func (m testModule) Create(c *Conn, args []string) (VTab, error) {
 	//println("testVTab.Create")
-	assert(m.t, "Six arguments expected", len(args) == 6)
-	assertEquals(m.t, "Expected '%s' but got '%s' as module name", "test", args[0])
-	assertEquals(m.t, "Expected '%s' but got '%s' as db name", "main", args[1])
-	assertEquals(m.t, "Expected '%s' but got '%s' as table name", "vtab", args[2])
-	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "'1'", args[3])
-	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "2", args[4])
-	assertEquals(m.t, "Expected '%s' but got '%s' as first arg", "three", args[5])
+	assert.T(m.t, len(args) == 6, "six arguments expected")
+	assert.Equal(m.t, "test", args[0], "module name")
+	assert.Equal(m.t, "main", args[1], "db name")
+	assert.Equal(m.t, "vtab", args[2], "table name")
+	assert.Equal(m.t, "'1'", args[3], "first arg")
+	assert.Equal(m.t, "2", args[4], "second arg")
+	assert.Equal(m.t, "three", args[5], "third arg")
 	err := c.DeclareVTab("CREATE TABLE x(test TEXT)")
 	if err != nil {
 		return nil, err
@@ -113,7 +114,7 @@ func TestCreateModule(t *testing.T) {
 		if err = s.Scan(&i, &value); err != nil {
 			return
 		}
-		assertEquals(t, "Expected '%d' but got '%d'", intarray[i], value)
+		assert.Equal(t, intarray[i], value, "Expected '%d' but got '%d'")
 		return
 	})
 	checkNoError(t, err, "couldn't select from virtual table: %s")

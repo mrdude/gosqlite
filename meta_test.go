@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 )
@@ -35,12 +36,12 @@ func TestTables(t *testing.T) {
 
 	tables, err := db.Tables("")
 	checkNoError(t, err, "error looking for tables: %s")
-	assertEquals(t, "expected %d table but got %d", 0, len(tables))
+	assert.Equal(t, 0, len(tables), "table count")
 	createTable(db, t)
 	tables, err = db.Tables("main")
 	checkNoError(t, err, "error looking for tables: %s")
-	assertEquals(t, "expected %d table but got %d", 1, len(tables))
-	assertEquals(t, "wrong table name: %q <> %q", "test", tables[0])
+	assert.Equal(t, 1, len(tables), "table count")
+	assert.Equal(t, "test", tables[0], "table name")
 }
 
 func TestColumns(t *testing.T) {
@@ -54,7 +55,7 @@ func TestColumns(t *testing.T) {
 		t.Fatalf("Expected 4 columns <> %d", len(columns))
 	}
 	column := columns[2]
-	assertEquals(t, "wrong column name: %q <> %q", "int_num", column.Name)
+	assert.Equal(t, "int_num", column.Name, "column name")
 
 	columns, err = db.Columns("main", "test")
 	checkNoError(t, err, "error listing columns: %s")
@@ -67,9 +68,9 @@ func TestColumn(t *testing.T) {
 
 	column, err := db.Column("", "test", "id")
 	checkNoError(t, err, "error getting column metadata: %s")
-	assertEquals(t, "wrong column name: %q <> %q", "id", column.Name)
-	assertEquals(t, "wrong primary key index: %d <> %d", 1, column.Pk)
-	assert(t, "expecting autoinc flag to be false", !column.Autoinc)
+	assert.Equal(t, "id", column.Name, "column name")
+	assert.Equal(t, 1, column.Pk, "primary key index")
+	assert.T(t, !column.Autoinc, "expecting autoinc flag to be false")
 
 	column, err = db.Column("main", "test", "id")
 	checkNoError(t, err, "error getting column metadata: %s")
@@ -106,8 +107,8 @@ func TestIndexes(t *testing.T) {
 		t.Fatalf("Expected one index <> %d", len(indexes))
 	}
 	index := indexes[0]
-	assertEquals(t, "wrong index name: %q <> %q", "test_index", index.Name)
-	assert(t, "index 'test_index' is not unique", !index.Unique)
+	assert.Equal(t, "test_index", index.Name, "index name")
+	assert.T(t, !index.Unique, "expected index 'test_index' to be not unique")
 
 	columns, err := db.IndexColumns("", "test_index")
 	checkNoError(t, err, "error listing index columns: %s")
@@ -115,7 +116,7 @@ func TestIndexes(t *testing.T) {
 		t.Fatalf("expected one column <> %d", len(columns))
 	}
 	column := columns[0]
-	assertEquals(t, "Wrong column name: %q <> %q", "a_string", column.Name)
+	assert.Equal(t, "a_string", column.Name, "column name")
 }
 
 func TestColumnMetadata(t *testing.T) {
@@ -126,11 +127,11 @@ func TestColumnMetadata(t *testing.T) {
 	defer checkFinalize(s, t)
 
 	databaseName := s.ColumnDatabaseName(0)
-	assertEquals(t, "wrong database name: %q <> %q", "main", databaseName)
+	assert.Equal(t, "main", databaseName, "database name")
 	tableName := s.ColumnTableName(0)
-	assertEquals(t, "wrong table name: %q <> %q", "sqlite_master", tableName)
+	assert.Equal(t, "sqlite_master", tableName, "table name")
 	originName := s.ColumnOriginName(0)
-	assertEquals(t, "wrong origin name: %q <> %q", "name", originName)
+	assert.Equal(t, "name", originName, "origin name")
 	declType := s.ColumnDeclaredType(0)
-	assertEquals(t, "wrong declared type: %q <> %q", "text", declType)
+	assert.Equal(t, "text", declType, "declared type")
 }

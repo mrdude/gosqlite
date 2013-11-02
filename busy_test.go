@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"io/ioutil"
 	"os"
@@ -108,5 +109,5 @@ func TestBusyHandler(t *testing.T) {
 
 	_, err = db2.SchemaVersion("")
 	checkNoError(t, err, "couldn't query schema version: %#v")
-	assert(t, "busy handler not called!", called)
+	assert.T(t, called, "expected busy handler to be called")
 }

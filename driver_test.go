@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"database/sql"
+	"github.com/bmizerany/assert"
 	"testing"
 )
 
@@ -73,10 +74,10 @@ func TestSqlDml(t *testing.T) {
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
 	checkNoError(t, err, "Error while calling LastInsertId: %s")
-	assertEquals(t, "expected %d got %d LastInsertId", int64(2), id)
+	assert.Equal(t, int64(2), id, "lastInsertId")
 	changes, err := result.RowsAffected()
 	checkNoError(t, err, "Error while calling RowsAffected: %s")
-	assertEquals(t, "expected %d got %d RowsAffected", int64(0), changes)
+	assert.Equal(t, int64(0), changes, "rowsAffected")
 }
 
 func TestSqlInsert(t *testing.T) {
@@ -86,10 +87,10 @@ func TestSqlInsert(t *testing.T) {
 	checkNoError(t, err, "Error updating data: %s")
 	id, err := result.LastInsertId()
 	checkNoError(t, err, "Error while calling LastInsertId: %s")
-	assertEquals(t, "expected %d got %d LastInsertId", int64(1), id)
+	assert.Equal(t, int64(1), id, "lastInsertId")
 	changes, err := result.RowsAffected()
 	checkNoError(t, err, "Error while calling RowsAffected: %s")
-	assertEquals(t, "expected %d got %d RowsAffected", int64(1), changes)
+	assert.Equal(t, int64(1), changes, "rowsAffected")
 }
 
 func TestSqlExecWithIllegalCmd(t *testing.T) {
@@ -137,10 +138,10 @@ func TestSqlPrepare(t *testing.T) {
 	checkNoError(t, err, "Error while executing stmt: %s")
 	id, err := result.LastInsertId()
 	checkNoError(t, err, "Error while calling LastInsertId: %s")
-	assertEquals(t, "expected %d got %d LastInsertId", int64(3), id)
+	assert.Equal(t, int64(3), id, "lastInsertId")
 	changes, err := result.RowsAffected()
 	checkNoError(t, err, "Error while calling RowsAffected: %s")
-	assertEquals(t, "expected %d got %d RowsAffected", int64(1), changes)
+	assert.Equal(t, int64(1), changes, "rowsAffected")
 }
 
 func TestRowsWithStmtClosed(t *testing.T) {

@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 )
@@ -131,9 +132,9 @@ func TestLog(t *testing.T) {
 
 func TestMemory(t *testing.T) {
 	used := MemoryUsed()
-	assert(t, "memory used", used >= 0)
+	assert.T(t, used >= 0, "memory used")
 	highwater := MemoryHighwater(false)
-	assert(t, "memory highwater", highwater >= 0)
+	assert.T(t, highwater >= 0, "memory highwater")
 	limit := SoftHeapLimit()
-	assert(t, "soft heap limit positive", limit >= 0)
+	assert.T(t, limit >= 0, "soft heap limit positive")
 }

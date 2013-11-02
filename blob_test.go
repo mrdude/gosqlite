@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"io"
 	"testing"
@@ -47,15 +48,15 @@ func TestBlob(t *testing.T) {
 	content = make([]byte, size+5)
 	n, err = br.Read(content[:5])
 	checkNoError(t, err, "blob read error: %s")
-	assertEquals(t, "expected %d bytes but got %d", 5, n)
+	assert.Equal(t, 5, n, "bytes")
 
 	n, err = br.Read(content[5:])
 	checkNoError(t, err, "blob read error: %s")
-	assertEquals(t, "expected %d bytes but got %d", 5, n)
+	assert.Equal(t, 5, n, "bytes")
 	//fmt.Printf("%#v\n", content)
 
 	n, err = br.Read(content[10:])
-	assert(t, "error expected", n == 0 && err == io.EOF)
+	assert.T(t, n == 0 && err == io.EOF, "error expected")
 
 	err = br.Reopen(rowid)
 	checkNoError(t, err, "blob reopen error: %s")
@@ -67,10 +68,10 @@ func TestBlobMisuse(t *testing.T) {
 	defer checkClose(db, t)
 
 	bw, err := db.NewBlobReadWriter("main", "test", "content", 0)
-	assert(t, "error expected", bw == nil && err != nil)
+	assert.T(t, bw == nil && err != nil, "error expected")
 	//println(err.Error())
 	/*err = bw.Close()
-	assert(t, "error expected", err != nil)*/
+	assert.T(t, err != nil, "error expected")*/
 }
 
 func TestZeroLengthBlob(t *testing.T) {
@@ -87,5 +88,5 @@ func TestZeroLengthBlob(t *testing.T) {
 	var blob []byte
 	err = db.OneValue("SELECT content FROM test WHERE rowid = ?", &blob, rowid)
 	checkNoError(t, err, "select error: %s")
-	assert(t, "nil blob expected", blob == nil)
+	assert.T(t, blob == nil, "nil blob expected")
 }

@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
 	"time"
@@ -17,14 +18,14 @@ func TestPool(t *testing.T) {
 	for i := 0; i <= 10; i++ {
 		c, err := pool.Get()
 		checkNoError(t, err, "error getting connection from the pool: %s")
-		assert(t, "no connection returned by the pool", c != nil)
-		assert(t, "connection returned by the pool is alive", !c.IsClosed())
+		assert.T(t, c != nil, "expected connection returned by the pool")
+		assert.T(t, !c.IsClosed(), "connection returned by the pool is alive")
 		_, err = c.SchemaVersion("main")
 		checkNoError(t, err, "error using connection from the pool: %s")
 		pool.Release(c)
 	}
 	pool.Close()
-	assert(t, "pool not closed", pool.IsClosed())
+	assert.T(t, pool.IsClosed(), "expected pool to be closed")
 }
 
 func TestTryGet(t *testing.T) {
@@ -34,9 +35,9 @@ func TestTryGet(t *testing.T) {
 	defer pool.Close()
 	c, err := pool.TryGet()
 	checkNoError(t, err, "error getting connection from the pool: %s")
-	assert(t, "no connection returned by the pool", c != nil)
+	assert.T(t, c != nil, "expected connection returned by the pool")
 	defer pool.Release(c)
 
 	c1, err := pool.TryGet()
-	assert(t, "no connection returned by the pool", c1 == nil && err == nil)
+	assert.T(t, c1 == nil && err == nil, "expected no connection returned by the pool")
 }

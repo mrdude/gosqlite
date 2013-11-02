@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"math/rand"
 	"os"
@@ -29,7 +30,7 @@ func TestScalarFunction(t *testing.T) {
 	var d float64
 	err = db.OneValue("SELECT half(6)", &d)
 	checkNoError(t, err, "couldn't retrieve result: %s")
-	assertEquals(t, "Expected %f but got %f", 3.0, d)
+	assert.Equal(t, 3.0, d)
 	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
@@ -82,16 +83,16 @@ func TestRegexpFunction(t *testing.T) {
 	}
 	i, _, err := s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
-	assertEquals(t, "expected %d but got %d", 1, i)
-	assert(t, "unexpected reused state", !reused)
+	assert.Equal(t, 1, i)
+	assert.T(t, !reused, "unexpected reused state")
 
 	if b := Must(s.Next()); !b {
 		t.Fatalf("No result")
 	}
 	i, _, err = s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
-	assertEquals(t, "expected %d but got %d", 0, i)
-	assert(t, "unexpected reused state", reused)
+	assert.Equal(t, 0, i)
+	assert.T(t, reused, "unexpected reused state")
 }
 
 func user(ctx *ScalarContext, nArg int) {
@@ -110,7 +111,7 @@ func TestUserFunction(t *testing.T) {
 	var name string
 	err = db.OneValue("SELECT user()", &name)
 	checkNoError(t, err, "couldn't retrieve result: %s")
-	assert(t, "unexpected user name: %q", len(name) > 0)
+	assert.Tf(t, len(name) > 0, "unexpected user name: %q", name)
 	err = db.CreateScalarFunction("user", 1, nil, nil, nil)
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
@@ -144,7 +145,7 @@ func TestSumFunction(t *testing.T) {
 	var i int
 	err = db.OneValue("SELECT mysum(i) FROM (SELECT 2 AS i UNION ALL SELECT 2)", &i)
 	checkNoError(t, err, "couldn't execute statement: %s")
-	assertEquals(t, "expected %d but got %v", 4, i)
+	assert.Equal(t, 4, i)
 
 	err = db.CreateAggregateFunction("mysum", 1, nil, nil, nil, nil)
 	checkNoError(t, err, "couldn't unregister function: %s")
