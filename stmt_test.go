@@ -453,3 +453,18 @@ func TestBindEmptyZeroNotTransformedToNull(t *testing.T) {
 	_, null = s.ScanValue(1, false)
 	assert(t, "Zero time expected", !null)
 }
+
+func TestColumnType(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	createTable(db, t)
+	s, err := db.Prepare("SELECT * from test")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+
+	for col := 0; col < s.ColumnCount(); col++ {
+		//println(col, s.ColumnName(col), s.ColumnOriginName(col), s.ColumnType(col), s.ColumnDeclaredType(col))
+		assertEquals(t, "expected %s but got %s type", Null, s.ColumnType(col))
+	}
+}

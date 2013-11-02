@@ -15,7 +15,7 @@ See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
 If your OS does not bundle SQLite3 development files (or old ones):
 - download and copy SQLite3 files
 
-```shell
+```sh
 $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gwenn/gosqlite
 ```
 

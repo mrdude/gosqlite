@@ -72,3 +72,20 @@ func TestBlobMisuse(t *testing.T) {
 	/*err = bw.Close()
 	assert(t, "error expected", err != nil)*/
 }
+
+func TestZeroLengthBlob(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	err := db.Exec("CREATE TABLE test (content BLOB);")
+	checkNoError(t, err, "error creating table: %s")
+
+	err = db.Exec("INSERT INTO test VALUES (?)", ZeroBlobLength(0))
+	checkNoError(t, err, "insert error: %s")
+	rowid := db.LastInsertRowid()
+
+	var blob []byte
+	err = db.OneValue("SELECT content FROM test WHERE rowid = ?", &blob, rowid)
+	checkNoError(t, err, "select error: %s")
+	assert(t, "nil blob expected", blob == nil)
+}
