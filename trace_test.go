@@ -9,6 +9,7 @@ import (
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -57,11 +58,11 @@ func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName st
 	return AuthOk
 }
 
-func profile(d interface{}, sql string, nanoseconds uint64) {
+func profile(d interface{}, sql string, duration time.Duration) {
 	if t, ok := d.(*testing.T); ok {
-		t.Logf("PROFILE: %s = %d µs\n", sql, nanoseconds/1e3)
+		t.Logf("PROFILE: %s = %s\n", sql, duration)
 	} else {
-		fmt.Printf("%s: %s = %d µs\n", d, sql, nanoseconds/1e3)
+		fmt.Printf("%s: %s = %s\n", d, sql, duration)
 	}
 }
 

@@ -27,6 +27,7 @@ import "C"
 
 import (
 	"fmt"
+	"time"
 	"unsafe"
 )
 
@@ -59,7 +60,7 @@ func (c *Conn) Trace(f Tracer, udp interface{}) {
 }
 
 // See Conn.Profile
-type Profiler func(udp interface{}, sql string, nanoseconds uint64) // TODO time.Duration
+type Profiler func(udp interface{}, sql string, duration time.Duration)
 
 type sqliteProfile struct {
 	f   Profiler
@@ -69,7 +70,7 @@ type sqliteProfile struct {
 //export goXProfile
 func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 	arg := (*sqliteProfile)(udp)
-	arg.f(arg.udp, C.GoString(sql), uint64(nanoseconds))
+	arg.f(arg.udp, C.GoString(sql), time.Duration(int64(nanoseconds)))
 }
 
 // Profile registers or clears a profile function.
