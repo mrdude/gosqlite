@@ -80,3 +80,16 @@ func TestSetSynchronous(t *testing.T) {
 	checkNoError(t, err, "Error reading synchronous flag of database: %s")
 	assert.Equal(t, 0, mode)
 }
+
+func TestQueryOnly(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	mode, err := db.QueryOnly("")
+	checkNoError(t, err, "Error reading query_only status of database: %s")
+	assert.T(t, !mode, "expecting query_only to be false by default")
+	err = db.SetQueryOnly("", true)
+	checkNoError(t, err, "Error setting query_only status of database: %s")
+	err = db.Exec("CREATE TABLE test (data TEXT)")
+	assert.T(t, err != nil, "expected error")
+	//println(err.Error())
+}
