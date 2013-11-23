@@ -22,8 +22,8 @@ import (
 type BlobReader struct {
 	c      *Conn
 	bl     *C.sqlite3_blob
-	size   int
-	offset int
+	size   int32
+	offset int32
 }
 
 // BlobReadWriter is an io.ReadWriteCloser adapter for BLOB
@@ -104,8 +104,8 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 		return 0, io.EOF
 	}
 	n := size - r.offset
-	if len(v) < n {
-		n = len(v)
+	if len(v) < int(n) {
+		n = int32(len(v))
 	}
 	p := &v[0]
 	rv := C.sqlite3_blob_read(r.bl, unsafe.Pointer(p), C.int(n), C.int(r.offset))
@@ -113,23 +113,32 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 		return 0, r.c.error(rv, "BlobReader.Read")
 	}
 	r.offset += n
-	return n, nil
+	return int(n), nil
 }
 
 // Seek sets the offset for the next Read or Write to offset.
 // SQLite is limited to 32-bits offset.
 func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
+	size, err := r.Size()
+	if err != nil {
+		return 0, err
+	}
 	switch whence {
 	case 0: // SEEK_SET
-		r.offset = int(offset)
-	case 1: // SEEK_CUR
-		r.offset += int(offset)
-	case 2: // SEEK_END
-		size, err := r.Size()
-		if err != nil {
-			return 0, err
+		if offset < 0 || offset > int64(size) {
+			return 0, r.c.specificError("Invalid offset: %d", offset)
 		}
-		r.offset = size + int(offset)
+		r.offset = int32(offset)
+	case 1: // SEEK_CUR
+		if (int64(r.offset)+offset) < 0 || (int64(r.offset)+offset) > int64(size) {
+			return 0, r.c.specificError("Invalid offset: %d", offset)
+		}
+		r.offset += int32(offset)
+	case 2: // SEEK_END
+		if (int64(size)+offset) < 0 || offset > 0 {
+			return 0, r.c.specificError("Invalid offset: %d", offset)
+		}
+		r.offset = size + int32(offset)
 	default:
 		return 0, r.c.specificError("Bad seekMode: %d", whence)
 	}
@@ -138,12 +147,12 @@ func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 
 // Size returns the size of an opened BLOB.
 // (See http://sqlite.org/c3ref/blob_bytes.html)
-func (r *BlobReader) Size() (int, error) {
+func (r *BlobReader) Size() (int32, error) {
 	if r.bl == nil {
 		return 0, errors.New("blob reader already closed")
 	}
 	if r.size < 0 {
-		r.size = int(C.sqlite3_blob_bytes(r.bl))
+		r.size = int32(C.sqlite3_blob_bytes(r.bl))
 	}
 	return r.size, nil
 }
@@ -163,8 +172,8 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 	}
 	/* Write must return a non-nil error if it returns n < len(v) */
 	n := size - w.offset
-	if len(v) <= n {
-		n = len(v)
+	if len(v) <= int(n) {
+		n = int32(len(v))
 	} else {
 		err = io.EOF
 	}
@@ -174,7 +183,7 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 		return 0, w.c.error(rv, "BlobReadWiter.Write")
 	}
 	w.offset += n
-	return n, err
+	return int(n), err
 }
 
 // Reopen moves a BLOB handle to a new row.
