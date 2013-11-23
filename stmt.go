@@ -42,6 +42,10 @@ import (
 	"unsafe"
 )
 
+const (
+	i64 = unsafe.Sizeof(int(0)) > 4
+)
+
 type StmtError struct {
 	ConnError
 	s *Stmt
@@ -341,6 +345,12 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			rv = C.my_bind_text(s.stmt, i, cs, l)
 		}
 	case int:
+		if i64 {
+			rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value))
+		} else {
+			rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
+		}
+	case int32:
 		rv = C.sqlite3_bind_int(s.stmt, i, C.int(value))
 	case int64:
 		rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value))
@@ -653,6 +663,18 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 				**value = i
 			}
 		}
+	case *int32:
+		*value, isNull, err = s.ScanInt32(index)
+	case **int32:
+		var i int32
+		i, isNull, err = s.ScanInt32(index)
+		if err == nil {
+			if isNull {
+				*value = nil
+			} else {
+				**value = i
+			}
+		}
 	case *int64:
 		*value, isNull, err = s.ScanInt64(index)
 	case **int64:
@@ -856,7 +878,29 @@ func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
 		if s.CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
-		value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
+		if i64 {
+			value = int(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		} else {
+			value = int(C.sqlite3_column_int(s.stmt, C.int(index)))
+		}
+	}
+	return
+}
+
+// ScanInt32 scans result value from a query.
+// The leftmost column/index is number 0.
+// Returns true when column is null.
+// (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
+// TODO Factorize with ScanByte, ScanBool
+func (s *Stmt) ScanInt32(index int) (value int32, isNull bool, err error) {
+	ctype := s.ColumnType(index)
+	if ctype == Null {
+		isNull = true
+	} else {
+		if s.CheckTypeMismatch {
+			err = s.checkTypeMismatch(ctype, Integer)
+		}
+		value = int32(C.sqlite3_column_int(s.stmt, C.int(index)))
 	}
 	return
 }

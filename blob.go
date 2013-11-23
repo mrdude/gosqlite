@@ -32,7 +32,7 @@ type BlobReadWriter struct {
 }
 
 // ZeroBlobLength is used to reserve space for a BLOB that is later written.
-type ZeroBlobLength int
+type ZeroBlobLength int32
 
 // NewBlobReader opens a BLOB for incremental I/O in read-only mode.
 //
@@ -117,6 +117,7 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 }
 
 // Seek sets the offset for the next Read or Write to offset.
+// SQLite is limited to 32-bits offset.
 func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0: // SEEK_SET

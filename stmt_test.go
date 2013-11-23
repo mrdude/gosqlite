@@ -7,9 +7,11 @@ package sqlite_test
 import (
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
+	"math"
 	"reflect"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func checkFinalize(s *Stmt, t *testing.T) {
@@ -467,5 +469,21 @@ func TestColumnType(t *testing.T) {
 	for col := 0; col < s.ColumnCount(); col++ {
 		//println(col, s.ColumnName(col), s.ColumnOriginName(col), s.ColumnType(col), s.ColumnDeclaredType(col))
 		assert.Equal(t, Null, s.ColumnType(col), "column type")
+	}
+}
+
+func TestIntOnArch64(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	createTable(db, t)
+	if unsafe.Sizeof(int(0)) > 4 {
+		var i int = math.MaxInt64
+		err := db.Exec("INSERT INTO test (int_num) VALUES (?)", i)
+		checkNoError(t, err, "insert error: %s")
+		var r int
+		err = db.OneValue("SELECT int_num FROM test", &r)
+		checkNoError(t, err, "select error: %s")
+		assert.Equal(t, i, r, "int truncated")
 	}
 }
