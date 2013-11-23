@@ -51,7 +51,7 @@ func (d *impl) Open(name string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.BusyTimeout(time.Duration(10) * time.Second)
+	c.BusyTimeout(10 * time.Second)
 	return &conn{c}, nil
 }
 

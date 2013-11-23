@@ -263,7 +263,7 @@ func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
 }
 
 // IndexColumns returns one description for each column in the named index.
-// Only Column.Cid and Column.Name are specified. All other fields are unspecifed.
+// Only Column.Cid and Column.Name are specified. All other fields are unspecified.
 // (See http://www.sqlite.org/pragma.html#pragma_index_info)
 func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	var pragma string

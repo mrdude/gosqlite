@@ -103,11 +103,11 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 	if r.offset >= size {
 		return 0, io.EOF
 	}
-	if len(v) > (size - r.offset) {
-		v = v[0 : size-r.offset]
+	n := size - r.offset
+	if len(v) < n {
+		n = len(v)
 	}
 	p := &v[0]
-	n := len(v)
 	rv := C.sqlite3_blob_read(r.bl, unsafe.Pointer(p), C.int(n), C.int(r.offset))
 	if rv != C.SQLITE_OK {
 		return 0, r.c.error(rv, "BlobReader.Read")
@@ -131,7 +131,7 @@ func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 		}
 		r.offset = size + int(offset)
 	default:
-		return 0, r.c.specificError("Bad seekMode")
+		return 0, r.c.specificError("Bad seekMode: %d", whence)
 	}
 	return int64(r.offset), nil
 }
@@ -162,12 +162,13 @@ func (w *BlobReadWriter) Write(v []byte) (int, error) {
 		return 0, io.EOF
 	}
 	/* Write must return a non-nil error if it returns n < len(v) */
-	if len(v) > (size - w.offset) {
-		v = v[0 : size-w.offset]
+	n := size - w.offset
+	if len(v) <= n {
+		n = len(v)
+	} else {
 		err = io.EOF
 	}
 	p := &v[0]
-	n := len(v)
 	rv := C.sqlite3_blob_write(w.bl, unsafe.Pointer(p), C.int(n), C.int(w.offset))
 	if rv != C.SQLITE_OK {
 		return 0, w.c.error(rv, "BlobReadWiter.Write")
