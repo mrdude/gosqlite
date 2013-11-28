@@ -52,8 +52,10 @@ func (b *Backup) Step(npage int) error {
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
 	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked { // TODO Trace busy/locked errors
 		return nil
+	} else if rv == C.SQLITE_DONE {
+		return Errno(rv)
 	}
-	return Errno(rv)
+	return b.dst.error(rv, "backup step failed")
 }
 
 // BackupStatus reports backup progression
@@ -112,7 +114,7 @@ func (b *Backup) Close() error {
 	}
 	rv := C.sqlite3_backup_finish(b.sb)
 	if rv != C.SQLITE_OK {
-		return Errno(rv)
+		return b.dst.error(rv, "backup finish failed")
 	}
 	b.sb = nil
 	return nil
