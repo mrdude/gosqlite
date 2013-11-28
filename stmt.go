@@ -159,7 +159,7 @@ func (s *Stmt) exec() error {
 	err := Errno(rv)
 	if err != Done {
 		if err == Row {
-			return s.error(rv, "Don't use exec with anything that returns data such as SELECT")
+			return s.specificError("Don't use exec with anything that returns data such as SELECT")
 		}
 		return s.error(rv, "Stmt.exec")
 	}
@@ -603,7 +603,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 	if ok {
 		return index, nil
 	}
-	return -1, s.specificError("invalid column name: %s", name)
+	return -1, s.specificError("invalid column name: %q", name)
 }
 
 // ScanByName scans result value from a query.
@@ -1059,14 +1059,14 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.specificError("type mismatch, source %s vs target %s", source, target)
+			return s.specificError("type mismatch, source %q vs target %q", source, target)
 		}
 	case Float:
 		switch source {
 		case Text:
 			fallthrough
 		case Blob:
-			return s.specificError("type mismatch, source %s vs target %s", source, target)
+			return s.specificError("type mismatch, source %q vs target %q", source, target)
 		}
 	}
 	return nil

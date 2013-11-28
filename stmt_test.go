@@ -137,6 +137,7 @@ func TestNamedScanColumn(t *testing.T) {
 
 	_, err = s.ScanByName("invalid", &i1)
 	assert.T(t, err != nil, "expected invalid name")
+	//println(err.Error())
 }
 
 func TestScanCheck(t *testing.T) {
@@ -270,8 +271,9 @@ func TestStmtExecWithSelect(t *testing.T) {
 
 	err = s.Exec()
 	assert.T(t, err != nil, "error expected")
+	//println(err.Error())
 	if serr, ok := err.(*StmtError); ok {
-		assert.Equal(t, Row, serr.Code())
+		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
 		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
 	}

@@ -117,7 +117,7 @@ func (c *FunctionContext) Result(r interface{}) {
 	case Errno:
 		c.ResultErrorCode(r)
 	default:
-		panic(fmt.Sprintf("unsupported type in Result: %s", reflect.TypeOf(r)))
+		panic(fmt.Sprintf("unsupported type in Result: %q", reflect.TypeOf(r)))
 	}
 }
 

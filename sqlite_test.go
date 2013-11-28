@@ -196,7 +196,7 @@ func TestConnExecWithSelect(t *testing.T) {
 	err := db.Exec("SELECT 1")
 	assert.T(t, err != nil, "error expected")
 	if serr, ok := err.(*StmtError); ok {
-		assert.Equal(t, Row, serr.Code())
+		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
 		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
 	}
@@ -244,6 +244,7 @@ func TestExecMisuse(t *testing.T) {
 	createTable(db, t)
 	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
 	assert.T(t, err != nil, "exec misuse expected")
+	//println(err.Error())
 }
 
 func TestTransaction(t *testing.T) {

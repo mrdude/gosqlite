@@ -30,9 +30,9 @@ import (
 
 type ConnError struct {
 	c       *Conn
-	code    Errno
-	msg     string
-	details string
+	code    Errno  // thread safe error code
+	msg     string // it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to retrieve this message.
+	details string // contextual informations, thread safe
 }
 
 func (e *ConnError) Code() Errno {
@@ -51,9 +51,9 @@ func (e *ConnError) Filename() string {
 
 func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often redundant...
 	if len(e.details) > 0 {
-		return fmt.Sprintf("%s; %s (%s)", e.code.Error(), e.msg, e.details)
+		return fmt.Sprintf("%s (%s) (%s)", e.msg, e.details, e.code.Error())
 	} else if len(e.msg) > 0 {
-		return fmt.Sprintf("%s; %s", e.code.Error(), e.msg)
+		return fmt.Sprintf("%s (%s)", e.msg, e.code.Error())
 	}
 	return e.code.Error()
 }
@@ -66,7 +66,7 @@ func (e Errno) Error() string {
 	if e == ErrSpecific {
 		s = "Wrapper specific error"
 	} else {
-		s = C.GoString(C.sqlite3_errstr(C.int(e)))
+		s = C.GoString(C.sqlite3_errstr(C.int(e))) // thread safe
 	}
 	if s == "" {
 		return fmt.Sprintf("errno %d", int(e))
@@ -297,7 +297,7 @@ func (c *Conn) Readonly(dbName string) (bool, error) {
 	defer C.free(unsafe.Pointer(cname))
 	rv := C.sqlite3_db_readonly(c.db, cname)
 	if rv == -1 {
-		return false, c.error(C.SQLITE_ERROR, fmt.Sprintf("%q is not the name of a database", dbName))
+		return false, c.specificError("%q is not the name of a database", dbName)
 	}
 	return rv == 1, nil
 }
