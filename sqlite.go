@@ -322,21 +322,23 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 			cmd = s.tail
 			continue
 		}
-		err = s.Exec(args...)
+		var subargs []interface{}
+		count := s.BindParameterCount()
+		if len(s.tail) > 0 && len(args) >= count {
+			subargs = args[:count]
+			args = args[count:]
+		} else {
+			subargs = args
+		}
+		err = s.Exec(subargs...)
 		if err != nil {
 			s.finalize()
 			return err
 		}
-		if len(s.tail) > 0 {
-			if len(args) > 0 {
-				s.finalize()
-				return c.specificError("cannot execute multiple statements when args are specified: %q", cmd)
-			}
-		}
-		cmd = s.tail
 		if err = s.finalize(); err != nil {
 			return err
 		}
+		cmd = s.tail
 	}
 	return nil
 }

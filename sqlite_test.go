@@ -247,6 +247,16 @@ func TestExecMisuse(t *testing.T) {
 	//println(err.Error())
 }
 
+func TestExecTwice(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)",
+		0, 273.1, 1, "test",
+		1, 2257, 2, nil)
+	checkNoError(t, err, "Exec error: %s")
+}
+
 func TestTransaction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
