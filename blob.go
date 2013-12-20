@@ -117,6 +117,7 @@ func (r *BlobReader) Read(v []byte) (int, error) {
 }
 
 // Seek sets the offset for the next Read or Write to offset.
+// Tell is possible with Seek(0, os.SEEK_CUR).
 // SQLite is limited to 32-bits offset.
 func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 	size, err := r.Size()
