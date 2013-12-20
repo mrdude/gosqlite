@@ -489,3 +489,12 @@ func TestIntOnArch64(t *testing.T) {
 		assert.Equal(t, i, r, "int truncated")
 	}
 }
+
+func TestBlankQuery(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+}

@@ -135,7 +135,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 		return s, nil
 	}
 	s, err := c.prepare(cmd, args...)
-	if s != nil {
+	if s != nil && s.stmt != nil {
 		s.Cacheable = true
 	}
 	return s, err
