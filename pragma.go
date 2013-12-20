@@ -65,7 +65,7 @@ func (c *Conn) SchemaVersion(dbName string) (int, error) {
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_recursive_triggers)
 func (c *Conn) SetRecursiveTriggers(dbName string, on bool) error {
-	return c.exec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t", on)))
+	return c.FastExec(pragma(dbName, fmt.Sprintf("recursive_triggers=%t", on)))
 }
 
 // JournalMode queries the current journaling mode for database.
@@ -132,7 +132,7 @@ func (c *Conn) Synchronous(dbName string) (int, error) {
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_synchronous)
 func (c *Conn) SetSynchronous(dbName string, mode int) error {
-	return c.exec(pragma(dbName, fmt.Sprintf("synchronous=%d", mode)))
+	return c.FastExec(pragma(dbName, fmt.Sprintf("synchronous=%d", mode)))
 }
 
 // FkViolation is the description of one foreign key constraint violation.
@@ -200,7 +200,7 @@ func (c *Conn) QueryOnly(dbName string) (bool, error) {
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_query_only)
 func (c *Conn) SetQueryOnly(dbName string, mode bool) error {
-	return c.exec(pragma(dbName, fmt.Sprintf("query_only=%t", mode)))
+	return c.FastExec(pragma(dbName, fmt.Sprintf("query_only=%t", mode)))
 }
 
 // ApplicationId queries the "Application ID" integer located into the database header.
@@ -219,7 +219,7 @@ func (c *Conn) ApplicationId(dbName string) (int, error) {
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_application_id)
 func (c *Conn) SetApplicationId(dbName string, id int) error {
-	return c.exec(pragma(dbName, fmt.Sprintf("application_id=%d", id)))
+	return c.FastExec(pragma(dbName, fmt.Sprintf("application_id=%d", id)))
 }
 
 func pragma(dbName, pragmaName string) string {

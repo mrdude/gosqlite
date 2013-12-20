@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	. "github.com/gwenn/gosqlite"
+	"strings"
 	"testing"
 )
 
@@ -140,4 +141,28 @@ func BenchmarkNamedInsert(b *testing.B) {
 		Must(s.Next())
 	}
 	panicOnError(b, db.Commit())
+}
+
+func BenchmarkExec(b *testing.B) {
+	b.StopTimer()
+	db, err := Open(":memory:")
+	panicOnError(b, err)
+	defer db.Close()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		panicOnError(b, db.Exec(strings.Repeat("BEGIN;ROLLBACK;", 5)))
+	}
+}
+
+func BenchmarkFastExec(b *testing.B) {
+	b.StopTimer()
+	db, err := Open(":memory:")
+	panicOnError(b, err)
+	defer db.Close()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		panicOnError(b, db.FastExec(strings.Repeat("BEGIN;ROLLBACK;", 5)))
+	}
 }

@@ -310,7 +310,7 @@ func (c *Conn) Filename(dbName string) string {
 	return C.GoString(C.sqlite3_db_filename(c.db, cname))
 }
 
-// Exec prepares and executes one parameterized statement or many statements (separated by semi-colon).
+// Exec prepares and executes one or many parameterized statement(s) (separated by semi-colon).
 // Don't use it with SELECT or anything that returns data.
 func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	for len(cmd) > 0 {
@@ -422,11 +422,11 @@ func (c *Conn) Begin() error {
 // (See http://www.sqlite.org/lang_transaction.html)
 func (c *Conn) BeginTransaction(t TransactionType) error {
 	if t == Deferred {
-		return c.exec("BEGIN")
+		return c.FastExec("BEGIN")
 	} else if t == Immediate {
-		return c.exec("BEGIN IMMEDIATE")
+		return c.FastExec("BEGIN IMMEDIATE")
 	} else if t == Exclusive {
-		return c.exec("BEGIN EXCLUSIVE")
+		return c.FastExec("BEGIN EXCLUSIVE")
 	}
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
 	return nil // Go 1.1 unreachable code
@@ -435,13 +435,13 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 // Commit commits transaction
 func (c *Conn) Commit() error {
 	// TODO Check autocommit?
-	return c.exec("COMMIT")
+	return c.FastExec("COMMIT")
 }
 
 // Rollback rollbacks transaction
 func (c *Conn) Rollback() error {
 	// TODO Check autocommit?
-	return c.exec("ROLLBACK")
+	return c.FastExec("ROLLBACK")
 }
 
 // Transaction is used to execute a function inside an SQLite database transaction.
@@ -492,19 +492,19 @@ func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (err error)
 // Savepoint starts a new transaction with a name.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) Savepoint(name string) error {
-	return c.exec(Mprintf("SAVEPOINT %Q", name))
+	return c.FastExec(Mprintf("SAVEPOINT %Q", name))
 }
 
 // ReleaseSavepoint causes all savepoints back to and including the most recent savepoint with a matching name to be removed from the transaction stack.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) ReleaseSavepoint(name string) error {
-	return c.exec(Mprintf("RELEASE %Q", name))
+	return c.FastExec(Mprintf("RELEASE %Q", name))
 }
 
 // RollbackSavepoint reverts the state of the database back to what it was just before the corresponding SAVEPOINT.
 // (See http://sqlite.org/lang_savepoint.html)
 func (c *Conn) RollbackSavepoint(name string) error {
-	return c.exec(Mprintf("ROLLBACK TO SAVEPOINT %Q", name))
+	return c.FastExec(Mprintf("ROLLBACK TO SAVEPOINT %Q", name))
 }
 
 func (c *Conn) exec(cmd string) error {
@@ -514,10 +514,17 @@ func (c *Conn) exec(cmd string) error {
 	}
 	defer s.finalize()
 	rv := C.sqlite3_step(s.stmt)
-	if Errno(rv) != Done {
+	if Errno(rv) != Done { // this check cannot be done with sqlite3_exec
 		return s.error(rv, "Conn.exec(%q)", cmd)
 	}
 	return nil
+}
+
+// FastExec executes one or many non-parameterized statement(s) (separated by semi-colon) with no control and no stmt cache.
+func (c *Conn) FastExec(cmd string) error {
+	cmdstr := C.CString(cmd)
+	defer C.free(unsafe.Pointer(cmdstr))
+	return c.error(C.sqlite3_exec(c.db, cmdstr, nil, nil, nil))
 }
 
 // Close closes a database connection and any dangling statements.
