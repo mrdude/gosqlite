@@ -5,13 +5,14 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"math"
 	"reflect"
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func checkFinalize(s *Stmt, t *testing.T) {
@@ -480,7 +481,7 @@ func TestIntOnArch64(t *testing.T) {
 
 	createTable(db, t)
 	if unsafe.Sizeof(int(0)) > 4 {
-		var i int = math.MaxInt64
+		var i = math.MaxInt64
 		err := db.Exec("INSERT INTO test (int_num) VALUES (?)", i)
 		checkNoError(t, err, "insert error: %s")
 		var r int

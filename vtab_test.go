@@ -6,9 +6,10 @@ package sqlite_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
-	"testing"
 )
 
 type testModule struct {
@@ -87,7 +88,7 @@ func (vc *testVTabCursor) Eof() bool {
 func (vc *testVTabCursor) Column(c *Context, col int) error {
 	//fmt.Printf("testVTabCursor.Column(%d): %v\n", col, vc)
 	if col != 0 {
-		return fmt.Errorf("Column index out of bounds: %d", col)
+		return fmt.Errorf("column index out of bounds: %d", col)
 	}
 	c.ResultInt(vc.vTab.intarray[vc.index])
 	return nil

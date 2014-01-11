@@ -50,7 +50,7 @@ func (t *UnixTime) Scan(src interface{}) error {
 		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
 		return nil
 	}
-	return fmt.Errorf("Unsupported UnixTime src: %T", src)
+	return fmt.Errorf("unsupported UnixTime src: %T", src)
 }
 
 // Value implements the database/sql/driver/Valuer interface
@@ -73,7 +73,7 @@ func (t *JulianTime) Scan(src interface{}) error {
 		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
 		return nil
 	}
-	return fmt.Errorf("Unsupported JulianTime src: %T", src)
+	return fmt.Errorf("unsupported JulianTime src: %T", src)
 }
 
 // Value implements the database/sql/driver/Valuer interface
@@ -100,7 +100,7 @@ func (t *TimeStamp) Scan(src interface{}) error {
 		*t = TimeStamp(v)
 		return nil
 	}
-	return fmt.Errorf("Unsupported TimeStamp src: %T", src)
+	return fmt.Errorf("unsupported TimeStamp src: %T", src)
 }
 
 // Value implements the database/sql/driver/Valuer interface

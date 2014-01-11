@@ -142,7 +142,7 @@ func (s *stmt) RowsAffected() (int64, error) {
 
 func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
 	if s.rowsRef {
-		return nil, errors.New("Previously returned Rows still not closed")
+		return nil, errors.New("previously returned Rows still not closed")
 	}
 	if err := s.bind(args); err != nil {
 		return nil, err

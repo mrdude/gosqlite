@@ -4,7 +4,7 @@ Yet another SQLite binding based on:
 
 This binding implements the "database/sql/driver" interface.
 
-See [package documentation](http://godoc.org/github.com/gwenn/gosqlite).
+[![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.png)](https://godoc.org/github.com/gwenn/gosqlite)
 
 [![Build Status][1]][2]
 
