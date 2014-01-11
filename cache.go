@@ -41,10 +41,6 @@ func (c *cache) find(sql string) *Stmt {
 		s := e.Value.(*Stmt)
 		if s.SQL() == sql { // TODO s.SQL() may have been trimmed by SQLite
 			c.l.Remove(e)
-			if err := s.ClearBindings(); err != nil {
-				s.finalize()
-				return nil
-			}
 			return s
 		}
 	}
@@ -59,6 +55,10 @@ func (c *cache) release(s *Stmt) error {
 	if err := s.Reset(); err != nil {
 		s.finalize()
 		return err
+	}
+	if err := s.ClearBindings(); err != nil {
+		s.finalize()
+		return nil
 	}
 	c.m.Lock()
 	defer c.m.Unlock()
