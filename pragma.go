@@ -32,7 +32,7 @@ func (c *Conn) IntegrityCheck(dbName string, max int, quick bool) error {
 		return err
 	}
 	if msg != "ok" {
-		return c.specificError("Integrity check failed on %q (%s)", dbName, msg)
+		return c.specificError("integrity check failed on %q (%s)", dbName, msg)
 	}
 	return nil
 }

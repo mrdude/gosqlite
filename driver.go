@@ -58,14 +58,21 @@ func (d *impl) Open(name string) (driver.Conn, error) {
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
+	if len(args) == 0 {
+		if err := c.c.FastExec(query); err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
 	// https://code.google.com/p/go-wiki/wiki/cgo#Turning_C_arrays_into_Go_slices
 	var iargs []interface{}
-	if len(args) > 0 {
-		h := (*reflect.SliceHeader)(unsafe.Pointer(&iargs))
-		h.Data = uintptr(unsafe.Pointer(&args[0]))
-		h.Len = len(args)
-		h.Cap = cap(args)
-	}
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&iargs))
+	h.Data = uintptr(unsafe.Pointer(&args[0]))
+	h.Len = len(args)
+	h.Cap = cap(args)
 	if err := c.c.Exec(query, iargs...); err != nil {
 		return nil, err
 	}
@@ -83,6 +90,9 @@ func (c *conn) RowsAffected() (int64, error) {
 }
 
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
 	s, err := c.c.Prepare(query)
 	if err != nil {
 		return nil, err
@@ -95,6 +105,9 @@ func (c *conn) Close() error {
 }
 
 func (c *conn) Begin() (driver.Tx, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
 	if err := c.c.Begin(); err != nil {
 		return nil, err
 	}

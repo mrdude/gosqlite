@@ -159,7 +159,7 @@ func (s *Stmt) exec() error {
 	err := Errno(rv)
 	if err != Done {
 		if err == Row {
-			return s.specificError("Don't use exec with anything that returns data such as SELECT")
+			return s.specificError("don't use exec with anything that returns data such as %q", s.SQL())
 		}
 		return s.error(rv, "Stmt.exec")
 	}

@@ -64,7 +64,7 @@ type Errno int
 func (e Errno) Error() string {
 	var s string
 	if e == ErrSpecific {
-		s = "Wrapper specific error"
+		s = "wrapper specific error"
 	} else {
 		s = C.GoString(C.sqlite3_errstr(C.int(e))) // thread safe
 	}

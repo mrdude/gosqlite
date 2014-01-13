@@ -127,21 +127,21 @@ func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0: // SEEK_SET
 		if offset < 0 || offset > int64(size) {
-			return 0, r.c.specificError("Invalid offset: %d", offset)
+			return 0, r.c.specificError("invalid offset: %d", offset)
 		}
 		r.offset = int32(offset)
 	case 1: // SEEK_CUR
 		if (int64(r.offset)+offset) < 0 || (int64(r.offset)+offset) > int64(size) {
-			return 0, r.c.specificError("Invalid offset: %d", offset)
+			return 0, r.c.specificError("invalid offset: %d", offset)
 		}
 		r.offset += int32(offset)
 	case 2: // SEEK_END
 		if (int64(size)+offset) < 0 || offset > 0 {
-			return 0, r.c.specificError("Invalid offset: %d", offset)
+			return 0, r.c.specificError("invalid offset: %d", offset)
 		}
 		r.offset = size + int32(offset)
 	default:
-		return 0, r.c.specificError("Bad seekMode: %d", whence)
+		return 0, r.c.specificError("bad seekMode: %d", whence)
 	}
 	return int64(r.offset), nil
 }
