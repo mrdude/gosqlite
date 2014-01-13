@@ -163,6 +163,9 @@ func (s *Stmt) exec() error {
 		}
 		return s.error(rv, "Stmt.exec")
 	}
+	if s.ColumnCount() > 0 {
+		return s.specificError("don't use exec with anything that returns data such as %q", s.SQL())
+	}
 	return nil
 }
 
@@ -211,6 +214,9 @@ func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error, args ...interface{
 			return err
 		}
 	}
+	if s.ColumnCount() == 0 {
+		return s.specificError("don't use Select with query that returns no data such as %q", s.SQL())
+	}
 	for {
 		if ok, err := s.Next(); err != nil {
 			return err
@@ -233,6 +239,9 @@ func (s *Stmt) SelectOneRow(args ...interface{}) (bool, error) {
 	if ok, err := s.Next(); err != nil {
 		return false, err
 	} else if !ok {
+		if s.ColumnCount() == 0 {
+			return false, s.specificError("don't use SelectOneRow with query that returns no data such as %q", s.SQL())
+		}
 		return false, nil
 	}
 	return true, s.Scan(args...)

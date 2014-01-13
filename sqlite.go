@@ -350,7 +350,14 @@ func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 		return false, err
 	}
 	defer s.Finalize()
-	return s.Next()
+	ok, err := s.Next()
+	if err != nil {
+		return false, err
+	}
+	if s.ColumnCount() == 0 {
+		return false, s.specificError("don't use Exists with query that returns no data such as %q", query)
+	}
+	return ok, nil
 }
 
 // OneValue is used with SELECT that returns only one row with only one column.
@@ -366,6 +373,9 @@ func (c *Conn) OneValue(query string, value interface{}, args ...interface{}) er
 	if err != nil {
 		return err
 	} else if !b {
+		if s.ColumnCount() == 0 {
+			return s.specificError("don't use OneValue with query that returns no data such as %q", query)
+		}
 		return io.EOF
 	}
 	return s.Scan(value)

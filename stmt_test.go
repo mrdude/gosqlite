@@ -291,8 +291,14 @@ func TestStmtSelectWithInsert(t *testing.T) {
 	defer s.Finalize()
 
 	exists, err := s.SelectOneRow()
-	checkNoError(t, err, "SELECT error: %s")
-	assert.T(t, !exists, "no row expected")
+	assert.T(t, err != nil, "error expected")
+	//println(err.Error())
+	if serr, ok := err.(*StmtError); ok {
+		assert.Equal(t, ErrSpecific, serr.Code())
+	} else {
+		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+	}
+	assert.T(t, !exists, "false expected")
 }
 
 func TestNamedBind(t *testing.T) {
