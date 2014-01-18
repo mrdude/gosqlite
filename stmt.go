@@ -339,10 +339,6 @@ var NullIfEmptyString = true
 // NullIfZeroTime transforms zero time (time.Time.IsZero) to null when true (true by default)
 var NullIfZeroTime = true
 
-// DefaultTimeLayout specifies the layout used to persist time ("2006-01-02 15:04:05.999Z07:00" by default).
-// Using type alias implementing the Scanner/Valuer interfaces is suggested...
-var DefaultTimeLayout = "2006-01-02 15:04:05.999Z07:00"
-
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // Value's type/kind is used to find the storage class.
 // The leftmost SQL parameter has an index of 1.
@@ -388,7 +384,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			rv = C.sqlite3_bind_null(s.stmt, i)
 		} else {
 			//rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
-			cs, l := cstring(value.Format(DefaultTimeLayout))
+			cs, l := cstring(value.Format(s.c.DefaultTimeLayout))
 			rv = C.my_bind_text(s.stmt, i, cs, l)
 		}
 	case ZeroBlobLength:
@@ -823,9 +819,6 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 	return isNull, err
 }
 
-// ScanNumericalAsTime tells the driver to try to parse column with NUMERIC affinity as time.Time (using the DefaultTimeLayout)
-var ScanNumericalAsTime = false
-
 // ScanValue scans result value from a query.
 // The leftmost column/index is number 0.
 //
@@ -844,10 +837,10 @@ func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
 	case Null:
 		return nil, true
 	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
-		if ScanNumericalAsTime && s.ColumnTypeAffinity(index) == Numerical {
+		if s.c.ScanNumericalAsTime && s.ColumnTypeAffinity(index) == Numerical {
 			p := C.sqlite3_column_text(s.stmt, C.int(index))
 			txt := C.GoString((*C.char)(unsafe.Pointer(p)))
-			value, err := time.Parse(DefaultTimeLayout, txt)
+			value, err := time.Parse(s.c.DefaultTimeLayout, txt)
 			if err == nil {
 				return value, false
 			}

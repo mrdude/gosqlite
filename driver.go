@@ -52,6 +52,7 @@ func (d *impl) Open(name string) (driver.Conn, error) {
 		return nil, err
 	}
 	c.BusyTimeout(10 * time.Second)
+	c.ScanNumericalAsTime = true
 	return &conn{c}, nil
 }
 

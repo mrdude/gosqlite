@@ -156,6 +156,11 @@ type Conn struct {
 	modules         map[string]*sqliteModule
 	timeUsed        time.Time
 	nTransaction    uint8
+	// DefaultTimeLayout specifies the layout used to persist time ("2006-01-02 15:04:05.999Z07:00" by default).
+	// Using type alias implementing the Scanner/Valuer interfaces is suggested...
+	DefaultTimeLayout string
+	// ScanNumericalAsTime tells the driver to try to parse column with NUMERIC affinity as time.Time (using the DefaultTimeLayout)
+	ScanNumericalAsTime bool
 }
 
 // Version returns the run-time library version number
@@ -220,7 +225,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
 	}
-	c := &Conn{db: db, stmtCache: newCache()}
+	c := &Conn{db: db, stmtCache: newCache(), DefaultTimeLayout: "2006-01-02 15:04:05.999Z07:00"}
 	if os.Getenv("SQLITE_DEBUG") != "" {
 		c.SetAuthorizer(authorizer, c.db)
 		c.SetCacheSize(0)
