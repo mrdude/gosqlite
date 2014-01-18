@@ -38,7 +38,7 @@ func JulianDay(t time.Time) float64 {
 	return ns/dayInSeconds + julianDay
 }
 
-// UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost) (default)
+// UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost)
 type UnixTime time.Time
 
 // Scan implements the database/sql/Scanner interface.

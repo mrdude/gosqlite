@@ -74,6 +74,9 @@ func (s *Stmt) specificError(msg string, a ...interface{}) error {
 	return &StmtError{ConnError{c: s.c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}, s}
 }
 
+// CheckTypeMismatch enables type check in Scan methods (default true)
+var CheckTypeMismatch bool = true
+
 // SQL statement
 // (See http://sqlite.org/c3ref/stmt.html)
 type Stmt struct {
@@ -85,8 +88,7 @@ type Stmt struct {
 	cols               map[string]int // cached columns index by name
 	bindParameterCount int
 	params             map[string]int // cached parameter index by name
-	// Enable type check in Scan methods (default true)
-	CheckTypeMismatch bool
+	affinities         []Affinity     // cached columns type affinity
 	// Tell if the stmt should be cached (default true)
 	Cacheable bool
 }
@@ -108,7 +110,7 @@ func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	if tail != nil && C.strlen(tail) > 0 {
 		t = C.GoString(tail)
 	}
-	s := &Stmt{c: c, stmt: stmt, tail: t, columnCount: -1, bindParameterCount: -1, CheckTypeMismatch: true}
+	s := &Stmt{c: c, stmt: stmt, tail: t, columnCount: -1, bindParameterCount: -1}
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
@@ -337,6 +339,10 @@ var NullIfEmptyString = true
 // NullIfZeroTime transforms zero time (time.Time.IsZero) to null when true (true by default)
 var NullIfZeroTime = true
 
+// DefaultTimeLayout specifies the layout used to persist time ("2006-01-02 15:04:05.999Z07:00" by default).
+// Using type alias implementing the Scanner/Valuer interfaces is suggested...
+var DefaultTimeLayout = "2006-01-02 15:04:05.999Z07:00"
+
 // BindByIndex binds value to the specified host parameter of the prepared statement.
 // Value's type/kind is used to find the storage class.
 // The leftmost SQL parameter has an index of 1.
@@ -381,7 +387,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		if NullIfZeroTime && value.IsZero() {
 			rv = C.sqlite3_bind_null(s.stmt, i)
 		} else {
-			rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
+			//rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
+			cs, l := cstring(value.Format(DefaultTimeLayout))
+			rv = C.my_bind_text(s.stmt, i, cs, l)
 		}
 	case ZeroBlobLength:
 		rv = C.sqlite3_bind_zeroblob(s.stmt, i, C.int(value))
@@ -815,6 +823,9 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 	return isNull, err
 }
 
+// ScanNumericalAsTime tells the driver to try to parse column with NUMERIC affinity as time.Time (using the DefaultTimeLayout)
+var ScanNumericalAsTime = false
+
 // ScanValue scans result value from a query.
 // The leftmost column/index is number 0.
 //
@@ -832,7 +843,16 @@ func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
 	switch s.ColumnType(index) {
 	case Null:
 		return nil, true
-	case Text:
+	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
+		if ScanNumericalAsTime && s.ColumnTypeAffinity(index) == Numerical {
+			p := C.sqlite3_column_text(s.stmt, C.int(index))
+			txt := C.GoString((*C.char)(unsafe.Pointer(p)))
+			value, err := time.Parse(DefaultTimeLayout, txt)
+			if err == nil {
+				return value, false
+			}
+			Log(-1, err.Error())
+		}
 		if blob {
 			p := C.sqlite3_column_blob(s.stmt, C.int(index))
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
@@ -842,7 +862,7 @@ func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
 		return C.GoString((*C.char)(unsafe.Pointer(p))), false
 	case Integer:
 		return int64(C.sqlite3_column_int64(s.stmt, C.int(index))), false
-	case Float:
+	case Float: // does not work as expected if column type affinity is REAL but inserted value was an integer
 		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false
 	case Blob:
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
@@ -884,7 +904,7 @@ func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		if i64 {
@@ -906,7 +926,7 @@ func (s *Stmt) ScanInt32(index int) (value int32, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = int32(C.sqlite3_column_int(s.stmt, C.int(index)))
@@ -923,7 +943,7 @@ func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
@@ -940,7 +960,7 @@ func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = byte(C.sqlite3_column_int(s.stmt, C.int(index)))
@@ -957,7 +977,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
 		value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
@@ -974,7 +994,7 @@ func (s *Stmt) ScanDouble(index int) (value float64, isNull bool, err error) {
 	if ctype == Null {
 		isNull = true
 	} else {
-		if s.CheckTypeMismatch {
+		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Float)
 		}
 		value = float64(C.sqlite3_column_double(s.stmt, C.int(index)))
@@ -1003,11 +1023,12 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 // If time is persisted as numeric, local is used.
 // The leftmost column/index is number 0.
 // Returns true when column is null.
+// The column type affinity must be consistent with the format used (INTEGER or NUMERIC or NONE for unix time, REAL or NONE for julian day).
 func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 	switch s.ColumnType(index) {
 	case Null:
 		isNull = true
-	case Text:
+	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
 		txt := C.GoString((*C.char)(unsafe.Pointer(p)))
 		var layout string
@@ -1049,7 +1070,7 @@ func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 	case Integer:
 		unixepoch := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
 		value = time.Unix(unixepoch, 0) // local time
-	case Float:
+	case Float: // does not work as expected if column affinity is REAL but inserted value was an integer
 		jd := float64(C.sqlite3_column_double(s.stmt, C.int(index)))
 		value = JulianDayToLocalTime(jd) // local time
 	default:
@@ -1063,16 +1084,16 @@ func (s *Stmt) checkTypeMismatch(source, target Type) error {
 	switch target {
 	case Integer:
 		switch source {
-		case Float:
+		case Float: // does not work if column type affinity is REAL but inserted value was an integer
 			fallthrough
-		case Text:
+		case Text: // does not work if column type affinity is TEXT but inserted value was an integer
 			fallthrough
 		case Blob:
 			return s.specificError("type mismatch, source %q vs target %q", source, target)
 		}
 	case Float:
 		switch source {
-		case Text:
+		case Text: // does not work if column type affinity is TEXT but inserted value was a real
 			fallthrough
 		case Blob:
 			return s.specificError("type mismatch, source %q vs target %q", source, target)

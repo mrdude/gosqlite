@@ -475,9 +475,11 @@ func TestColumnType(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 
+	expectedAffinities := []Affinity{Integral, Real, Integral, Textual}
 	for col := 0; col < s.ColumnCount(); col++ {
 		//println(col, s.ColumnName(col), s.ColumnOriginName(col), s.ColumnType(col), s.ColumnDeclaredType(col))
 		assert.Equal(t, Null, s.ColumnType(col), "column type")
+		assert.Equal(t, expectedAffinities[col], s.ColumnTypeAffinity(col), "column type affinity")
 	}
 }
 

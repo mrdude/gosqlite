@@ -5,9 +5,10 @@
 package sqlite_test
 
 import (
+	"testing"
+
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
-	"testing"
 )
 
 func createIndex(db *Conn, t *testing.T) {
@@ -134,4 +135,6 @@ func TestColumnMetadata(t *testing.T) {
 	assert.Equal(t, "name", originName, "origin name")
 	declType := s.ColumnDeclaredType(0)
 	assert.Equal(t, "text", declType, "declared type")
+	affinity := s.ColumnTypeAffinity(0)
+	assert.Equal(t, Textual, affinity, "affinity")
 }

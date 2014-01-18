@@ -5,10 +5,11 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"testing"
 	"time"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func TestJulianDay(t *testing.T) {
@@ -27,7 +28,8 @@ func TestBindTime(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	var delta int
-	err := db.OneValue("SELECT CAST(strftime('%s', 'now') AS NUMERIC) - ?", &delta, time.Now())
+	//err := db.OneValue("SELECT CAST(strftime('%s', 'now') AS NUMERIC) - ?", &delta, time.Now())
+	err := db.OneValue("SELECT datetime('now') - datetime(?)", &delta, time.Now())
 	checkNoError(t, err, "Error reading date: %#v")
 	if delta != 0 {
 		t.Errorf("Delta between Go and SQLite timestamps: %d", delta)

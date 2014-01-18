@@ -29,6 +29,7 @@ import "C"
 
 import (
 	"fmt"
+	"strings"
 	"unsafe"
 )
 
@@ -174,11 +175,58 @@ func (s *Stmt) ColumnOriginName(index int) string {
 }
 
 // ColumnDeclaredType returns the declared type of the table column of a particular result column in SELECT statement.
-// If the result column is an expression or subquery, then a NULL pointer is returned.
+// If the result column is an expression or subquery, then an empty string is returned.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_decltype.html)
 func (s *Stmt) ColumnDeclaredType(index int) string {
 	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
+}
+
+// SQLite column type affinity
+type Affinity string
+
+const (
+	Integral  = Affinity("INTEGER")
+	Real      = Affinity("REAL")
+	Numerical = Affinity("NUMERIC")
+	None      = Affinity("NONE")
+	Textual   = Affinity("TEXT")
+)
+
+// ColumnTypeAffinity returns the type affinity of the table column of a particular result column in SELECT statement.
+// If the result column is an expression or subquery, then None is returned.
+// The left-most column is column 0.
+// (See http://sqlite.org/datatype3.html)
+func (s *Stmt) ColumnTypeAffinity(index int) Affinity {
+	if s.affinities == nil {
+		count := s.ColumnCount()
+		s.affinities = make([]Affinity, count)
+	} else {
+		if affinity := s.affinities[index]; affinity != "" {
+			return affinity
+		}
+	}
+	declType := s.ColumnDeclaredType(index)
+	if declType == "" {
+		s.affinities[index] = None
+		return None
+	}
+	declType = strings.ToUpper(declType)
+	if strings.Contains(declType, "INT") {
+		s.affinities[index] = Integral
+		return Integral
+	} else if strings.Contains(declType, "TEXT") || strings.Contains(declType, "CHAR") || strings.Contains(declType, "CLOB") {
+		s.affinities[index] = Textual
+		return Textual
+	} else if strings.Contains(declType, "BLOB") {
+		s.affinities[index] = None
+		return None
+	} else if strings.Contains(declType, "REAL") || strings.Contains(declType, "FLOA") || strings.Contains(declType, "DOUB") {
+		s.affinities[index] = Real
+		return Real
+	}
+	s.affinities[index] = Numerical
+	return Numerical
 }
 
 // ForeignKey is the description of one table's foreign key
