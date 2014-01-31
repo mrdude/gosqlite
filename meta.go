@@ -56,14 +56,16 @@ func (c *Conn) Databases() (map[string]string, error) {
 	return databases, nil
 }
 
-// Tables returns tables (no view) from 'sqlite_master' and filters system tables out.
-// TODO create Views method to return views...
-func (c *Conn) Tables(dbName string) ([]string, error) {
+// Tables returns tables (no view) from 'sqlite_master'/'sqlite_temp_master' and filters system tables out.
+func (c *Conn) Tables(dbName string, temp bool) ([]string, error) {
 	var sql string
 	if len(dbName) == 0 {
-		sql = "SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%' ORDER BY 1"
+		sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY 1"
 	} else {
-		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type IN ('table') AND name NOT LIKE 'sqlite_%%' ORDER BY 1", dbName)
+		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%%' ORDER BY 1", dbName)
+	}
+	if temp {
+		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
 	}
 	s, err := c.prepare(sql)
 	if err != nil {
@@ -80,6 +82,63 @@ func (c *Conn) Tables(dbName string) ([]string, error) {
 		return nil, err
 	}
 	return tables, nil
+}
+
+// Views returns views from 'sqlite_master'/'sqlite_temp_master'.
+func (c *Conn) Views(dbName string, temp bool) ([]string, error) {
+	var sql string
+	if len(dbName) == 0 {
+		sql = "SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY 1"
+	} else {
+		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type = 'view' ORDER BY 1", dbName)
+	}
+	if temp {
+		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
+	}
+	s, err := c.prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer s.finalize()
+	var views = make([]string, 0, 20)
+	err = s.Select(func(s *Stmt) (err error) {
+		name, _ := s.ScanText(0)
+		views = append(views, name)
+		return
+	})
+	if err != nil {
+		return nil, err
+	}
+	return views, nil
+}
+
+// Indexes returns indexes from 'sqlite_master'/'sqlite_temp_master'.
+func (c *Conn) Indexes(dbName string, temp bool) (map[string]string, error) {
+	var sql string
+	if len(dbName) == 0 {
+		sql = "SELECT name, tbl_name FROM sqlite_master WHERE type = 'index'"
+	} else {
+		sql = Mprintf("SELECT name, tbl_name FROM %Q.sqlite_master WHERE type = 'index'", dbName)
+	}
+	if temp {
+		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
+	}
+	s, err := c.prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer s.finalize()
+	var indexes = make(map[string]string)
+	var name, table string
+	err = s.Select(func(s *Stmt) (err error) {
+		s.Scan(&name, &table)
+		indexes[name] = table
+		return
+	})
+	if err != nil {
+		return nil, err
+	}
+	return indexes, nil
 }
 
 // Column is the description of one table's column
@@ -281,9 +340,9 @@ type Index struct {
 	Unique bool
 }
 
-// Indexes returns one description for each index associated with the given table.
+// TableIndexes returns one description for each index associated with the given table.
 // (See http://www.sqlite.org/pragma.html#pragma_index_list)
-func (c *Conn) Indexes(dbName, table string) ([]Index, error) {
+func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 	var pragma string
 	if len(dbName) == 0 {
 		pragma = Mprintf("PRAGMA index_list(%Q)", table)

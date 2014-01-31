@@ -6,8 +6,9 @@ package sqlite_test
 
 import (
 	"fmt"
-	"github.com/gwenn/gosqlite"
 	"sync"
+
+	"github.com/gwenn/gosqlite"
 )
 
 func check(err error) {
@@ -57,7 +58,7 @@ func ExampleConn_Exec() {
 
 	err = db.Exec("CREATE TABLE test1 (content TEXT); CREATE TABLE test2 (content TEXT); INSERT INTO test1 VALUES ('DATA')")
 	check(err)
-	tables, err := db.Tables("")
+	tables, err := db.Tables("", false)
 	check(err)
 	fmt.Printf("%d tables\n", len(tables))
 	// Output: 2 tables

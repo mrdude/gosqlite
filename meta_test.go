@@ -35,14 +35,47 @@ func TestTables(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	tables, err := db.Tables("")
+	tables, err := db.Tables("", false)
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 0, len(tables), "table count")
 	createTable(db, t)
-	tables, err = db.Tables("main")
+	tables, err = db.Tables("main", false)
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 1, len(tables), "table count")
 	assert.Equal(t, "test", tables[0], "table name")
+
+	tables, err = db.Tables("", true)
+	checkNoError(t, err, "error looking for tables: %s")
+	assert.Equal(t, 0, len(tables), "table count")
+}
+
+func TestViews(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	views, err := db.Views("", false)
+	checkNoError(t, err, "error looking for views: %s")
+	assert.Equal(t, 0, len(views), "table count")
+	err = db.FastExec("CREATE VIEW myview AS SELECT 1")
+	checkNoError(t, err, "error creating for views: %s")
+	views, err = db.Views("", false)
+	checkNoError(t, err, "error looking for views: %s")
+	assert.Equal(t, 1, len(views), "table count")
+	assert.Equal(t, "myview", views[0], "table name")
+
+	views, err = db.Views("", true)
+	checkNoError(t, err, "error looking for views: %s")
+	assert.Equal(t, 0, len(views), "table count")
+}
+
+func TestIndexes(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+
+	indexes, err := db.Indexes("", false)
+	checkNoError(t, err, "error looking for indexes: %s")
+	assert.Equal(t, 0, len(indexes), "table count")
 }
 
 func TestColumns(t *testing.T) {
@@ -96,13 +129,13 @@ func TestForeignKeys(t *testing.T) {
 	}
 }
 
-func TestIndexes(t *testing.T) {
+func TestTableIndexes(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	createTable(db, t)
 	createIndex(db, t)
 
-	indexes, err := db.Indexes("", "test")
+	indexes, err := db.TableIndexes("", "test")
 	checkNoError(t, err, "error listing indexes: %s")
 	if len(indexes) != 1 {
 		t.Fatalf("Expected one index <> %d", len(indexes))

@@ -97,10 +97,10 @@ Conn.NewBlobReadWriter
 
 Meta:  
 Conn.Databases  
-Conn.Tables  
+Conn.Tables/Views/Indexes  
 Conn.Columns  
 Conn.ForeignKeys  
-Conn.Indexes/IndexColumns  
+Conn.TableIndexes/IndexColumns  
 
 Time:  
 JulianDay  

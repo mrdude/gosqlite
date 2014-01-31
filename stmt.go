@@ -75,7 +75,7 @@ func (s *Stmt) specificError(msg string, a ...interface{}) error {
 }
 
 // CheckTypeMismatch enables type check in Scan methods (default true)
-var CheckTypeMismatch bool = true
+var CheckTypeMismatch = true
 
 // SQL statement
 // (See http://sqlite.org/c3ref/stmt.html)
@@ -600,6 +600,16 @@ func (s *Stmt) SQL() string {
 	return s.sql
 }
 
+// Empty returns true when then input text contains no SQL (if the input is an empty string or a comment)
+func (s *Stmt) Empty() bool {
+	return s.stmt == nil
+}
+
+// Tail returns the unused portion of the original SQL statement.
+func (s *Stmt) Tail() string {
+	return s.tail
+}
+
 // ColumnIndex returns the column index in a result set for a given column name.
 // The leftmost column is number 0.
 // Must scan all columns (but result is cached).
@@ -1007,6 +1017,21 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
 		value = C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
+	}
+	return
+}
+
+// ScanRawBytes scans result value from a query without making any copy.
+// The leftmost column/index is number 0.
+// Returns true when column is null.
+// (See sqlite3_column_blob: http://sqlite.org/c3ref/column_blob.html)
+func (s *Stmt) ScanRawBytes(index int) (value sql.RawBytes, isNull bool) {
+	p := C.sqlite3_column_blob(s.stmt, C.int(index))
+	if p == nil {
+		isNull = true
+	} else {
+		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
+		value = sql.RawBytes((*[1 << 30]byte)(unsafe.Pointer(p))[:n])
 	}
 	return
 }
