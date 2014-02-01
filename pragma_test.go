@@ -5,8 +5,10 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
+	"io"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestIntegrityCheck(t *testing.T) {
@@ -85,6 +87,9 @@ func TestQueryOnly(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	mode, err := db.QueryOnly("")
+	if err == io.EOF {
+		return // not supported
+	}
 	checkNoError(t, err, "Error reading query_only status of database: %s")
 	assert.T(t, !mode, "expecting query_only to be false by default")
 	err = db.SetQueryOnly("", true)
