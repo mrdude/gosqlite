@@ -6,8 +6,10 @@ package sqlite_test
 
 import (
 	"database/sql"
-	"github.com/bmizerany/assert"
 	"testing"
+
+	"github.com/bmizerany/assert"
+	"github.com/gwenn/gosqlite"
 )
 
 const (
@@ -161,4 +163,12 @@ func TestRowsWithStmtClosed(t *testing.T) {
 		err = rows.Scan(&id, &name)
 		checkNoError(t, err, "Error while scanning: %s")
 	}
+}
+
+func TestUnwrap(t *testing.T) {
+	db := sqlOpen(t)
+	conn := sqlite.Unwrap(db)
+	assert.Tf(t, conn != nil, "Expecting *sqlite.Conn but got %#v", conn)
+	// fmt.Printf("%#v\n", conn)
+	conn.TotalChanges()
 }

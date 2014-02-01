@@ -56,6 +56,15 @@ func (d *impl) Open(name string) (driver.Conn, error) {
 	return &conn{c}, nil
 }
 
+// Unwrap gives access to underlying driver connection.
+func Unwrap(db *sql.DB) *Conn {
+	_, err := db.Exec("unwrap")
+	if cerr, ok := err.(*ConnError); ok {
+		return cerr.c
+	}
+	return nil
+}
+
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
