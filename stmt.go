@@ -1073,15 +1073,15 @@ func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 			}
 		case 23: // YYYY-MM-DDTHH:MM:SS.SSS
 			if txt[10] == 'T' {
-				layout = "2006-01-02T15:04:05.999"
+				layout = "2006-01-02T15:04:05.000"
 			} else {
-				layout = "2006-01-02 15:04:05.999"
+				layout = "2006-01-02 15:04:05.000"
 			}
 		default: // YYYY-MM-DDTHH:MM:SS.SSSZhh:mm or parse error
 			if len(txt) > 10 && txt[10] == 'T' {
-				layout = "2006-01-02T15:04:05.999Z07:00"
+				layout = "2006-01-02T15:04:05.000Z07:00"
 			} else {
-				layout = "2006-01-02 15:04:05.999Z07:00"
+				layout = "2006-01-02 15:04:05.000Z07:00"
 			}
 		}
 		value, err = time.Parse(layout, txt) // UTC except when timezone is specified

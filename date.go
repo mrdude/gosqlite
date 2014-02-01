@@ -84,7 +84,7 @@ func (t JulianTime) Value() (driver.Value, error) {
 	return JulianDay((time.Time)(t)), nil
 }
 
-// TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.999Z07:00' string
+// TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.000Z07:00' string
 type TimeStamp time.Time
 
 // Scan implements the database/sql/Scanner interface.
@@ -93,7 +93,7 @@ func (t *TimeStamp) Scan(src interface{}) error {
 		//t = nil
 		return nil
 	} else if txt, ok := src.(string); ok {
-		v, err := time.Parse("2006-01-02T15:04:05.999Z07:00", txt)
+		v, err := time.Parse("2006-01-02T15:04:05.000Z07:00", txt)
 		if err != nil {
 			return err
 		}
@@ -108,5 +108,5 @@ func (t TimeStamp) Value() (driver.Value, error) {
 	if (time.Time)(t).IsZero() {
 		return nil, nil
 	}
-	return (time.Time)(t).Format("2006-01-02T15:04:05.999Z07:00"), nil
+	return (time.Time)(t).Format("2006-01-02T15:04:05.000Z07:00"), nil
 }
