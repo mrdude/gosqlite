@@ -5,12 +5,13 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"math/rand"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func half(ctx *ScalarContext, nArg int) {
@@ -25,13 +26,13 @@ func half(ctx *ScalarContext, nArg int) {
 func TestScalarFunction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	err := db.CreateScalarFunction("half", 1, nil, half, nil)
+	err := db.CreateScalarFunction("half", 1, true, nil, half, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var d float64
 	err = db.OneValue("SELECT half(6)", &d)
 	checkNoError(t, err, "couldn't retrieve result: %s")
 	assert.Equal(t, 3.0, d)
-	err = db.CreateScalarFunction("half", 1, nil, nil, nil)
+	err = db.CreateScalarFunction("half", 1, true, nil, nil, nil)
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
@@ -72,7 +73,7 @@ func reDestroy(ad interface{}) {
 func TestRegexpFunction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	err := db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+	err := db.CreateScalarFunction("regexp", 2, true, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
 	s, err := db.Prepare("SELECT regexp('l.s[aeiouy]', name) from (SELECT 'lisa' AS name UNION ALL SELECT 'bart')")
 	checkNoError(t, err, "couldn't prepare statement: %s")
@@ -106,13 +107,13 @@ func user(ctx *ScalarContext, nArg int) {
 func TestUserFunction(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	err := db.CreateScalarFunction("user", 0, nil, user, nil)
+	err := db.CreateScalarFunction("user", 0, false, nil, user, nil)
 	checkNoError(t, err, "couldn't create function: %s")
 	var name string
 	err = db.OneValue("SELECT user()", &name)
 	checkNoError(t, err, "couldn't retrieve result: %s")
 	assert.Tf(t, len(name) > 0, "unexpected user name: %q", name)
-	err = db.CreateScalarFunction("user", 1, nil, nil, nil)
+	err = db.CreateScalarFunction("user", 1, false, nil, nil, nil)
 	checkNoError(t, err, "couldn't destroy function: %s")
 }
 
@@ -186,7 +187,7 @@ func BenchmarkHalf(b *testing.B) {
 	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
-	db.CreateScalarFunction("half", 1, nil, half, nil)
+	db.CreateScalarFunction("half", 1, true, nil, half, nil)
 	cs, _ := db.Prepare("SELECT count(1) FROM test WHERE half(rank) > 20")
 	defer cs.Finalize()
 
@@ -202,7 +203,7 @@ func BenchmarkRegexp(b *testing.B) {
 	db, _ := Open(":memory:")
 	defer db.Close()
 	randomFill(db, 1)
-	db.CreateScalarFunction("regexp", 2, nil, re, reDestroy)
+	db.CreateScalarFunction("regexp", 2, true, nil, re, reDestroy)
 	cs, _ := db.Prepare("SELECT count(1) FROM test WHERE name regexp '(?i)\\blisa\\b'")
 	defer cs.Finalize()
 

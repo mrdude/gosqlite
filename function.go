@@ -329,14 +329,14 @@ type StepFunction func(ctx *AggregateContext, nArg int)
 // FinalFunction is the expected signature of final function implemented in Go
 type FinalFunction func(ctx *AggregateContext)
 
-// DestroyFunctionData is the expected signature of function used to finalize user data.
-type DestroyFunctionData func(pApp interface{})
+// DestroyDataFunction is the expected signature of function used to finalize user data.
+type DestroyDataFunction func(pApp interface{})
 
 type sqliteFunction struct {
 	scalar     ScalarFunction
 	step       StepFunction
 	final      FinalFunction
-	d          DestroyFunctionData
+	d          DestroyDataFunction
 	pApp       interface{}
 	scalarCtxs map[*ScalarContext]bool
 	aggrCtxs   map[*AggregateContext]bool
@@ -417,18 +417,24 @@ func goXDestroy(pApp unsafe.Pointer) {
 	}
 }
 
+const sqliteDeterministic = 0x800 // C.SQLITE_DETERMINISTIC
+
 // CreateScalarFunction creates or redefines SQL scalar functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
-func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interface{},
-	f ScalarFunction, d DestroyFunctionData) error {
+func (c *Conn) CreateScalarFunction(functionName string, nArg int, deterministic bool, pApp interface{},
+	f ScalarFunction, d DestroyDataFunction) error {
+	var eTextRep C.int = C.SQLITE_UTF8
+	if deterministic {
+		eTextRep = eTextRep | sqliteDeterministic
+	}
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
 	if f == nil {
 		if len(c.udfs) > 0 {
 			delete(c.udfs, functionName)
 		}
-		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), C.SQLITE_UTF8, nil, nil, nil, nil, nil),
+		return c.error(C.sqlite3_create_function_v2(c.db, fname, C.int(nArg), eTextRep, nil, nil, nil, nil, nil),
 			fmt.Sprintf("<Conn.CreateScalarFunction(%q)", functionName))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
@@ -437,7 +443,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 		c.udfs = make(map[string]*sqliteFunction)
 	}
 	c.udfs[functionName] = udf // FIXME same function name with different args is not supported
-	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), C.SQLITE_UTF8, unsafe.Pointer(udf)),
+	return c.error(C.goSqlite3CreateScalarFunction(c.db, fname, C.int(nArg), eTextRep, unsafe.Pointer(udf)),
 		fmt.Sprintf("Conn.CreateScalarFunction(%q)", functionName))
 }
 
@@ -445,7 +451,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, pApp interfac
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{},
-	step StepFunction, final FinalFunction, d DestroyFunctionData) error {
+	step StepFunction, final FinalFunction, d DestroyDataFunction) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))
 	if step == nil {

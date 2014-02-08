@@ -299,6 +299,8 @@ const (
 	StmtStatusFullScanStep StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
 	StmtStatusSort         StmtStatus = C.SQLITE_STMTSTATUS_SORT
 	StmtStatusAutoIndex    StmtStatus = C.SQLITE_STMTSTATUS_AUTOINDEX
+
+//	StmtStatusVmStep       StmtStatus = C.SQLITE_STMTSTATUS_VM_STEP
 )
 
 // Status returns the value of a status counter for a prepared statement.

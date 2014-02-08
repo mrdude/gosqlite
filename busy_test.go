@@ -5,18 +5,19 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func TestInterrupt(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	db.CreateScalarFunction("interrupt", 0, nil, func(ctx *ScalarContext, nArg int) {
+	db.CreateScalarFunction("interrupt", 0, false, nil, func(ctx *ScalarContext, nArg int) {
 		db.Interrupt()
 		ctx.ResultText("ok")
 	}, nil)
