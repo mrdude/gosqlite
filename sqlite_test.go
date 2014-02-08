@@ -5,16 +5,21 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
+	"fmt"
+	"path"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func checkNoError(t *testing.T, err error, format string) {
 	if err != nil {
-		t.Fatalf(format, err)
+		_, file, line, _ := runtime.Caller(1)
+		t.Fatalf("\n%s:%d: %s", path.Base(file), line, fmt.Sprintf(format, err))
 	}
 }
 
