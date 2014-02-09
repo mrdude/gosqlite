@@ -157,7 +157,7 @@ func goVEof(pCursor unsafe.Pointer) C.int {
 //export goVColumn
 func goVColumn(pCursor, cp unsafe.Pointer, col int) *C.char {
 	vtc := (*sqliteVTabCursor)(pCursor)
-	c := &Context{(*C.sqlite3_context)(cp)} // TODO how to avoid building a Context at each invocation?
+	c := (*Context)(cp)
 	err := vtc.vTabCursor.Column(c, col)
 	if err != nil {
 		return mPrintf("%s", err.Error())

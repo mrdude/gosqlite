@@ -67,12 +67,10 @@ sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 
 // Context common to scalar and aggregate function
 // (See http://sqlite.org/c3ref/context.html)
-type Context struct {
-	sc *C.sqlite3_context
-}
+type Context C.sqlite3_context
 
 type FunctionContext struct {
-	Context
+	sc   *Context
 	argv **C.sqlite3_value
 }
 
@@ -130,6 +128,11 @@ func (c *Context) ResultBool(b bool) {
 	}
 }
 
+// ResultBool sets the result of an SQL function.
+func (c *FunctionContext) ResultBool(b bool) {
+	c.sc.ResultBool(b)
+}
+
 // ResultBlob sets the result of an SQL function.
 // (See sqlite3_result_blob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultBlob(b []byte) {
@@ -137,82 +140,117 @@ func (c *Context) ResultBlob(b []byte) {
 	if len(b) > 0 {
 		p = &b[0]
 	}
-	C.my_result_blob(c.sc, unsafe.Pointer(p), C.int(len(b)))
+	C.my_result_blob((*C.sqlite3_context)(c), unsafe.Pointer(p), C.int(len(b)))
+}
+
+// ResultBlob sets the result of an SQL function.
+func (c *FunctionContext) ResultBlob(b []byte) {
+	c.sc.ResultBlob(b)
 }
 
 // ResultDouble sets the result of an SQL function.
 // (See sqlite3_result_double, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultDouble(d float64) {
-	C.sqlite3_result_double(c.sc, C.double(d))
+	C.sqlite3_result_double((*C.sqlite3_context)(c), C.double(d))
+}
+
+// ResultDouble sets the result of an SQL function.
+func (c *FunctionContext) ResultDouble(d float64) {
+	c.sc.ResultDouble(d)
 }
 
 // ResultError sets the result of an SQL function.
 // (See sqlite3_result_error, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultError(msg string) {
 	cs, l := cstring(msg)
-	C.sqlite3_result_error(c.sc, cs, l)
+	C.sqlite3_result_error((*C.sqlite3_context)(c.sc), cs, l)
 }
 
 // ResultErrorTooBig sets the result of an SQL function.
 // (See sqlite3_result_error_toobig, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultErrorTooBig() {
-	C.sqlite3_result_error_toobig(c.sc)
+	C.sqlite3_result_error_toobig((*C.sqlite3_context)(c.sc))
 }
 
 // ResultErrorNoMem sets the result of an SQL function.
 // (See sqlite3_result_error_nomem, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultErrorNoMem() {
-	C.sqlite3_result_error_nomem(c.sc)
+	C.sqlite3_result_error_nomem((*C.sqlite3_context)(c.sc))
 }
 
 // ResultErrorCode sets the result of an SQL function.
 // (See sqlite3_result_error_code, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultErrorCode(e Errno) {
-	C.sqlite3_result_error_code(c.sc, C.int(e))
+	C.sqlite3_result_error_code((*C.sqlite3_context)(c.sc), C.int(e))
 }
 
 // ResultInt sets the result of an SQL function.
 // (See sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt(i int) {
-	C.sqlite3_result_int(c.sc, C.int(i))
+	C.sqlite3_result_int((*C.sqlite3_context)(c), C.int(i))
+}
+
+// ResultInt sets the result of an SQL function.
+func (c *FunctionContext) ResultInt(i int) {
+	c.sc.ResultInt(i)
 }
 
 // ResultInt64 sets the result of an SQL function.
 // (See sqlite3_result_int64, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt64(i int64) {
-	C.sqlite3_result_int64(c.sc, C.sqlite3_int64(i))
+	C.sqlite3_result_int64((*C.sqlite3_context)(c), C.sqlite3_int64(i))
+}
+
+// ResultInt64 sets the result of an SQL function.
+func (c *FunctionContext) ResultInt64(i int64) {
+	c.sc.ResultInt64(i)
 }
 
 // ResultNull sets the result of an SQL function.
 // (See sqlite3_result_null, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultNull() {
-	C.sqlite3_result_null(c.sc)
+	C.sqlite3_result_null((*C.sqlite3_context)(c))
+}
+
+// ResultNull sets the result of an SQL function.
+func (c *FunctionContext) ResultNull() {
+	c.sc.ResultNull()
 }
 
 // ResultText sets the result of an SQL function.
 // (See sqlite3_result_text, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultText(s string) {
 	cs, l := cstring(s)
-	C.my_result_text(c.sc, cs, l)
+	C.my_result_text((*C.sqlite3_context)(c), cs, l)
+}
+
+// ResultText sets the result of an SQL function.
+func (c *FunctionContext) ResultText(s string) {
+	c.sc.ResultText(s)
 }
 
 // ResultValue sets the result of an SQL function.
 // The leftmost value is number 0.
 // (See sqlite3_result_value, http://sqlite.org/c3ref/result_blob.html)
 func (c *FunctionContext) ResultValue(i int) {
-	C.my_result_value(c.sc, c.argv, C.int(i))
+	C.my_result_value((*C.sqlite3_context)(c.sc), c.argv, C.int(i))
 }
 
 // ResultZeroblob sets the result of an SQL function.
 // (See sqlite3_result_zeroblob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultZeroblob(n ZeroBlobLength) {
-	C.sqlite3_result_zeroblob(c.sc, C.int(n))
+	C.sqlite3_result_zeroblob((*C.sqlite3_context)(c), C.int(n))
+}
+
+// ResultZeroblob sets the result of an SQL function.
+func (c *FunctionContext) ResultZeroblob(n ZeroBlobLength) {
+	c.sc.ResultZeroblob(n)
 }
 
 // UserData returns the user data for functions.
 // (See http://sqlite.org/c3ref/user_data.html)
 func (c *FunctionContext) UserData() interface{} {
-	udf := (*sqliteFunction)(C.sqlite3_user_data(c.sc))
+	udf := (*sqliteFunction)(C.sqlite3_user_data((*C.sqlite3_context)(c.sc)))
 	return udf.pApp
 }
 
@@ -358,9 +396,9 @@ func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 	c := (*ScalarContext)(ctxp)
 	if c == nil {
 		c = new(ScalarContext)
-		c.sc = (*C.sqlite3_context)(scp)
+		c.sc = (*Context)(scp)
 		c.udf = udf
-		C.goSqlite3SetAuxdata(c.sc, 0, unsafe.Pointer(c))
+		C.goSqlite3SetAuxdata((*C.sqlite3_context)(c.sc), 0, unsafe.Pointer(c))
 		// To make sure it is not cged
 		udf.scalarCtxs[c] = true
 	}
@@ -379,7 +417,7 @@ func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 		p := *(*unsafe.Pointer)(cp)
 		if p == nil {
 			c = new(AggregateContext)
-			c.sc = (*C.sqlite3_context)(scp)
+			c.sc = (*Context)(scp)
 			*(*unsafe.Pointer)(cp) = unsafe.Pointer(c)
 			// To make sure it is not cged
 			udf.aggrCtxs[c] = true
@@ -402,7 +440,7 @@ func goXFinal(scp, udfp unsafe.Pointer) {
 		if p != nil {
 			c := (*AggregateContext)(p)
 			delete(udf.aggrCtxs, c)
-			c.sc = (*C.sqlite3_context)(scp)
+			c.sc = (*Context)(scp)
 			udf.final(c)
 		}
 	}
