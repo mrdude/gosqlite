@@ -10,39 +10,39 @@ package sqlite
 // These wrappers are necessary because SQLITE_TRANSIENT
 // is a pointer constant, and cgo doesn't translate them correctly.
 
-static void my_result_text(sqlite3_context *ctx, char *p, int np) {
+static inline void my_result_text(sqlite3_context *ctx, char *p, int np) {
 	sqlite3_result_text(ctx, p, np, SQLITE_TRANSIENT);
 }
-static void my_result_blob(sqlite3_context *ctx, void *p, int np) {
+static inline void my_result_blob(sqlite3_context *ctx, void *p, int np) {
 	sqlite3_result_blob(ctx, p, np, SQLITE_TRANSIENT);
 }
 
-static void my_result_value(sqlite3_context *ctx, sqlite3_value **argv, int i) {
+static inline void my_result_value(sqlite3_context *ctx, sqlite3_value **argv, int i) {
 	sqlite3_result_value(ctx, argv[i]);
 }
 
-static const void *my_value_blob(sqlite3_value **argv, int i) {
+static inline const void *my_value_blob(sqlite3_value **argv, int i) {
 	return sqlite3_value_blob(argv[i]);
 }
-static int my_value_bytes(sqlite3_value **argv, int i) {
+static inline int my_value_bytes(sqlite3_value **argv, int i) {
 	return sqlite3_value_bytes(argv[i]);
 }
-static double my_value_double(sqlite3_value **argv, int i) {
+static inline double my_value_double(sqlite3_value **argv, int i) {
 	return sqlite3_value_double(argv[i]);
 }
-static int my_value_int(sqlite3_value **argv, int i) {
+static inline int my_value_int(sqlite3_value **argv, int i) {
 	return sqlite3_value_int(argv[i]);
 }
-static sqlite3_int64 my_value_int64(sqlite3_value **argv, int i) {
+static inline sqlite3_int64 my_value_int64(sqlite3_value **argv, int i) {
 	return sqlite3_value_int64(argv[i]);
 }
-static const unsigned char *my_value_text(sqlite3_value **argv, int i) {
+static inline const unsigned char *my_value_text(sqlite3_value **argv, int i) {
 	return sqlite3_value_text(argv[i]);
 }
-static int my_value_type(sqlite3_value **argv, int i) {
+static inline int my_value_type(sqlite3_value **argv, int i) {
 	return sqlite3_value_type(argv[i]);
 }
-static int my_value_numeric_type(sqlite3_value **argv, int i) {
+static inline int my_value_numeric_type(sqlite3_value **argv, int i) {
 	return sqlite3_value_numeric_type(argv[i]);
 }
 

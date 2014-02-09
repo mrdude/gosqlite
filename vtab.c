@@ -31,14 +31,14 @@ static int cXInit(sqlite3 *db, void *pAux, int argc, const char *const*argv, sql
   return SQLITE_OK;
 }
 
-static int cXCreate(sqlite3 *db, void *pAux, int argc, const char *const*argv, sqlite3_vtab **ppVTab, char **pzErr) {
+static inline int cXCreate(sqlite3 *db, void *pAux, int argc, const char *const*argv, sqlite3_vtab **ppVTab, char **pzErr) {
   return cXInit(db, pAux, argc, argv, ppVTab, pzErr, 1);
 }
-static int cXConnect(sqlite3 *db, void *pAux, int argc, const char *const*argv, sqlite3_vtab **ppVTab, char **pzErr) {
+static inline int cXConnect(sqlite3 *db, void *pAux, int argc, const char *const*argv, sqlite3_vtab **ppVTab, char **pzErr) {
 	return cXInit(db, pAux, argc, argv, ppVTab, pzErr, 0);
 }
 
-static int cXBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *info) {
+static inline int cXBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *info) {
   // TODO
 	return SQLITE_OK;
 }
@@ -57,10 +57,10 @@ static int cXRelease(sqlite3_vtab *pVTab, int isDestroy) {
   return SQLITE_OK;
 }
 
-static int cXDisconnect(sqlite3_vtab *pVTab) {
+static inline int cXDisconnect(sqlite3_vtab *pVTab) {
 	return cXRelease(pVTab, 0);
 }
-static int cXDestroy(sqlite3_vtab *pVTab) {
+static inline int cXDestroy(sqlite3_vtab *pVTab) {
   return cXRelease(pVTab, 1);
 }
 
@@ -113,7 +113,7 @@ static int cXNext(sqlite3_vtab_cursor *pCursor) {
   }
   return SQLITE_OK;
 }
-static int cXEof(sqlite3_vtab_cursor *pCursor) {
+static inline int cXEof(sqlite3_vtab_cursor *pCursor) {
   return goVEof(((goVTabCursor*)pCursor)->vTabCursor);
 }
 static int cXColumn(sqlite3_vtab_cursor *pCursor, sqlite3_context *ctx, int i) {

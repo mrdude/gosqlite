@@ -7,23 +7,6 @@ package sqlite
 /*
 #include <sqlite3.h>
 #include <stdlib.h>
-
-// just to get ride of warning
-static int my_table_column_metadata(
-  sqlite3 *db,
-  const char *zDbName,
-  const char *zTableName,
-  const char *zColumnName,
-  char **pzDataType,
-  char **pzCollSeq,
-  int *pNotNull,
-  int *pPrimaryKey,
-  int *pAutoinc
-) {
-	return sqlite3_table_column_metadata(db, zDbName, zTableName, zColumnName,
-		(char const **)pzDataType, (char const **)pzCollSeq, pNotNull, pPrimaryKey, pAutoinc);
-}
-
 */
 import "C"
 
@@ -199,7 +182,7 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	defer C.free(unsafe.Pointer(zColumnName))
 	var zDataType, zCollSeq *C.char
 	var notNull, primaryKey, autoinc C.int
-	rv := C.my_table_column_metadata(c.db, zDbName, zTableName, zColumnName, &zDataType, &zCollSeq,
+	rv := C.sqlite3_table_column_metadata(c.db, zDbName, zTableName, zColumnName, &zDataType, &zCollSeq,
 		&notNull, &primaryKey, &autoinc)
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, fmt.Sprintf("Conn.Column(db: %q, tbl: %q, col: %q)", dbName, tableName, columnName))

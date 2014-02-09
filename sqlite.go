@@ -12,7 +12,7 @@ package sqlite
 #include <stdlib.h>
 
 // cgo doesn't support varargs
-static int my_db_config(sqlite3 *db, int op, int v, int *ok) {
+static inline int my_db_config(sqlite3 *db, int op, int v, int *ok) {
 	return sqlite3_db_config(db, op, v, ok);
 }
 */

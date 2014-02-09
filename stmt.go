@@ -17,16 +17,11 @@ package sqlite
 // #define SQLITE_STATIC      ((sqlite3_destructor_type)0)
 // #define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
 
-static int my_bind_text(sqlite3_stmt *stmt, int n, const char *p, int np) {
+static inline int my_bind_text(sqlite3_stmt *stmt, int n, const char *p, int np) {
 	return sqlite3_bind_text(stmt, n, p, np, SQLITE_TRANSIENT);
 }
-static int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
+static inline int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
 	return sqlite3_bind_blob(stmt, n, p, np, SQLITE_TRANSIENT);
-}
-
-// just to get ride of "warning: passing argument 5 of ‘sqlite3_prepare_v2’ from incompatible pointer type [...] ‘const char **’ but argument is of type ‘char **’"
-static int my_prepare_v2(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, char **pzTail) {
-	return sqlite3_prepare_v2(db, zSql, nByte, ppStmt, (const char**)pzTail);
 }
 */
 import "C"
@@ -102,7 +97,7 @@ func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
 	// If the caller knows that the supplied string is nul-terminated, then there is a small performance advantage to be gained by passing an nByte parameter that is equal to the number of bytes in the input string including the nul-terminator bytes as this saves SQLite from having to make a copy of the input string.
-	rv := C.my_prepare_v2(c.db, cmdstr, C.int(len(cmd)+1), &stmt, &tail)
+	rv := C.sqlite3_prepare_v2(c.db, cmdstr, C.int(len(cmd)+1), &stmt, &tail)
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, cmd)
 	}
@@ -148,7 +143,6 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 // The Stmt is reset at each call.
 // (See http://sqlite.org/c3ref/bind_blob.html, http://sqlite.org/c3ref/step.html)
 func (s *Stmt) Exec(args ...interface{}) error {
-	// TODO Check column count == 0
 	err := s.Bind(args...)
 	if err != nil {
 		return err

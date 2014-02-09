@@ -9,10 +9,10 @@ package sqlite
 #include <stdlib.h>
 
 // cgo doesn't support varargs
-static char *my_mprintf(char *zFormat, char *arg) {
+static inline char *my_mprintf(char *zFormat, char *arg) {
 	return sqlite3_mprintf(zFormat, arg);
 }
-static char *my_mprintf2(char *zFormat, char *arg1, char *arg2) {
+static inline char *my_mprintf2(char *zFormat, char *arg1, char *arg2) {
 	return sqlite3_mprintf(zFormat, arg1, arg2);
 }
 */

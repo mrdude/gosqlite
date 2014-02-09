@@ -10,18 +10,18 @@ void goSqlite3SetAuxdata(sqlite3_context *ctx, int N, void *ad) {
 	sqlite3_set_auxdata(ctx, N, ad, goXAuxDataDestroy);
 }
 
-static void cXFunc(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static inline void cXFunc(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
 	void *udf = sqlite3_user_data(ctx);
 	void *goctx = sqlite3_get_auxdata(ctx, 0);
 	goXFunc(ctx, udf, goctx, argc, argv);
 }
 
-static void cXStep(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static inline void cXStep(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
 	void *udf = sqlite3_user_data(ctx);
 	goXStep(ctx, udf, argc, argv);
 }
 
-static void cXFinal(sqlite3_context *ctx) {
+static inline void cXFinal(sqlite3_context *ctx) {
 	void *udf = sqlite3_user_data(ctx);
 	goXFinal(ctx, udf);
 }

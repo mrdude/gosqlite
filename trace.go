@@ -15,7 +15,7 @@ int goSqlite3BusyHandler(sqlite3 *db, void *udp);
 void goSqlite3ProgressHandler(sqlite3 *db, int numOps, void *udp);
 
 // cgo doesn't support varargs
-static void my_log(int iErrCode, char *msg) {
+static inline void my_log(int iErrCode, char *msg) {
 	sqlite3_log(iErrCode, msg);
 }
 
