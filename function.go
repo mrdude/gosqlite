@@ -376,8 +376,8 @@ type sqliteFunction struct {
 	final      FinalFunction
 	d          DestroyDataFunction
 	pApp       interface{}
-	scalarCtxs map[*ScalarContext]bool
-	aggrCtxs   map[*AggregateContext]bool
+	scalarCtxs map[*ScalarContext]struct{}
+	aggrCtxs   map[*AggregateContext]struct{}
 }
 
 //export goXAuxDataDestroy
@@ -400,7 +400,7 @@ func goXFunc(scp, udfp, ctxp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 		c.udf = udf
 		C.goSqlite3SetAuxdata((*C.sqlite3_context)(c.sc), 0, unsafe.Pointer(c))
 		// To make sure it is not cged
-		udf.scalarCtxs[c] = true
+		udf.scalarCtxs[c] = struct{}{}
 	}
 	c.argv = (**C.sqlite3_value)(argv)
 	udf.scalar(c, argc)
@@ -420,7 +420,7 @@ func goXStep(scp, udfp unsafe.Pointer, argc int, argv unsafe.Pointer) {
 			c.sc = (*Context)(scp)
 			*(*unsafe.Pointer)(cp) = unsafe.Pointer(c)
 			// To make sure it is not cged
-			udf.aggrCtxs[c] = true
+			udf.aggrCtxs[c] = struct{}{}
 		} else {
 			c = (*AggregateContext)(p)
 		}
@@ -476,7 +476,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, deterministic
 			fmt.Sprintf("<Conn.CreateScalarFunction(%q)", functionName))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{f, nil, nil, d, pApp, make(map[*ScalarContext]bool), nil}
+	udf := &sqliteFunction{f, nil, nil, d, pApp, make(map[*ScalarContext]struct{}), nil}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}
@@ -500,7 +500,7 @@ func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp inter
 			fmt.Sprintf("<Conn.CreateAggregateFunction(%q)", functionName))
 	}
 	// To make sure it is not gced, keep a reference in the connection.
-	udf := &sqliteFunction{nil, step, final, d, pApp, nil, make(map[*AggregateContext]bool)}
+	udf := &sqliteFunction{nil, step, final, d, pApp, nil, make(map[*AggregateContext]struct{})}
 	if len(c.udfs) == 0 {
 		c.udfs = make(map[string]*sqliteFunction)
 	}

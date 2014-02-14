@@ -22,13 +22,13 @@ type sqliteModule struct {
 	c      *Conn
 	name   string
 	module Module
-	vts    map[*sqliteVTab]bool
+	vts    map[*sqliteVTab]struct{}
 }
 
 type sqliteVTab struct {
 	module *sqliteModule
 	vTab   VTab
-	vtcs   map[*sqliteVTabCursor]bool
+	vtcs   map[*sqliteVTabCursor]struct{}
 }
 
 type sqliteVTabCursor struct {
@@ -65,9 +65,9 @@ func goMInit(db, pClientData unsafe.Pointer, argc int, argv **C.char, pzErr **C.
 	vt := &sqliteVTab{m, vTab, nil}
 	// prevents 'vt' from being gced
 	if m.vts == nil {
-		m.vts = make(map[*sqliteVTab]bool)
+		m.vts = make(map[*sqliteVTab]struct{})
 	}
-	m.vts[vt] = true
+	m.vts[vt] = struct{}{}
 	*pzErr = nil
 	return unsafe.Pointer(vt)
 }
@@ -101,9 +101,9 @@ func goVOpen(pVTab unsafe.Pointer, pzErr **C.char) unsafe.Pointer {
 	// prevents 'vt' from being gced
 	vtc := &sqliteVTabCursor{vt, vTabCursor}
 	if vt.vtcs == nil {
-		vt.vtcs = make(map[*sqliteVTabCursor]bool)
+		vt.vtcs = make(map[*sqliteVTabCursor]struct{})
 	}
-	vt.vtcs[vtc] = true
+	vt.vtcs[vtc] = struct{}{}
 	*pzErr = nil
 	return unsafe.Pointer(vtc)
 }
