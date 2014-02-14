@@ -504,7 +504,7 @@ func (s *Stmt) ColumnNames() []string {
 }
 
 // SQLite fundamental datatypes
-type Type int
+type Type uint8
 
 func (t Type) String() string {
 	return typeText[t]

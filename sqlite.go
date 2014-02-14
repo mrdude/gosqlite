@@ -59,7 +59,7 @@ func (e *ConnError) Error() string { // FIXME code.Error() & e.msg are often red
 }
 
 // Result codes
-type Errno int
+type Errno int32
 
 func (e Errno) Error() string {
 	var s string
@@ -171,7 +171,7 @@ func Version() string {
 }
 
 // Flags for file open operations
-type OpenFlag int
+type OpenFlag int32
 
 const (
 	OpenReadOnly     OpenFlag = C.SQLITE_OPEN_READONLY
@@ -419,7 +419,7 @@ func (c *Conn) GetAutocommit() bool {
 }
 
 // See Conn.BeginTransaction
-type TransactionType int
+type TransactionType uint8
 
 const (
 	Deferred  TransactionType = 0

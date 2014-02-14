@@ -88,7 +88,7 @@ func (c *Conn) Profile(f Profiler, udp interface{}) {
 }
 
 // Authorizer return codes
-type Auth int
+type Auth int32
 
 const (
 	AuthOk     Auth = C.SQLITE_OK
@@ -97,7 +97,7 @@ const (
 )
 
 // Authorizer action codes
-type Action int
+type Action int32
 
 const (
 	CreateIndex       Action = C.SQLITE_CREATE_INDEX
@@ -293,7 +293,7 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
 }
 
 // Status parameters for prepared statements
-type StmtStatus int
+type StmtStatus int32
 
 const (
 	StmtStatusFullScanStep StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
@@ -386,7 +386,7 @@ func ConfigLog(f Logger, udp interface{}) error {
 	return Errno(rv)
 }
 
-type ThreadingMode int
+type ThreadingMode int32
 
 const (
 	SingleThread ThreadingMode = C.SQLITE_CONFIG_SINGLETHREAD
