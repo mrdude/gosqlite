@@ -16,7 +16,7 @@ func TestCsvModule(t *testing.T) {
 	defer checkClose(db, t)
 	err := LoadCsvModule(db)
 	checkNoError(t, err, "couldn't create CSV module: %s")
-	err = db.Exec("CREATE VIRTUAL TABLE vtab USING csv('test.csv')")
+	err = db.Exec("CREATE VIRTUAL TABLE vtab USING csv('test.csv', USE_HEADER_ROW)")
 	checkNoError(t, err, "couldn't create CSV virtual table: %s")
 
 	s, err := db.Prepare("SELECT rowid, * FROM vtab")

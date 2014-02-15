@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/gwenn/yacr"
 )
@@ -38,19 +39,23 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	}
 	/* if a custom delimiter specified, pull it out */
 	var separator byte = ','
-	guess := true
-	if len(args) > 4 {
-		separator = args[4][0]
-		if separator == '\'' {
-			separator = args[4][1]
-		}
-		guess = false
-	}
 	/* should the header zRow be used */
 	useHeaderRow := false
-	if len(args) > 5 {
-		if args[5] == "USE_HEADER_ROW" {
+	quoted := true
+	guess := true
+	for i := 4; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case strings.Contains(strings.ToUpper(arg), "HEADER"):
 			useHeaderRow = true
+		case strings.Contains(strings.ToUpper(arg), "NO_QUOTE"):
+			quoted = false
+		case len(arg) == 1:
+			separator = arg[0]
+			guess = false
+		case len(arg) == 3 && arg[0] == '\'':
+			separator = arg[1]
+			guess = false
 		}
 	}
 	/* open the source csv file */
@@ -59,8 +64,11 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 		return nil, fmt.Errorf("Error opening CSV file: '%s'", filename)
 	}
 	/* Read first zRow to obtain column names/number */
-	reader := yacr.NewReader(file, separator, true, guess)
+	reader := yacr.NewReader(file, separator, quoted, guess)
 	vTab := &csvTab{f: file, r: reader, cols: make([]string, 0, 10)}
+	vTab.maxLength = int(c.Limit(LimitLength))
+	vTab.maxColumn = int(c.Limit(LimitColumn))
+
 	if err = vTab.readRow(); err != nil || len(vTab.cols) == 0 {
 		file.Close()
 		if err == nil {
@@ -113,6 +121,9 @@ type csvTab struct {
 	eof            bool
 	offsetFirstRow int64
 	cols           []string
+
+	maxLength int
+	maxColumn int
 }
 
 func (v *csvTab) readRow() error {
@@ -126,7 +137,14 @@ func (v *csvTab) readRow() error {
 		if v.r.EmptyLine() { // skip empty line (or line comment)
 			continue
 		}
-		v.cols = append(v.cols, v.r.Text())
+		col := v.r.Text()
+		if len(col) >= v.maxLength {
+			return fmt.Errorf("CSV row is too long (>= %d)", v.maxLength)
+		}
+		v.cols = append(v.cols, col)
+		if len(v.cols) >= v.maxColumn {
+			return fmt.Errorf("Too many columns (>= %d)", v.maxColumn)
+		}
 		if v.r.EndOfRecord() {
 			break
 		}
