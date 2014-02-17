@@ -19,7 +19,7 @@ func TestCsvModule(t *testing.T) {
 	err = db.Exec("CREATE VIRTUAL TABLE vtab USING csv('test.csv', USE_HEADER_ROW)")
 	checkNoError(t, err, "couldn't create CSV virtual table: %s")
 
-	s, err := db.Prepare("SELECT rowid, * FROM vtab")
+	s, err := db.Prepare("SELECT rowid, * FROM vtab ORDER BY rowid LIMIT 3 OFFSET 2")
 	checkNoError(t, err, "couldn't select from CSV virtual table: %s")
 	defer checkFinalize(s, t)
 

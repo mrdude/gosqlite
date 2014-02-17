@@ -7,6 +7,7 @@
 package sqlite
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 	"github.com/gwenn/yacr"
 )
 
-type csvModule struct { // ok
+type csvModule struct {
 }
 
 // args[0] => module name
@@ -24,11 +25,6 @@ type csvModule struct { // ok
 // args[2] => table name
 
 func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
-	/*
-		err := c.DeclareVTab("CREATE TABLE x(test TEXT)")
-		if err != nil {
-			return nil, err
-		}*/
 	if len(args) < 4 {
 		return nil, errors.New("No CSV file specified")
 	}
@@ -63,24 +59,24 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error opening CSV file: '%s'", filename)
 	}
+	defer file.Close()
 	/* Read first zRow to obtain column names/number */
-	reader := yacr.NewReader(file, separator, quoted, guess)
-	vTab := &csvTab{f: file, r: reader, cols: make([]string, 0, 10)}
+	vTab := &csvTab{f: filename, sep: separator, quoted: quoted, cols: make([]string, 0, 10)}
 	vTab.maxLength = int(c.Limit(LimitLength))
 	vTab.maxColumn = int(c.Limit(LimitColumn))
 
-	if err = vTab.readRow(); err != nil || len(vTab.cols) == 0 {
-		file.Close()
+	reader := yacr.NewReader(file, separator, quoted, guess)
+	if useHeaderRow {
+		reader.Split(vTab.split(reader.ScanField))
+	}
+	if err = vTab.readRow(reader); err != nil || len(vTab.cols) == 0 {
 		if err == nil {
 			err = errors.New("No columns found")
 		}
 		return nil, err
 	}
-	if useHeaderRow {
-		if vTab.offsetFirstRow, err = file.Seek(0, os.SEEK_CUR); err != nil {
-			file.Close()
-			return nil, err
-		}
+	if guess {
+		vTab.sep = reader.Sep()
 	}
 	/* Create the underlying relational database schema. If
 	 * that is successful, call sqlite3_declare_vtab() to configure
@@ -94,7 +90,6 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 		}
 		if useHeaderRow {
 			if len(col) == 0 {
-				file.Close()
 				return nil, errors.New("No column name found")
 			}
 			sql = fmt.Sprintf("%s\"%s\"%s", sql, col, tail)
@@ -103,12 +98,11 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 		}
 	}
 	if err = c.DeclareVTab(sql); err != nil {
-		file.Close()
 		return nil, err
 	}
 	return vTab, nil
 }
-func (m csvModule) Connect(c *Conn, args []string) (VTab, error) { // ok
+func (m csvModule) Connect(c *Conn, args []string) (VTab, error) {
 	return m.Create(c, args)
 }
 
@@ -116,8 +110,9 @@ func (m csvModule) Destroy() { // nothing to do
 }
 
 type csvTab struct {
-	f              *os.File
-	r              *yacr.Reader
+	f              string
+	sep            byte
+	quoted         bool
 	eof            bool
 	offsetFirstRow int64
 	cols           []string
@@ -126,18 +121,26 @@ type csvTab struct {
 	maxColumn int
 }
 
-func (v *csvTab) readRow() error {
+func (v *csvTab) split(original bufio.SplitFunc) bufio.SplitFunc {
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		advance, token, err = original(data, atEOF)
+		v.offsetFirstRow += int64(advance)
+		return
+	}
+}
+
+func (v *csvTab) readRow(r *yacr.Reader) error {
 	v.cols = v.cols[:0]
 	for {
-		if !v.r.Scan() {
-			err := v.r.Err()
+		if !r.Scan() {
+			err := r.Err()
 			v.eof = err == nil
 			return err
 		}
-		if v.r.EmptyLine() { // skip empty line (or line comment)
+		if r.EmptyLine() { // skip empty line (or line comment)
 			continue
 		}
-		col := v.r.Text()
+		col := r.Text()
 		if len(col) >= v.maxLength {
 			return fmt.Errorf("CSV row is too long (>= %d)", v.maxLength)
 		}
@@ -145,7 +148,7 @@ func (v *csvTab) readRow() error {
 		if len(v.cols) >= v.maxColumn {
 			return fmt.Errorf("Too many columns (>= %d)", v.maxColumn)
 		}
-		if v.r.EndOfRecord() {
+		if r.EndOfRecord() {
 			break
 		}
 	}
@@ -153,59 +156,68 @@ func (v *csvTab) readRow() error {
 }
 
 func (v *csvTab) release() error {
-	// TODO csvRelease has a counter reference?
-	if v != nil && v.f != nil {
-		return v.f.Close()
-	}
 	return nil
 }
 
-func (v *csvTab) BestIndex() error { // ok
+func (v *csvTab) BestIndex() error {
 	return nil
 }
-func (v *csvTab) Disconnect() error { // ok
+func (v *csvTab) Disconnect() error {
 	return v.release()
 }
-func (v *csvTab) Destroy() error { // ok
+func (v *csvTab) Destroy() error {
 	return v.release()
 }
-func (v *csvTab) Open() (VTabCursor, error) { // ok
-	return &csvTabCursor{v, 0}, nil
+func (v *csvTab) Open() (VTabCursor, error) {
+	f, err := os.Open(v.f)
+	if err != nil {
+		return nil, err
+	}
+	return &csvTabCursor{vTab: v, f: f, rowNumber: 0}, nil
 }
 
 type csvTabCursor struct {
-	vTab   *csvTab
-	csvpos int64 // ftell position of current zRow
+	vTab      *csvTab
+	f         *os.File
+	r         *yacr.Reader
+	rowNumber int64
 }
 
-func (vc *csvTabCursor) Close() error { // ok
-	return nil
+func (vc *csvTabCursor) Close() error {
+	return vc.f.Close()
 }
-func (vc *csvTabCursor) Filter() error { // ok
-	// csvFilter
+func (vc *csvTabCursor) Filter() error {
+	v := vc.vTab
 	/* seek back to start of first zRow */
-	vc.vTab.eof = false
-	if _, err := vc.vTab.f.Seek(vc.vTab.offsetFirstRow, os.SEEK_SET); err != nil {
+	v.eof = false
+	if _, err := vc.f.Seek(v.offsetFirstRow, os.SEEK_SET); err != nil {
 		return err
 	}
+	vc.rowNumber = 0
+	/* a new reader/scanner must be created because there is no way to reset its internal buffer/state (which has been invalidated by the SEEK_SET)*/
+	vc.r = yacr.NewReader(vc.f, v.sep, v.quoted, false)
 	/* read and parse next line */
 	return vc.Next()
 }
-func (vc *csvTabCursor) Next() (err error) { // ok
-	if vc.vTab.eof {
+func (vc *csvTabCursor) Next() error {
+	v := vc.vTab
+	if v.eof {
 		return io.EOF
 	}
-	/* update the cursor */
-	if vc.csvpos, err = vc.vTab.f.Seek(0, os.SEEK_CUR); err != nil {
-		return err
+	if vc.r == nil {
+		vc.r = yacr.NewReader(vc.f, v.sep, v.quoted, false)
 	}
 	/* read the next row of data */
-	return vc.vTab.readRow()
+	err := v.readRow(vc.r)
+	if err == nil {
+		vc.rowNumber++
+	}
+	return err
 }
-func (vc *csvTabCursor) Eof() bool { // ok
+func (vc *csvTabCursor) Eof() bool {
 	return vc.vTab.eof
 }
-func (vc *csvTabCursor) Column(c *Context, col int) error { // ok
+func (vc *csvTabCursor) Column(c *Context, col int) error {
 	cols := vc.vTab.cols
 	if col < 0 || col >= len(cols) {
 		return fmt.Errorf("column index out of bounds: %d", col)
@@ -218,10 +230,10 @@ func (vc *csvTabCursor) Column(c *Context, col int) error { // ok
 	c.ResultText(cols[col])
 	return nil
 }
-func (vc *csvTabCursor) Rowid() (int64, error) { // ok
-	return vc.csvpos, nil
+func (vc *csvTabCursor) Rowid() (int64, error) {
+	return vc.rowNumber, nil
 }
 
-func LoadCsvModule(db *Conn) error { // ok
+func LoadCsvModule(db *Conn) error {
 	return db.CreateModule("csv", csvModule{})
 }

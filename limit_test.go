@@ -16,7 +16,7 @@ func TestLimit(t *testing.T) {
 	defer checkClose(db, t)
 
 	limitVariableNumber := db.Limit(LimitVariableNumber)
-	assert.T(t, limitVariableNumber < 1000, "unexpected value for LimitVariableNumber")
+	assert.Tf(t, limitVariableNumber < 1e6, "unexpected value for LimitVariableNumber: %d", limitVariableNumber)
 	oldLimitVariableNumber := db.SetLimit(LimitVariableNumber, 99)
 	assert.Equalf(t, limitVariableNumber, oldLimitVariableNumber, "unexpected value for LimitVariableNumber: %d <> %d", limitVariableNumber, oldLimitVariableNumber)
 	limitVariableNumber = db.Limit(LimitVariableNumber)
