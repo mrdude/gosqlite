@@ -169,8 +169,8 @@ func (s *Stmt) exec() error {
 // ExecDml is like Exec but returns the number of rows that were changed or inserted or deleted.
 // Don't use it with SELECT or anything that returns data.
 // The Stmt is reset at each call.
-func (s *Stmt) ExecDml(args ...interface{}) (int, error) {
-	err := s.Exec(args...)
+func (s *Stmt) ExecDml(args ...interface{}) (changes int, err error) {
+	err = s.Exec(args...)
 	if err != nil {
 		return -1, err
 	}
@@ -180,7 +180,7 @@ func (s *Stmt) ExecDml(args ...interface{}) (int, error) {
 // Insert is like ExecDml but returns the autoincremented rowid.
 // Don't use it with SELECT or anything that returns data.
 // The Stmt is reset at each call.
-func (s *Stmt) Insert(args ...interface{}) (int64, error) {
+func (s *Stmt) Insert(args ...interface{}) (rowid int64, err error) {
 	n, err := s.ExecDml(args...)
 	if err != nil {
 		return -1, err
@@ -232,10 +232,10 @@ func (s *Stmt) Select(rowCallbackHandler func(s *Stmt) error, args ...interface{
 // Returns false if there is no matching row.
 // No check is done to ensure that no more than one row is returned by the statement.
 // TODO Create a SelectUniqueRow that checks that the row is unique.
-func (s *Stmt) SelectOneRow(args ...interface{}) (bool, error) {
-	if ok, err := s.Next(); err != nil {
+func (s *Stmt) SelectOneRow(args ...interface{}) (found bool, err error) {
+	if found, err = s.Next(); err != nil {
 		return false, err
-	} else if !ok {
+	} else if !found {
 		if s.ColumnCount() == 0 {
 			return false, s.specificError("don't use SelectOneRow with query that returns no data such as %q", s.SQL())
 		}
@@ -628,7 +628,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 // Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type/kind.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
+func (s *Stmt) ScanByName(name string, value interface{}) (isNull bool, err error) {
 	index, err := s.ColumnIndex(name)
 	if err != nil {
 		return false, err
@@ -654,9 +654,7 @@ func (s *Stmt) ScanByName(name string, value interface{}) (bool, error) {
 // Returns true when column is null.
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on arg type/kind.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
-	var isNull bool
-	var err error
+func (s *Stmt) ScanByIndex(index int, value interface{}) (isNull bool, err error) {
 	switch value := value.(type) {
 	case nil:
 	case *string:
@@ -762,7 +760,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 	default:
 		return s.ScanReflect(index, value)
 	}
-	return isNull, err
+	return
 }
 
 // ScanReflect scans result value from a query.
@@ -777,13 +775,11 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (bool, error) {
 //    *float32,float64
 //
 // Returns true when column is null.
-func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
+func (s *Stmt) ScanReflect(index int, v interface{}) (isNull bool, err error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return false, s.specificError("ScanReflect unsupported type %T", v)
 	}
-	var isNull bool
-	var err error
 	dv := reflect.Indirect(rv)
 	switch dv.Kind() {
 	case reflect.String:
@@ -821,7 +817,7 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 	default:
 		return false, s.specificError("unsupported type in Scan: %T", v)
 	}
-	return isNull, err
+	return
 }
 
 // ScanValue scans result value from a query.
@@ -837,7 +833,7 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (bool, error) {
 //
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanValue(index int, blob bool) (interface{}, bool) {
+func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool) {
 	switch s.ColumnType(index) {
 	case Null:
 		return nil, true

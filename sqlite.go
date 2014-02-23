@@ -472,14 +472,15 @@ func (c *Conn) Rollback() error {
 // Two errors may be returned: the first is the one returned by the f function,
 // the second is the one returned by begin/commit/rollback.
 // (See http://sqlite.org/tclsqlite.html#transaction)
-func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (err error) {
+func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) error {
+	var err error
 	if c.nTransaction == 0 {
 		err = c.BeginTransaction(t)
 	} else {
 		err = c.Savepoint(strconv.Itoa(int(c.nTransaction)))
 	}
 	if err != nil {
-		return
+		return err
 	}
 	c.nTransaction++
 	defer func() {
@@ -507,7 +508,7 @@ func (c *Conn) Transaction(t TransactionType, f func(c *Conn) error) (err error)
 		}
 	}()
 	err = f(c)
-	return
+	return err
 }
 
 // Savepoint starts a new transaction with a name.

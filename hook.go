@@ -20,7 +20,7 @@ import (
 
 // CommitHook is the callback function signature.
 // If the callback on a commit hook function returns true, then the commit is converted into a rollback.
-type CommitHook func(udp interface{}) bool
+type CommitHook func(udp interface{}) (rollback bool)
 
 type sqliteCommitHook struct {
 	f   CommitHook

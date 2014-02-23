@@ -284,14 +284,14 @@ func (c *FunctionContext) Bool(i int) bool {
 // Blob obtains a SQL function parameter value.
 // The leftmost value is number 0.
 // (See sqlite3_value_blob and sqlite3_value_bytes, http://sqlite.org/c3ref/value_blob.html)
-func (c *FunctionContext) Blob(i int) (value []byte) {
+func (c *FunctionContext) Blob(i int) []byte {
 	p := C.my_value_blob(c.argv, C.int(i))
-	if p != nil {
-		n := C.my_value_bytes(c.argv, C.int(i))
-		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
-		value = C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
+	if p == nil {
+		return nil
 	}
-	return
+	n := C.my_value_bytes(c.argv, C.int(i))
+	// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+	return C.GoBytes(p, n) // The memory space used to hold strings and BLOBs is freed automatically.
 }
 
 // Double obtains a SQL function parameter value.
@@ -342,7 +342,8 @@ func (c *FunctionContext) NumericType(i int) Type {
 }
 
 // Value obtains a SQL function parameter value depending on its type.
-func (c *FunctionContext) Value(i int) (value interface{}) {
+func (c *FunctionContext) Value(i int) interface{} {
+	var value interface{}
 	switch c.Type(i) {
 	case Null:
 		value = nil
@@ -357,7 +358,7 @@ func (c *FunctionContext) Value(i int) (value interface{}) {
 	default:
 		panic("The value type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
 	}
-	return
+	return value
 }
 
 // ScalarFunction is the expected signature of scalar function implemented in Go

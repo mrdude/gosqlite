@@ -269,7 +269,7 @@ func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 // ProgressHandler is the signature of query progress callback.
 // Returns true to interrupt.
 // See Conn.ProgressHandler
-type ProgressHandler func(udp interface{}) bool
+type ProgressHandler func(udp interface{}) (interrupt bool)
 
 type sqliteProgressHandler struct {
 	f   ProgressHandler
