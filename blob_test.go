@@ -5,10 +5,11 @@
 package sqlite_test
 
 import (
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"io"
 	"testing"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func TestBlob(t *testing.T) {

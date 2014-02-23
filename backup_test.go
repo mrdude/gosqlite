@@ -5,9 +5,10 @@
 package sqlite_test
 
 import (
+	"testing"
+
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
-	"testing"
 )
 
 func TestBackup(t *testing.T) {

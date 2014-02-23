@@ -5,9 +5,9 @@
 package sqlite_test
 
 import (
-	. "github.com/gwenn/gosqlite"
 	"strings"
 	"testing"
+	. "github.com/gwenn/gosqlite"
 )
 
 func panicOnError(b *testing.B, err error) {

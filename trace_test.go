@@ -6,10 +6,11 @@ package sqlite_test
 
 import (
 	"fmt"
-	"github.com/bmizerany/assert"
-	. "github.com/gwenn/gosqlite"
 	"testing"
 	"time"
+
+	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func init() {
