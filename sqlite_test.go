@@ -203,7 +203,7 @@ func TestConnExecWithSelect(t *testing.T) {
 	if serr, ok := err.(*StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
-		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
 }
 

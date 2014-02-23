@@ -115,7 +115,7 @@ func TestCreateModule(t *testing.T) {
 		if err = s.Scan(&i, &value); err != nil {
 			return
 		}
-		assert.Equal(t, intarray[i], value, "Expected '%d' but got '%d'")
+		assert.Equalf(t, intarray[i], value, "got '%d'; want '%d'", value, intarray[i])
 		return
 	})
 	checkNoError(t, err, "couldn't select from virtual table: %s")

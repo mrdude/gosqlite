@@ -5,13 +5,13 @@
 package sqlite_test
 
 import (
-	. "github.com/gwenn/gosqlite"
 	"testing"
+	. "github.com/gwenn/gosqlite"
 )
 
 func checkCacheSize(t *testing.T, db *Conn, expectedSize, expectedMaxSize int) {
 	if size, maxSize := db.CacheSize(); size != expectedSize || maxSize != expectedMaxSize {
-		t.Errorf("%d <> %d || %d <> %d", expectedSize, size, expectedMaxSize, maxSize)
+		t.Errorf("got size: %d; want %d or got maxsize: %d; want %d", size, expectedSize, maxSize, expectedMaxSize)
 	}
 }
 
@@ -74,7 +74,7 @@ func BenchmarkDisabledCache(b *testing.B) {
 	}
 
 	if size, maxSize := db.CacheSize(); size != 0 || maxSize != 0 {
-		b.Errorf("%d <> %d || %d <> %d", 0, size, 0, maxSize)
+		b.Errorf("got size: %d; want %d or got maxsize: %d; want %d", size, 0, maxSize, 0)
 	}
 }
 
@@ -90,6 +90,6 @@ func BenchmarkEnabledCache(b *testing.B) {
 	}
 
 	if size, maxSize := db.CacheSize(); size != 1 || maxSize != 10 {
-		b.Errorf("%d <> %d || %d <> %d", 1, size, 10, maxSize)
+		b.Errorf("got size: %d; want %d or got maxsize: %d; want %d", size, 1, maxSize, 10)
 	}
 }

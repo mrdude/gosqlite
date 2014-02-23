@@ -18,8 +18,8 @@ func TestLimit(t *testing.T) {
 	limitVariableNumber := db.Limit(LimitVariableNumber)
 	assert.Tf(t, limitVariableNumber < 1e6, "unexpected value for LimitVariableNumber: %d", limitVariableNumber)
 	oldLimitVariableNumber := db.SetLimit(LimitVariableNumber, 99)
-	assert.Equalf(t, limitVariableNumber, oldLimitVariableNumber, "unexpected value for LimitVariableNumber: %d <> %d", limitVariableNumber, oldLimitVariableNumber)
+	assert.Equalf(t, limitVariableNumber, oldLimitVariableNumber, "got LimitVariableNumber: %d; want %d", oldLimitVariableNumber, limitVariableNumber)
 	limitVariableNumber = db.Limit(LimitVariableNumber)
-	assert.Equalf(t, int32(99), limitVariableNumber, "unexpected value for LimitVariableNumber: %d <> %d", 99, limitVariableNumber)
+	assert.Equalf(t, int32(99), limitVariableNumber, "got LimitVariableNumber: %d; want %d", limitVariableNumber, 99)
 
 }

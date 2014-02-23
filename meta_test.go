@@ -24,7 +24,7 @@ func TestDatabases(t *testing.T) {
 	databases, err := db.Databases()
 	checkNoError(t, err, "error looking for databases: %s")
 	if len(databases) != 1 {
-		t.Errorf("Expected one database but got %d\n", len(databases))
+		t.Errorf("got %d database(s); want one", len(databases))
 	}
 	if _, ok := databases["main"]; !ok {
 		t.Errorf("Expected 'main' database\n")
@@ -86,7 +86,7 @@ func TestColumns(t *testing.T) {
 	columns, err := db.Columns("", "test")
 	checkNoError(t, err, "error listing columns: %s")
 	if len(columns) != 4 {
-		t.Fatalf("Expected 4 columns <> %d", len(columns))
+		t.Fatalf("got %d columns; want 4", len(columns))
 	}
 	column := columns[2]
 	assert.Equal(t, "int_num", column.Name, "column name")
@@ -121,7 +121,7 @@ func TestForeignKeys(t *testing.T) {
 	fks, err := db.ForeignKeys("", "child")
 	checkNoError(t, err, "error listing FKs: %s")
 	if len(fks) != 1 {
-		t.Fatalf("expected 1 FK <> %d", len(fks))
+		t.Fatalf("got %d FK(s); want 1", len(fks))
 	}
 	fk := fks[0]
 	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
@@ -138,7 +138,7 @@ func TestTableIndexes(t *testing.T) {
 	indexes, err := db.TableIndexes("", "test")
 	checkNoError(t, err, "error listing indexes: %s")
 	if len(indexes) != 1 {
-		t.Fatalf("Expected one index <> %d", len(indexes))
+		t.Fatalf("got %d index(es); want one", len(indexes))
 	}
 	index := indexes[0]
 	assert.Equal(t, "test_index", index.Name, "index name")
@@ -147,7 +147,7 @@ func TestTableIndexes(t *testing.T) {
 	columns, err := db.IndexColumns("", "test_index")
 	checkNoError(t, err, "error listing index columns: %s")
 	if len(columns) != 1 {
-		t.Fatalf("expected one column <> %d", len(columns))
+		t.Fatalf("got %d column(s); want one", len(columns))
 	}
 	column := columns[0]
 	assert.Equal(t, "a_string", column.Name, "column name")

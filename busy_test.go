@@ -28,11 +28,11 @@ func TestInterrupt(t *testing.T) {
 		return
 	})
 	if err == nil {
-		t.Fatalf("Expected interrupt but got %v", err)
+		t.Fatalf("got %v; want interrupt", err)
 	}
 	//println(err.Error())
 	if se, ok := err.(*StmtError); !ok || se.Code() != ErrInterrupt {
-		t.Errorf("Expected interrupt but got %#v", err)
+		t.Errorf("got %#v; want interrupt", err)
 	}
 }
 
@@ -56,10 +56,10 @@ func TestDefaultBusy(t *testing.T) {
 
 	_, err := db2.SchemaVersion("")
 	if err == nil {
-		t.Fatalf("Expected lock but got %v", err)
+		t.Fatalf("got %v; want lock", err)
 	}
 	if se, ok := err.(*StmtError); !ok || se.Code() != ErrBusy {
-		t.Fatalf("Exepted lock but got %#v", err)
+		t.Fatalf("got %#v; want lock", err)
 	}
 }
 

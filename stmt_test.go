@@ -158,7 +158,7 @@ func TestScanCheck(t *testing.T) {
 		assert.Equal(t, ErrSpecific, serr.Code())
 		assert.Equal(t, s.SQL(), serr.SQL())
 	} else {
-		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
 }
 
@@ -276,7 +276,7 @@ func TestStmtExecWithSelect(t *testing.T) {
 	if serr, ok := err.(*StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
-		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
 }
 
@@ -296,7 +296,7 @@ func TestStmtSelectWithInsert(t *testing.T) {
 	if serr, ok := err.(*StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
-		t.Errorf("Expected StmtError but got %s", reflect.TypeOf(err))
+		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
 	assert.T(t, !exists, "false expected")
 }

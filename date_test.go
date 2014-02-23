@@ -15,12 +15,12 @@ import (
 func TestJulianDay(t *testing.T) {
 	utc := JulianDayToUTC(2440587.5)
 	if utc.Unix() != 0 {
-		t.Errorf("Error, expecting %d got %d", 0, utc.Unix())
+		t.Errorf("got %d; want %d ", utc.Unix(), 0)
 	}
 	now := time.Now()
 	r := JulianDayToLocalTime(JulianDay(now))
 	if r.Unix() != now.Unix() { // FIXME Rounding problem?
-		t.Errorf("%#v <> %#v", now, r)
+		t.Errorf("got %#v; want %#v", r, now)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestBindTimeAsString(t *testing.T) {
 	err = db.OneValue("SELECT /*datetime(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
 	if !now.Equal(tim) {
-		t.Errorf("TimeStamp: %s vs %s", now, tim)
+		t.Errorf("got timeStamp: %s; want %s", tim, now)
 	}
 }
 

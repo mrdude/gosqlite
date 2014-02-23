@@ -168,7 +168,7 @@ func TestRowsWithStmtClosed(t *testing.T) {
 func TestUnwrap(t *testing.T) {
 	db := sqlOpen(t)
 	conn := sqlite.Unwrap(db)
-	assert.Tf(t, conn != nil, "Expecting *sqlite.Conn but got %#v", conn)
+	assert.Tf(t, conn != nil, "got %#v; want *sqlite.Conn", conn)
 	// fmt.Printf("%#v\n", conn)
 	conn.TotalChanges()
 }
