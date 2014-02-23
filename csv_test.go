@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
+// +build all
 
 package sqlite_test
 
 import (
+	"fmt"
 	"testing"
 	. "github.com/gwenn/gosqlite"
 )
@@ -29,7 +30,7 @@ func TestCsvModule(t *testing.T) {
 		if err = s.Scan(&i, &col1, &col2, &col3); err != nil {
 			return
 		}
-		//fmt.Printf("%d: %s|%s|%s\n", i, col1, col2, col3)
+		fmt.Printf("%d: %s|%s|%s\n", i, col1, col2, col3)
 		return
 	})
 	checkNoError(t, err, "couldn't select from CSV virtual table: %s")
