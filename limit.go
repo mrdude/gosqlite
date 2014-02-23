@@ -9,10 +9,12 @@ package sqlite
 */
 import "C"
 
+// Limit enumerates run-time limit categories
+// (See http://www.sqlite.org/c3ref/c_limit_attached.html)
 type Limit int32
 
 const (
-	LimitLength            Limit = C.SQLITE_LIMIT_LENGTH
+	LimitLength            Limit = C.SQLITE_LIMIT_LENGTH // The maximum size of any string or BLOB or table row, in bytes.
 	LimitColumn            Limit = C.SQLITE_LIMIT_COLUMN
 	LimitExprDepth         Limit = C.SQLITE_LIMIT_EXPR_DEPTH
 	LimitCompoundSelect    Limit = C.SQLITE_LIMIT_COMPOUND_SELECT
@@ -25,13 +27,13 @@ const (
 )
 
 // Limit queries the current value of a limit.
-// (See http://www.sqlite.org/c3ref/c_limit_attached.html)
+// (See http://www.sqlite.org/c3ref/limit.html)
 func (c *Conn) Limit(id Limit) int32 {
 	return int32(C.sqlite3_limit(c.db, C.int(id), -1))
 }
 
 // SetLimit changes the value of a limit.
-// (See http://www.sqlite.org/c3ref/c_limit_attached.html)
+// (See http://www.sqlite.org/c3ref/limit.html)
 func (c *Conn) SetLimit(id Limit, newVal int32) int32 {
 	return int32(C.sqlite3_limit(c.db, C.int(id), C.int(newVal)))
 }

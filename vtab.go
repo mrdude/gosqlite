@@ -176,12 +176,15 @@ func goVRowid(pCursor unsafe.Pointer, pRowid *C.sqlite3_int64) *C.char {
 	return nil
 }
 
+// Module is a "virtual table module", it defines the implementation of a virtual tables.
+// (See http://sqlite.org/c3ref/module.html)
 type Module interface {
 	Create(c *Conn, args []string) (VTab, error)  // See http://sqlite.org/vtab.html#xcreate
 	Connect(c *Conn, args []string) (VTab, error) // See http://sqlite.org/vtab.html#xconnect
 	Destroy()                                     // See http://sqlite.org/c3ref/create_module.html
 }
 
+// VTab describes a particular instance of the virtual table.
 // (See http://sqlite.org/c3ref/vtab.html)
 type VTab interface {
 	BestIndex( /*sqlite3_index_info**/) error // See http://sqlite.org/vtab.html#xbestindex
@@ -190,6 +193,7 @@ type VTab interface {
 	Open() (VTabCursor, error)                // See http://sqlite.org/vtab.html#xopen
 }
 
+// VTabExtended lists optional/extended functions.
 // (See http://sqlite.org/c3ref/vtab.html)
 type VTabExtended interface {
 	VTab
@@ -208,6 +212,7 @@ type VTabExtended interface {
 	RollbackTo(i int) error
 }
 
+// VTabCursor describes cursors that point into the virtual table and are used to loop through the virtual table.
 // (See http://sqlite.org/c3ref/vtab_cursor.html)
 type VTabCursor interface {
 	Close() error                                                                // See http://sqlite.org/vtab.html#xclose

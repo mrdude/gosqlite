@@ -65,10 +65,12 @@ http://sqlite.org/c3ref/context_db_handle.html
 sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 */
 
-// Context common to scalar and aggregate function
+// Context common to function and virtual table
 // (See http://sqlite.org/c3ref/context.html)
 type Context C.sqlite3_context
 
+// FunctionContext common to scalar and aggregate functions
+// (See http://sqlite.org/c3ref/context.html)
 type FunctionContext struct {
 	sc   *Context
 	argv **C.sqlite3_value

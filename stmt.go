@@ -41,6 +41,7 @@ const (
 	i64 = unsafe.Sizeof(int(0)) > 4
 )
 
+// StmtError is a wrapper for all SQLite statement related error.
 type StmtError struct {
 	ConnError
 	s *Stmt
@@ -72,7 +73,7 @@ func (s *Stmt) specificError(msg string, a ...interface{}) error {
 // CheckTypeMismatch enables type check in Scan methods (default true)
 var CheckTypeMismatch = true
 
-// SQL statement
+// Stmt represents a single SQL statement.
 // (See http://sqlite.org/c3ref/stmt.html)
 type Stmt struct {
 	c                  *Conn
@@ -503,7 +504,7 @@ func (s *Stmt) ColumnNames() []string {
 	return names
 }
 
-// SQLite fundamental datatypes
+// Type enumerates SQLite fundamental datatypes
 type Type uint8
 
 func (t Type) String() string {

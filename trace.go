@@ -31,6 +31,7 @@ import (
 	"unsafe"
 )
 
+// Tracer is the signature of a trace function.
 // See Conn.Trace
 type Tracer func(udp interface{}, sql string)
 
@@ -59,6 +60,7 @@ func (c *Conn) Trace(f Tracer, udp interface{}) {
 	C.goSqlite3Trace(c.db, unsafe.Pointer(c.trace))
 }
 
+// Profiler is the signature of a profile function.
 // See Conn.Profile
 type Profiler func(udp interface{}, sql string, duration time.Duration)
 
@@ -87,7 +89,7 @@ func (c *Conn) Profile(f Profiler, udp interface{}) {
 	C.goSqlite3Profile(c.db, unsafe.Pointer(c.profile))
 }
 
-// Authorizer return codes
+// Auth enumerates Authorizer return codes
 type Auth int32
 
 const (
@@ -96,7 +98,7 @@ const (
 	AuthIgnore Auth = C.SQLITE_IGNORE
 )
 
-// Authorizer action codes
+// Action enumerates Authorizer action codes
 type Action int32
 
 const (
@@ -207,6 +209,7 @@ func (a Action) String() string {
 	return fmt.Sprintf("Unknown Action: %d", a)
 }
 
+// Authorizer is the signature of an access authorization function.
 // See Conn.SetAuthorizer
 type Authorizer func(udp interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth
 
@@ -234,6 +237,7 @@ func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	return c.error(C.goSqlite3SetAuthorizer(c.db, unsafe.Pointer(c.authorizer)), "Conn.SetAuthorizer")
 }
 
+// BusyHandler is the signature of callback to handle SQLITE_BUSY errors.
 // Returns true to try again.
 // See Conn.BusyHandler
 type BusyHandler func(udp interface{}, count int) bool
@@ -262,6 +266,7 @@ func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	return c.error(C.goSqlite3BusyHandler(c.db, unsafe.Pointer(c.busyHandler)), "Conn.BusyHandler")
 }
 
+// ProgressHandler is the signature of query progress callback.
 // Returns true to interrupt.
 // See Conn.ProgressHandler
 type ProgressHandler func(udp interface{}) bool
@@ -292,7 +297,7 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
 	C.goSqlite3ProgressHandler(c.db, C.int(numOps), unsafe.Pointer(c.progressHandler))
 }
 
-// Status parameters for prepared statements
+// StmtStatus enumerates status parameters for prepared statements
 type StmtStatus int32
 
 const (
@@ -349,6 +354,7 @@ func Log(err /*Errno*/ int, msg string) {
 	C.my_log(C.int(err), cs)
 }
 
+// Logger is the signature of SQLite logger implementation.
 // See ConfigLog
 type Logger func(udp interface{}, err error, msg string)
 
@@ -386,6 +392,8 @@ func ConfigLog(f Logger, udp interface{}) error {
 	return Errno(rv)
 }
 
+// ThreadingMode enumerates SQLite threading mode
+// See ConfigThreadingMode
 type ThreadingMode int32
 
 const (

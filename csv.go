@@ -26,7 +26,7 @@ type csvModule struct {
 
 func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if len(args) < 4 {
-		return nil, errors.New("No CSV file specified")
+		return nil, errors.New("no CSV file specified")
 	}
 	/* pull out name of csv file (remove quotes) */
 	filename := args[3]
@@ -57,7 +57,7 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	/* open the source csv file */
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening CSV file: '%s'", filename)
+		return nil, fmt.Errorf("error opening CSV file: '%s'", filename)
 	}
 	defer file.Close()
 	/* Read first zRow to obtain column names/number */
@@ -71,7 +71,7 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	}
 	if err = vTab.readRow(reader); err != nil || len(vTab.cols) == 0 {
 		if err == nil {
-			err = errors.New("No columns found")
+			err = errors.New("no columns found")
 		}
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 		}
 		if useHeaderRow {
 			if len(col) == 0 {
-				return nil, errors.New("No column name found")
+				return nil, errors.New("no column name found")
 			}
 			sql = fmt.Sprintf("%s\"%s\"%s", sql, col, tail)
 		} else {
@@ -146,7 +146,7 @@ func (v *csvTab) readRow(r *yacr.Reader) error {
 		}
 		v.cols = append(v.cols, col)
 		if len(v.cols) >= v.maxColumn {
-			return fmt.Errorf("Too many columns (>= %d)", v.maxColumn)
+			return fmt.Errorf("too many columns (>= %d)", v.maxColumn)
 		}
 		if r.EndOfRecord() {
 			break
@@ -234,6 +234,8 @@ func (vc *csvTabCursor) Rowid() (int64, error) {
 	return vc.rowNumber, nil
 }
 
+// LoadCsvModule loads CSV virtual table module.
+//   CREATE VIRTUAL TABLE vtab USING csv('test.csv', USE_HEADER_ROW, NO_QUOTE)
 func LoadCsvModule(db *Conn) error {
 	return db.CreateModule("csv", csvModule{})
 }

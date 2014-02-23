@@ -224,11 +224,11 @@ func (s *Stmt) ColumnDeclaredType(index int) string {
 	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
 }
 
-// SQLite column type affinity
+// Affinity enumerates SQLite column type affinity
 type Affinity string
 
 const (
-	Integral  = Affinity("INTEGER")
+	Integral  = Affinity("INTEGER") // Integer affinity
 	Real      = Affinity("REAL")
 	Numerical = Affinity("NUMERIC")
 	None      = Affinity("NONE")
