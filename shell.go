@@ -133,7 +133,11 @@ func main() {
 	err = loadHistory(state, historyFileName)
 	check(err)
 
-	db, err := sqlite.Open(":memory:") // TODO command-line flag
+	dbFilename := ":memory:"
+	if len(os.Args) > 1 {
+		dbFilename = os.Args[1]
+	}
+	db, err := sqlite.Open(dbFilename) // TODO command-line flag
 	check(err)
 	defer db.Close()
 
@@ -175,13 +179,14 @@ func main() {
 		for len(cmd) > 0 {
 			s, err := db.Prepare(cmd)
 			if trace(err) {
-				break
+				break // TODO bail_on_error
 			} else if s.Empty() {
 				cmd = s.Tail()
 				continue
 			}
 			columnCount := s.ColumnCount()
 			if columnCount > 0 {
+				// FIXME headers are displayed only if DataCount() > 0
 				headers := s.ColumnNames() // TODO .header(s) ON|OFF      Turn display of headers on or off
 				for _, header := range headers {
 					io.WriteString(tw, header)
@@ -204,10 +209,10 @@ func main() {
 			}
 			if trace(err) {
 				s.Finalize()
-				break
+				break // TODO bail_on_error
 			}
 			if trace(s.Finalize()) {
-				break
+				break // TODO bail_on_error
 			}
 			cmd = s.Tail()
 		} // exec
