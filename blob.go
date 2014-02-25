@@ -32,6 +32,8 @@ type BlobReadWriter struct {
 }
 
 // ZeroBlobLength is used to reserve space for a BLOB that is later written.
+//   stmt.Bind(..., ZeroBlobLength(1000), ...)
+// (See http://sqlite.org/lang_corefunc.html#zeroblob)
 type ZeroBlobLength int32
 
 // NewBlobReader opens a BLOB for incremental I/O in read-only mode.
