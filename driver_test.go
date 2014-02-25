@@ -7,6 +7,7 @@ package sqlite_test
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/bmizerany/assert"
 	"github.com/gwenn/gosqlite"
@@ -167,8 +168,28 @@ func TestRowsWithStmtClosed(t *testing.T) {
 
 func TestUnwrap(t *testing.T) {
 	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
 	conn := sqlite.Unwrap(db)
 	assert.Tf(t, conn != nil, "got %#v; want *sqlite.Conn", conn)
 	// fmt.Printf("%#v\n", conn)
 	conn.TotalChanges()
+}
+
+func TestCustomRegister(t *testing.T) {
+	sql.Register("sqlite3ReadOnly", sqlite.NewDriver(func(name string) (*sqlite.Conn, error) {
+		c, err := sqlite.Open(name, sqlite.OpenUri, sqlite.OpenNoMutex, sqlite.OpenReadOnly)
+		if err != nil {
+			return nil, err
+		}
+		c.BusyTimeout(10 * time.Second)
+		return c, nil
+	}, nil))
+	// readlonly memory db is useless but...
+	db, err := sql.Open("sqlite3ReadOnly", ":memory:")
+	checkNoError(t, err, "Error while opening customized db: %s")
+	defer checkSqlDbClose(db, t)
+	conn := sqlite.Unwrap(db)
+	ro, err := conn.Readonly("main")
+	checkNoError(t, err, "Error while setting reverse_unordered_selects status: %s")
+	assert.Tf(t, ro, "readonly = %t; want %t", ro, true)
 }
