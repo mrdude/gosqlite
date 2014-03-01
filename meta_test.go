@@ -57,7 +57,7 @@ func TestViews(t *testing.T) {
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 0, len(views), "table count")
 	err = db.FastExec("CREATE VIEW myview AS SELECT 1")
-	checkNoError(t, err, "error creating for views: %s")
+	checkNoError(t, err, "error creating view: %s")
 	views, err = db.Views("", false)
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 1, len(views), "table count")
@@ -170,4 +170,49 @@ func TestColumnMetadata(t *testing.T) {
 	assert.Equal(t, "text", declType, "declared type")
 	affinity := s.ColumnTypeAffinity(0)
 	assert.Equal(t, Textual, affinity, "affinity")
+}
+
+func TestColumnMetadataOnView(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	err := db.FastExec("CREATE VIEW vtest AS SELECT * FROM test")
+	checkNoError(t, err, "error creating view: %s")
+
+	s, err := db.Prepare("SELECT a_string AS str FROM vtest")
+	check(err)
+	defer checkFinalize(s, t)
+
+	databaseName := s.ColumnDatabaseName(0)
+	assert.Equal(t, "main", databaseName, "database name")
+	tableName := s.ColumnTableName(0)
+	assert.Equal(t, "test", tableName, "table name")
+	originName := s.ColumnOriginName(0)
+	assert.Equal(t, "a_string", originName, "origin name")
+	declType := s.ColumnDeclaredType(0)
+	assert.Equal(t, "TEXT", declType, "declared type")
+	affinity := s.ColumnTypeAffinity(0)
+	assert.Equal(t, Textual, affinity, "affinity")
+}
+
+func TestColumnMetadataOnExpr(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.FastExec("CREATE VIEW vtest AS SELECT date('now') as tic")
+	checkNoError(t, err, "error creating view: %s")
+
+	s, err := db.Prepare("SELECT tic FROM vtest")
+	check(err)
+	defer checkFinalize(s, t)
+
+	databaseName := s.ColumnDatabaseName(0)
+	assert.Equal(t, "", databaseName, "database name")
+	tableName := s.ColumnTableName(0)
+	assert.Equal(t, "", tableName, "table name")
+	originName := s.ColumnOriginName(0)
+	assert.Equal(t, "", originName, "origin name")
+	declType := s.ColumnDeclaredType(0)
+	assert.Equal(t, "", declType, "declared type")
+	affinity := s.ColumnTypeAffinity(0)
+	assert.Equal(t, None, affinity, "affinity")
 }

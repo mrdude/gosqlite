@@ -96,6 +96,7 @@ func (c *Conn) Views(dbName string, temp bool) ([]string, error) {
 }
 
 // Indexes returns indexes from 'sqlite_master'/'sqlite_temp_master'.
+// As the index name is unique by database, (index name, table name) couples are returned.
 func (c *Conn) Indexes(dbName string, temp bool) (map[string]string, error) {
 	var sql string
 	if len(dbName) == 0 {
@@ -137,7 +138,7 @@ type Column struct {
 	CollSeq   string
 }
 
-// Columns returns a description for each column in the named table.
+// Columns returns a description for each column in the named table/view.
 // Column.Autoinc and Column.CollSeq are left unspecified.
 // (See http://www.sqlite.org/pragma.html#pragma_table_info)
 func (c *Conn) Columns(dbName, table string) ([]Column, error) {
@@ -167,7 +168,7 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	return columns, nil
 }
 
-// Column extracts metadata about a column of a table.
+// Column extracts metadata about a column of a table (doesn't work with view).
 // Column.Cid and Column.DfltValue are left unspecified.
 // (See http://sqlite.org/c3ref/table_column_metadata.html)
 func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
@@ -187,7 +188,6 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, fmt.Sprintf("Conn.Column(db: %q, tbl: %q, col: %q)", dbName, tableName, columnName))
 	}
-	// TODO How to avoid copy?
 	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", int(primaryKey),
 		autoinc == 1, C.GoString(zCollSeq)}, nil
 }
