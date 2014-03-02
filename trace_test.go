@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -119,7 +120,7 @@ func TestTrace(t *testing.T) {
 	defer checkClose(db, t)
 	db.Trace(trace, t)
 	err := db.SetAuthorizer(authorizer, t)
-	checkNoError(t, err, "couldn't set an authorizer")
+	checkNoError(t, err, "couldn't set an authorizer: %s")
 	db.Profile(profile, t)
 	db.ProgressHandler(progressHandler, 1, t)
 	db.CommitHook(commitHook, t)
@@ -139,4 +140,17 @@ func TestMemory(t *testing.T) {
 	assert.T(t, highwater >= 0, "memory highwater")
 	limit := SoftHeapLimit()
 	assert.T(t, limit >= 0, "soft heap limit positive")
+}
+
+func TestExplainQueryPlan(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	s, err := db.Prepare("SELECT * FROM test WHERE a_string like ?")
+	checkNoError(t, err, "error while preparing stmt: %s")
+	defer checkFinalize(s, t)
+	w, err := os.Open(os.DevNull)
+	checkNoError(t, err, "couldn't open /dev/null: %s")
+	err = s.ExplainQueryPlan(w)
+	checkNoError(t, err, "error while explaining query plan: %s")
 }

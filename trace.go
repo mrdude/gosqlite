@@ -27,6 +27,7 @@ import "C"
 
 import (
 	"fmt"
+	"io"
 	"time"
 	"unsafe"
 )
@@ -430,4 +431,29 @@ func ConfigUri(b bool) error {
 		return nil
 	}
 	return Errno(rv)
+}
+
+func (s *Stmt) ExplainQueryPlan(w io.Writer) error {
+	sql := s.SQL()
+	if len(sql) == 0 {
+		return s.specificError("empty statement")
+	}
+	explain := Mprintf("EXPLAIN QUERY PLAN %s", s.SQL())
+
+	sExplain, err := s.Conn().prepare(explain)
+	if err != nil {
+		return err
+	}
+	defer sExplain.finalize()
+
+	var selectid, order, from int
+	var detail string
+	err = sExplain.Select(func(s *Stmt) error {
+		if err := s.Scan(&selectid, &order, &from, &detail); err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%d\t%d\t%d\t%s\n", selectid, order, from, detail)
+		return nil
+	})
+	return err
 }
