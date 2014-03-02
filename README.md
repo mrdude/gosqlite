@@ -37,7 +37,7 @@ $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gw
 
 Open supports flags.  
 Conn.Exec handles multiple statements (separated by semicolons) properly.  
-Conn.Prepare can optionnaly bind as well.  
+Conn.Prepare can optionally bind as well.  
 Conn.Prepare can reuse already prepared Stmt.  
 Conn.Close ensures that all dangling statements are finalized.  
 Stmt.Exec is renamed in Stmt.Bind and a new Stmt.Exec method is introduced to bind and step.  
@@ -56,7 +56,7 @@ The original implementation is using this strategy:
 
 Using the native sqlite3_column_x implies:
  - optimal conversion from the storage type to Go type (when they match),
- - loosy conversion when types mismatch (select cast('M' as int); --> 0),
+ - lossy conversion when types mismatch (select cast('M' as int); --> 0),
  - NULL value can be returned only for **type, otherwise a default value (0, false, "") is returned.
 
 SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
@@ -132,7 +132,7 @@ Conn.DeclareVTab
 ### GC:
 Although Go is gced, there is no destructor (see http://www.airs.com/blog/archives/362).  
 In the gosqlite wrapper, no finalizer is used.  
-So users must ensure that C ressources (database connections, prepared statements, BLOBs, Backups) are destroyed/deallocated by calling Conn.Close, Stmt.Finalize, BlobReader.Close, Backup.Close.
+So users must ensure that C resources (database connections, prepared statements, BLOBs, Backups) are destroyed/deallocated by calling Conn.Close, Stmt.Finalize, BlobReader.Close, Backup.Close.
 
 Therefore, sqlite3_close/sqlite3_next_stmt are used by Conn.Close to free the database connection and all dangling statements (not sqlite3_close_v2) (see http://sqlite.org/c3ref/close.html).
 
