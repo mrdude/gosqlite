@@ -31,7 +31,7 @@ func Mprintf(format string, arg string) string {
 	defer C.sqlite3_free(unsafe.Pointer(zSQL))
 	return C.GoString(zSQL)
 }
-func mPrintf(format, arg string) *C.char {
+func mPrintf(format, arg string) *C.char { // TODO may return nil when no memory...
 	cf := C.CString(format)
 	defer C.free(unsafe.Pointer(cf))
 	ca := C.CString(arg)
@@ -49,7 +49,7 @@ func Mprintf2(format string, arg1, arg2 string) string {
 	defer C.free(unsafe.Pointer(ca1))
 	ca2 := C.CString(arg2)
 	defer C.free(unsafe.Pointer(ca2))
-	zSQL := C.my_mprintf2(cf, ca1, ca2)
+	zSQL := C.my_mprintf2(cf, ca1, ca2) // TODO may return nil when no memory...
 	defer C.sqlite3_free(unsafe.Pointer(zSQL))
 	return C.GoString(zSQL)
 }
