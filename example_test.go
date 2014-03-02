@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/gwenn/gosqlite"
@@ -13,7 +14,7 @@ import (
 
 func check(err error) {
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
