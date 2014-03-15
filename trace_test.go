@@ -27,13 +27,15 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("cannot activate uri handling: '%s'", err))
 	}
-	err = ConfigLog(func(d interface{}, err error, msg string) {
-		fmt.Printf("%s: %s, %s\n", d, err, msg)
-	}, "SQLITE")
-	if err != nil {
-		panic(fmt.Sprintf("couldn't config log: '%s'", err))
+	if os.Getenv("SQLITE_LOG") == "" {
+		err = ConfigLog(func(d interface{}, err error, msg string) {
+			fmt.Printf("%s: %s, %s\n", d, err, msg)
+		}, "SQLITE")
+		if err != nil {
+			panic(fmt.Sprintf("couldn't config log: '%s'", err))
+		}
+		err = ConfigLog(nil, "")
 	}
-	err = ConfigLog(nil, "")
 	if err != nil {
 		panic(fmt.Sprintf("couldn't unset logger: '%s'", err))
 	}

@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"database/sql"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ const (
 )
 
 func sqlOpen(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", "file:dummy.db?mode=memory&cache=shared")
 	checkNoError(t, err, "Error opening database: %s")
 	return db
 }
@@ -192,4 +193,147 @@ func TestCustomRegister(t *testing.T) {
 	ro, err := conn.Readonly("main")
 	checkNoError(t, err, "Error while setting reverse_unordered_selects status: %s")
 	assert.Tf(t, ro, "readonly = %t; want %t", ro, true)
+}
+
+// sql: Scan error on column index 0: unsupported driver -> Scan pair: []uint8 -> *time.Time
+func TestScanTimeFromView(t *testing.T) {
+	db := sqlCreate("CREATE VIEW v AS SELECT strftime('%Y-%m-%d %H:%M:%f', 'now') AS tic", t)
+	defer checkSqlDbClose(db, t)
+
+	conn := sqlite.Unwrap(db)
+	conn.DefaultTimeLayout = "2006-01-02 15:04:05.000"
+
+	row := db.QueryRow("SELECT * FROM v")
+	var tic time.Time
+	err := row.Scan(&tic)
+	//checkNoError(t, err, "Error while scanning view: %s")
+	assert.Tf(t, err != nil, "scan error expected")
+}
+
+// Adapted from https://github.com/bradfitz/go-sql-test/blob/master/src/sqltest/sql_test.go
+func TestBlobs(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+
+	var blob = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	result, err := db.Exec("CREATE TABLE foo (id INTEGER PRIMARY KEY, bar BLOB); INSERT INTO foo (id, bar) VALUES (?, ?)", 0, blob)
+	checkNoError(t, err, "Error inserting BLOB: %s")
+	id, err := result.LastInsertId()
+	checkNoError(t, err, "Error while calling LastInsertId: %s")
+	assert.Equal(t, int64(0), id, "lastInsertId")
+	changes, err := result.RowsAffected()
+	checkNoError(t, err, "Error while calling RowsAffected: %s")
+	assert.Equal(t, int64(1), changes, "rowsAffected")
+
+	var b []byte
+	err = db.QueryRow("SELECT bar FROM foo WHERE id = ?", 0).Scan(&b)
+	checkNoError(t, err, "Error selecting BLOB: %s")
+	assert.Equalf(t, blob, b, "blob = %v; want %v", b, blob)
+	var s string
+	err = db.QueryRow("SELECT bar FROM foo WHERE id = ?", 0).Scan(&s)
+	checkNoError(t, err, "Error selecting BLOB: %s")
+	assert.Equalf(t, string(blob), s, "blob = %s; want %s", s, string(blob))
+}
+
+func TestManyQueryRow(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+
+	_, err := db.Exec("CREATE TABLE foo (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO foo (id, name) VALUES (?, ?)", 1, "bob")
+	checkNoError(t, err, "Error inserting BLOB: %s")
+	var name string
+	for i := 0; i < 10000; i++ {
+		err := db.QueryRow("SELECT name FROM foo where id = ?", 1).Scan(&name)
+		if err != nil || name != "bob" {
+			t.Fatalf("on query %d: err=%v, name=%q", i, err, name)
+		}
+	}
+}
+
+// Adapted from https://github.com/bradfitz/go-sql-test/blob/master/src/sqltest/sql_test.go
+func TestTxQuery(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+
+	_, err = db.Exec("CREATE TABLE foo (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Logf("cannot create table foo: %s", err)
+	}
+
+	_, err = tx.Exec("INSERT INTO foo (id, name) VALUES (?,?)", 1, "bob")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := tx.Query("SELECT name FROM foo WHERE id = ?", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		if r.Err() != nil {
+			t.Fatal(err)
+		}
+		t.Fatal("expected one rows")
+	}
+
+	var name string
+	err = r.Scan(&name)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Adapted from https://github.com/bradfitz/go-sql-test/blob/master/src/sqltest/sql_test.go
+func TestPreparedStmt(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+
+	_, err := db.Exec("CREATE TABLE t (count INT)")
+	checkNoError(t, err, "Error creating table: %s")
+	sel, err := db.Prepare("SELECT count FROM t ORDER BY count DESC")
+	if err != nil {
+		t.Fatalf("prepare 1: %v", err)
+	}
+	ins, err := db.Prepare("INSERT INTO t (count) VALUES (?)")
+	if err != nil {
+		t.Fatalf("prepare 2: %v", err)
+	}
+
+	for n := 1; n <= 3; n++ {
+		if _, err := ins.Exec(n); err != nil {
+			t.Fatalf("insert(%d) = %v", n, err)
+		}
+	}
+
+	const nRuns = 10
+	ch := make(chan bool)
+	for i := 0; i < nRuns; i++ {
+		go func() {
+			defer func() {
+				ch <- true
+			}()
+			for j := 0; j < 10; j++ {
+				count := 0
+				if err := sel.QueryRow().Scan(&count); err != nil && err != sql.ErrNoRows {
+					t.Errorf("Query: %v", err)
+					return
+				}
+				if _, err := ins.Exec(rand.Intn(100)); err != nil {
+					t.Errorf("Insert: %v", err)
+					return
+				}
+			}
+		}()
+	}
+	for i := 0; i < nRuns; i++ {
+		<-ch
+	}
 }

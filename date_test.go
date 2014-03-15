@@ -95,6 +95,7 @@ func TestBindTimeAsString(t *testing.T) {
 
 	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
 	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(is, t)
 
 	now := time.Now()
 	//id1, err := is.Insert(YearMonthDay(now))
