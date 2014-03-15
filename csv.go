@@ -155,18 +155,14 @@ func (v *csvTab) readRow(r *yacr.Reader) error {
 	return nil
 }
 
-func (v *csvTab) release() error {
-	return nil
-}
-
 func (v *csvTab) BestIndex() error {
 	return nil
 }
 func (v *csvTab) Disconnect() error {
-	return v.release()
+	return nil
 }
 func (v *csvTab) Destroy() error {
-	return v.release()
+	return nil
 }
 func (v *csvTab) Open() (VTabCursor, error) {
 	f, err := os.Open(v.f)
