@@ -250,6 +250,10 @@ func TestExecMisuse(t *testing.T) {
 	err := db.Exec("INSERT INTO test VALUES (?, ?, ?, ?); INSERT INTO test VALUES (?, ?, ?, ?)", 0, 273.1, 1, "test")
 	assert.T(t, err != nil, "exec misuse expected")
 	//println(err.Error())
+
+	err = db.Exec("CREATE FUNCTION incr(i INT) RETURN i+1;")
+	assert.T(t, err != nil, "syntax error expected")
+	//println(err.Error())
 }
 
 func TestExecTwice(t *testing.T) {
@@ -274,4 +278,19 @@ func TestTransaction(t *testing.T) {
 		return err
 	})
 	checkNoError(t, err, "error: %s")
+}
+
+func TestCommitMisuse(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	err := db.Commit()
+	assert.T(t, err != nil, "error expected")
+	if cerr, ok := err.(*ConnError); ok {
+		assert.Equal(t, ErrError, cerr.Code())
+		assert.Equal(t, 1, cerr.ExtendedCode())
+	} else {
+		t.Errorf("got %s; want ConnError", reflect.TypeOf(err))
+	}
+	assert.Equal(t, err, db.LastError())
 }

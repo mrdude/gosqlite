@@ -139,6 +139,10 @@ func TestNamedScanColumn(t *testing.T) {
 	_, err = s.ScanByName("invalid", &i1)
 	assert.T(t, err != nil, "expected invalid name")
 	//println(err.Error())
+
+	err = s.NamedScan("invalid", &i1)
+	assert.T(t, err != nil, "expected invalid name")
+	//println(err.Error())
 }
 
 func TestScanCheck(t *testing.T) {
@@ -180,6 +184,36 @@ func TestScanNull(t *testing.T) {
 	null = Must(s.ScanByIndex(0, &ps))
 	assert.T(t, null, "expected null value")
 	assert.Equal(t, (*string)(nil), ps, "expected nil")
+
+	i, null, err := s.ScanInt64(0)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, (int64)(0), i, "expected zero")
+
+	var i32 int32
+	null, err = s.ScanByIndex(0, &i32)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, (int32)(0), i32, "expected zero")
+
+	f, null, err := s.ScanDouble(0)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, (float64)(0), f, "expected zero")
+
+	b, null, err := s.ScanByte(0)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, (byte)(0), b, "expected zero")
+
+	bo, null, err := s.ScanBool(0)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, false, bo, "expected false")
+
+	rb, null := s.ScanRawBytes(0)
+	assert.T(t, null, "expected null value")
+	assert.Equal(t, 0, len(rb), "expected empty")
 }
 
 func TestScanNotNull(t *testing.T) {
@@ -200,6 +234,16 @@ func TestScanNotNull(t *testing.T) {
 	null = Must(s.ScanByIndex(0, &ps))
 	assert.T(t, !null, "expected not null value")
 	assert.Equal(t, "1", *ps)
+
+	rb, null := s.ScanRawBytes(0)
+	assert.T(t, !null, "expected not null value")
+	assert.Equal(t, 1, len(rb), "expected not empty")
+
+	var i32 int32
+	null, err = s.ScanByIndex(0, &i32)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, !null, "expected not null value")
+	assert.Equal(t, (int32)(1), i32)
 }
 
 /*
@@ -278,6 +322,31 @@ func TestStmtExecWithSelect(t *testing.T) {
 	} else {
 		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
+
+	s1, err := db.Prepare("SELECT 1 LIMIT 0")
+	checkNoError(t, err, "prepare error: %s")
+	defer s1.Finalize()
+
+	err = s.Exec()
+	assert.T(t, err != nil, "error expected")
+	//println(err.Error())
+}
+
+func TestSelectOneRow(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 1")
+	checkNoError(t, err, "prepare error: %s")
+	defer s.Finalize()
+
+	exists, err := s.SelectOneRow(nil)
+	checkNoError(t, err, "select error: %s")
+	assert.T(t, exists)
+
+	exists, err = s.SelectOneRow(nil)
+	checkNoError(t, err, "select error: %s")
+	assert.T(t, !exists)
 }
 
 func TestStmtSelectWithInsert(t *testing.T) {
@@ -506,4 +575,63 @@ func TestBlankQuery(t *testing.T) {
 	s, err := db.Prepare("")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
+	assert.T(t, s.Empty(), "empty stmt expected")
+	assert.Equal(t, "", s.Tail(), "empty tail expected")
+}
+
+func TestNilStmt(t *testing.T) {
+	var s *Stmt
+	err := s.Finalize()
+	assert.T(t, err != nil, "error expected")
+}
+
+func TestBindAndScanReflect(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 1")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+	ok, err := s.Next()
+	checkNoError(t, err, "step error: %s")
+	assert.T(t, ok)
+
+	is, err := db.Prepare("SELECT ?")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(is, t)
+
+	type Flag bool
+	var bo Flag
+	null, err := s.ScanReflect(0, bo)
+	assert.T(t, err != nil, "scan error expected")
+	null, err = s.ScanReflect(0, &bo)
+	checkNoError(t, err, "scan error: %s")
+	assert.T(t, !null)
+	assert.Equal(t, Flag(true), bo)
+
+	checkNoError(t, is.BindReflect(1, bo), "bind error: %s")
+
+	type Type string
+	var typ Type
+	null, err = s.ScanReflect(0, &typ)
+	checkNoError(t, err, "scan error: %s")
+	assert.Equal(t, Type("1"), typ)
+
+	checkNoError(t, is.BindReflect(1, typ), "bind error: %s")
+
+	type Code int
+	var code Code
+	null, err = s.ScanReflect(0, &code)
+	checkNoError(t, err, "scan error: %s")
+	assert.Equal(t, Code(1), code)
+
+	checkNoError(t, is.BindReflect(1, code), "bind error: %s")
+
+	type Enum uint
+	var enum Enum
+	null, err = s.ScanReflect(0, &enum)
+	checkNoError(t, err, "scan error: %s")
+	assert.Equal(t, Enum(1), enum)
+
+	checkNoError(t, is.BindReflect(1, enum), "bind error: %s")
 }

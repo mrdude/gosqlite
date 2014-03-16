@@ -138,9 +138,9 @@ func (c *Conn) SetSynchronous(dbName string, mode int) error {
 // FkViolation is the description of one foreign key constraint violation.
 type FkViolation struct {
 	Table  string
-	Rowid  int64
+	RowId  int64
 	Parent string
-	Fkid   int
+	FkId   int
 }
 
 // ForeignKeyCheck checks the database, or the table, for foreign key constraints that are violated
@@ -172,7 +172,7 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 	var violations = make([]FkViolation, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
 		v := FkViolation{}
-		if err = s.Scan(&v.Table, &v.Rowid, &v.Parent, &v.Fkid); err != nil {
+		if err = s.Scan(&v.Table, &v.RowId, &v.Parent, &v.FkId); err != nil {
 			return
 		}
 		violations = append(violations, v)

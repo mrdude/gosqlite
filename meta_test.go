@@ -47,6 +47,10 @@ func TestTables(t *testing.T) {
 	tables, err = db.Tables("", true)
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 0, len(tables), "table count")
+
+	tables, err = db.Tables("bim", false)
+	assert.T(t, err != nil, "error expected")
+	//println(err.Error())
 }
 
 func TestViews(t *testing.T) {
@@ -72,10 +76,14 @@ func TestIndexes(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	createTable(db, t)
+	checkNoError(t, db.Exec("CREATE INDEX idx ON test(a_string)"), "%s")
 
 	indexes, err := db.Indexes("", false)
 	checkNoError(t, err, "error looking for indexes: %s")
-	assert.Equal(t, 0, len(indexes), "table count")
+	assert.Equal(t, 1, len(indexes), "index count")
+	tbl, ok := indexes["idx"]
+	assert.T(t, ok, "no index")
+	assert.Equalf(t, "test", tbl, "got: %s; want: %s", tbl, "test")
 }
 
 func TestColumns(t *testing.T) {
@@ -93,6 +101,14 @@ func TestColumns(t *testing.T) {
 
 	columns, err = db.Columns("main", "test")
 	checkNoError(t, err, "error listing columns: %s")
+
+	columns, err = db.Columns("bim", "test")
+	assert.T(t, err != nil, "expected error")
+	//println(err.Error())
+
+	columns, err = db.Columns("", "bim")
+	assert.T(t, err != nil, "expected error")
+	//println(err.Error())
 }
 
 func TestColumn(t *testing.T) {
@@ -108,6 +124,10 @@ func TestColumn(t *testing.T) {
 
 	column, err = db.Column("main", "test", "id")
 	checkNoError(t, err, "error getting column metadata: %s")
+
+	column, err = db.Column("", "test", "bim")
+	assert.T(t, err != nil, "expected error")
+	//println(err.Error())
 }
 
 func TestForeignKeys(t *testing.T) {

@@ -48,4 +48,8 @@ func TestBackupMisuse(t *testing.T) {
 	err = bck.Run(10, 0, nil)
 	assert.T(t, err != nil, "misuse expected")
 	//println(err.Error())
+
+	bck, err = NewBackup(db, "", nil, "")
+	assert.T(t, err != nil, "error expected")
+	//println(err.Error())
 }

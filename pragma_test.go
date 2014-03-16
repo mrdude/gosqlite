@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/bmizerany/assert"
+	. "github.com/gwenn/gosqlite"
 )
 
 func TestIntegrityCheck(t *testing.T) {
@@ -97,4 +98,57 @@ func TestQueryOnly(t *testing.T) {
 	err = db.Exec("CREATE TABLE test (data TEXT)")
 	assert.T(t, err != nil, "expected error")
 	//println(err.Error())
+}
+
+func TestApplicationId(t *testing.T) {
+	if VersionNumber() < 3007017 {
+		return
+	}
+
+	db := open(t)
+	defer checkClose(db, t)
+
+	appId, err := db.ApplicationId("")
+	checkNoError(t, err, "error getting application Id: %s")
+	assert.Equalf(t, 0, appId, "got: %d; want: %d", appId, 0)
+
+	err = db.SetApplicationId("", 123)
+	checkNoError(t, err, "error setting application Id: %s")
+
+	appId, err = db.ApplicationId("")
+	checkNoError(t, err, "error getting application Id: %s")
+	assert.Equalf(t, 123, appId, "got: %d; want: %d", appId, 123)
+}
+
+func TestForeignKeyCheck(t *testing.T) {
+	if VersionNumber() < 3007016 {
+		return
+	}
+
+	db := open(t)
+	defer checkClose(db, t)
+	checkNoError(t, db.Exec(`
+		CREATE TABLE tree (
+		id INTEGER PRIMARY KEY NOT NULL,
+		parentId INTEGER,
+		name TEXT NOT NULL,
+		FOREIGN KEY (parentId) REFERENCES tree(id)
+		);
+	  INSERT INTO tree VALUES (0, NULL, 'root'),
+	  (1, 0, 'node1'),
+	  (2, 0, 'node2'),
+	  (3, 1, 'leaf'),
+	  (4, 5, 'orphan')
+	  ;
+	`), "%s")
+	vs, err := db.ForeignKeyCheck("", "tree")
+	checkNoError(t, err, "error while checking FK: %s")
+	assert.Equal(t, 1, len(vs), "one FK violation expected")
+	v := vs[0]
+	assert.Equal(t, FkViolation{Table: "tree", RowId: 4, Parent: "tree", FkId: 0}, v)
+	fks, err := db.ForeignKeys("", "tree")
+	checkNoError(t, err, "error while loading FK: %s")
+	fk, ok := fks[v.FkId]
+	assert.Tf(t, ok, "no FK with id: %d", v.FkId)
+	assert.Equal(t, &ForeignKey{Table: "tree", From: []string{"parentId"}, To: []string{"id"}}, fk)
 }

@@ -175,6 +175,12 @@ func Version() string {
 	return C.GoString(p)
 }
 
+// VersionNumber returns the run-time library version number as 300X00Y
+// (See http://sqlite.org/c3ref/libversion.html)
+func VersionNumber() int32 {
+	return int32(C.sqlite3_libversion_number())
+}
+
 // OpenFlag enumerates flags for file open operations
 type OpenFlag int32
 
@@ -455,13 +461,11 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 
 // Commit commits transaction
 func (c *Conn) Commit() error {
-	// TODO Check autocommit?
 	return c.FastExec("COMMIT")
 }
 
 // Rollback rollbacks transaction
 func (c *Conn) Rollback() error {
-	// TODO Check autocommit?
 	return c.FastExec("ROLLBACK")
 }
 
@@ -529,6 +533,7 @@ func (c *Conn) RollbackSavepoint(name string) error {
 	return c.FastExec(Mprintf("ROLLBACK TO SAVEPOINT %Q", name))
 }
 
+/*
 func (c *Conn) exec(cmd string) error {
 	s, err := c.prepare(cmd)
 	if err != nil {
@@ -541,6 +546,7 @@ func (c *Conn) exec(cmd string) error {
 	}
 	return nil
 }
+*/
 
 // FastExec executes one or many non-parameterized statement(s) (separated by semi-colon) with no control and no stmt cache.
 func (c *Conn) FastExec(cmd string) error {

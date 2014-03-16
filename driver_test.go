@@ -129,6 +129,11 @@ func TestSqlTx(t *testing.T) {
 	checkNoError(t, err, "Error while begining tx: %s")
 	err = tx.Rollback()
 	checkNoError(t, err, "Error while rollbacking tx: %s")
+
+	tx, err = db.Begin()
+	checkNoError(t, err, "Error while begining tx: %s")
+	err = tx.Commit()
+	checkNoError(t, err, "Error while commiting tx: %s")
 }
 
 func TestSqlPrepare(t *testing.T) {
@@ -191,8 +196,22 @@ func TestCustomRegister(t *testing.T) {
 	defer checkSqlDbClose(db, t)
 	conn := sqlite.Unwrap(db)
 	ro, err := conn.Readonly("main")
-	checkNoError(t, err, "Error while setting reverse_unordered_selects status: %s")
+	checkNoError(t, err, "Error while reading readonly status: %s")
 	assert.Tf(t, ro, "readonly = %t; want %t", ro, true)
+}
+
+func TestCustomRegister2(t *testing.T) {
+	sql.Register("sqlite3FK", sqlite.NewDriver(nil, func(c *sqlite.Conn) error {
+		_, err := c.EnableFKey(true)
+		return err
+	}))
+	db, err := sql.Open("sqlite3FK", ":memory:")
+	checkNoError(t, err, "Error while opening customized db: %s")
+	defer checkSqlDbClose(db, t)
+	conn := sqlite.Unwrap(db)
+	fk, err := conn.IsFKeyEnabled()
+	checkNoError(t, err, "Error while reading foreign_keys status: %s")
+	assert.Tf(t, fk, "foreign_keys = %t; want %t", fk, true)
 }
 
 // sql: Scan error on column index 0: unsupported driver -> Scan pair: []uint8 -> *time.Time

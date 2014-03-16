@@ -135,7 +135,7 @@ func TestBindTimeAsNumeric(t *testing.T) {
 	checkNoError(t, err, "error inserting JulianTime: %s")
 	checkFinalize(is, t)
 
-	// And the format used to persist has a max precision of 1s.
+	// the format used to persist has a max precision of 1s.
 	now = now.Truncate(time.Second)
 
 	var tim time.Time
@@ -146,4 +146,73 @@ func TestBindTimeAsNumeric(t *testing.T) {
 	err = db.OneValue("SELECT /*julianday(*/time/*)*/ FROM test where ROWID = ?", &tim, id2)
 	checkNoError(t, err, "error selecting JulianTime: %s")
 	assert.Equal(t, now, tim)
+}
+
+func TestJulianTime(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (time NUMERIC)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
+	checkNoError(t, err, "prepare error: %s")
+
+	now := time.Now()
+	id, err := is.Insert(JulianTime(now))
+	checkNoError(t, err, "error inserting JulianTime: %s")
+	checkFinalize(is, t)
+
+	// the format used to persist has a max precision of 1s.
+	now = now.Truncate(time.Second)
+
+	var jt JulianTime
+	err = db.OneValue("SELECT time FROM test where ROWID = ?", &jt, id)
+	checkNoError(t, err, "error selecting JulianTime: %s")
+	assert.Equal(t, now, time.Time(jt))
+}
+
+func TestTimeStamp(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (time NUMERIC)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
+	checkNoError(t, err, "prepare error: %s")
+
+	now := time.Now()
+	id, err := is.Insert(TimeStamp(now))
+	checkNoError(t, err, "error inserting TimeStamp: %s")
+	checkFinalize(is, t)
+
+	// the format used to persist has a max precision of 1ms.
+	now = now.Truncate(time.Millisecond)
+
+	var ts TimeStamp
+	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ts, id)
+	checkNoError(t, err, "error selecting TimeStamp: %s")
+	assert.Equal(t, now, time.Time(ts))
+}
+
+func TestUnixTime(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := db.Exec("CREATE TABLE test (time NUMERIC)")
+	checkNoError(t, err, "exec error: %s")
+
+	is, err := db.Prepare("INSERT INTO test (time) VALUES (?)")
+	checkNoError(t, err, "prepare error: %s")
+
+	now := time.Now()
+	id, err := is.Insert(UnixTime(now))
+	checkNoError(t, err, "error inserting UnixTime: %s")
+	checkFinalize(is, t)
+
+	// the format used to persist has a max precision of 1s.
+	now = now.Truncate(time.Second)
+
+	var ut UnixTime
+	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ut, id)
+	checkNoError(t, err, "error selecting UnixTime: %s")
+	assert.Equal(t, now, time.Time(ut))
 }

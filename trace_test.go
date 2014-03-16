@@ -79,31 +79,6 @@ func progressHandler(d interface{}) bool {
 	return false
 }
 
-func commitHook(d interface{}) bool {
-	if t, ok := d.(*testing.T); ok {
-		t.Log("CMT")
-	} else {
-		fmt.Println(d)
-	}
-	return false
-}
-
-func rollbackHook(d interface{}) {
-	if t, ok := d.(*testing.T); ok {
-		t.Log("RBK")
-	} else {
-		fmt.Println(d)
-	}
-}
-
-func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) {
-	if t, ok := d.(*testing.T); ok {
-		t.Logf("UPD: %d, %s.%s.%d\n", a, dbName, tableName, rowId)
-	} else {
-		fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowId)
-	}
-}
-
 func TestNoTrace(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
@@ -112,9 +87,6 @@ func TestNoTrace(t *testing.T) {
 	db.Profile(nil, nil)
 	db.ProgressHandler(nil, 0, nil)
 	db.BusyHandler(nil, nil)
-	db.CommitHook(nil, nil)
-	db.RollbackHook(nil, nil)
-	db.UpdateHook(nil, nil)
 }
 
 func TestTrace(t *testing.T) {
@@ -125,10 +97,15 @@ func TestTrace(t *testing.T) {
 	checkNoError(t, err, "couldn't set an authorizer: %s")
 	db.Profile(profile, t)
 	db.ProgressHandler(progressHandler, 1, t)
-	db.CommitHook(commitHook, t)
-	db.RollbackHook(rollbackHook, t)
-	db.UpdateHook(updateHook, t)
 	db.Exists("SELECT 1 WHERE 1 = ?", 1)
+}
+
+func TestProfile(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	db.Profile(profile, t)
+	defer db.Profile(nil, nil)
+	createTable(db, t)
 }
 
 func TestLog(t *testing.T) {
