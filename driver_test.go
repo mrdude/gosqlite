@@ -229,6 +229,30 @@ func TestScanTimeFromView(t *testing.T) {
 	assert.Tf(t, err != nil, "scan error expected")
 }
 
+func TestScanNumericalAsTime(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+	now := time.Now()
+	_, err := db.Exec("CREATE TABLE test (ms TIMESTAMP); INSERT INTO test VALUES (?)", now)
+	checkNoError(t, err, "%s")
+	row := db.QueryRow("SELECT ms FROM test")
+
+	now = now.Truncate(time.Millisecond)
+
+	var ms time.Time
+	err = row.Scan(&ms)
+	checkNoError(t, err, "%s")
+	//fmt.Printf("%v <=> %v\n", now, ms)
+	assert.Equal(t, now, ms)
+
+	_, err = db.Exec("DELETE FROM test; INSERT INTO test VALUES (?)", "bim")
+	checkNoError(t, err, "%s")
+	row = db.QueryRow("SELECT ms FROM test")
+	err = row.Scan(&ms)
+	assert.T(t, err != nil)
+	//println(err.Error())
+}
+
 // Adapted from https://github.com/bradfitz/go-sql-test/blob/master/src/sqltest/sql_test.go
 func TestBlobs(t *testing.T) {
 	db := sqlOpen(t)

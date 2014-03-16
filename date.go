@@ -44,7 +44,7 @@ type UnixTime time.Time
 // Scan implements the database/sql/Scanner interface.
 func (t *UnixTime) Scan(src interface{}) error {
 	if src == nil {
-		//t = nil
+		*t = UnixTime{}
 		return nil
 	} else if unixepoch, ok := src.(int64); ok {
 		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
@@ -67,7 +67,10 @@ type JulianTime time.Time
 // Scan implements the database/sql/Scanner interface.
 func (t *JulianTime) Scan(src interface{}) error {
 	if src == nil {
-		//t = nil
+		*t = JulianTime{}
+		return nil
+	} else if jd, ok := src.(int64); ok {
+		*t = JulianTime(JulianDayToLocalTime(float64(jd))) // local time
 		return nil
 	} else if jd, ok := src.(float64); ok {
 		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
@@ -90,7 +93,7 @@ type TimeStamp time.Time
 // Scan implements the database/sql/Scanner interface.
 func (t *TimeStamp) Scan(src interface{}) error {
 	if src == nil {
-		//t = nil
+		*t = TimeStamp{}
 		return nil
 	} else if txt, ok := src.(string); ok {
 		v, err := time.Parse("2006-01-02T15:04:05.000Z07:00", txt)

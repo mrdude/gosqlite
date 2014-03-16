@@ -160,6 +160,8 @@ func TestJulianTime(t *testing.T) {
 	now := time.Now()
 	id, err := is.Insert(JulianTime(now))
 	checkNoError(t, err, "error inserting JulianTime: %s")
+	_, err = is.Insert(JulianTime{})
+	checkNoError(t, err, "error inserting JulianTime: %s")
 	checkFinalize(is, t)
 
 	// the format used to persist has a max precision of 1s.
@@ -169,6 +171,17 @@ func TestJulianTime(t *testing.T) {
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &jt, id)
 	checkNoError(t, err, "error selecting JulianTime: %s")
 	assert.Equal(t, now, time.Time(jt))
+
+	err = db.OneValue("SELECT null", &jt)
+	checkNoError(t, err, "%s")
+	assert.T(t, ((time.Time)(jt)).IsZero())
+
+	err = db.OneValue("SELECT 0", &jt)
+	checkNoError(t, err, "%s")
+
+	err = db.OneValue("SELECT 'bim'", &jt)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestTimeStamp(t *testing.T) {
@@ -183,6 +196,8 @@ func TestTimeStamp(t *testing.T) {
 	now := time.Now()
 	id, err := is.Insert(TimeStamp(now))
 	checkNoError(t, err, "error inserting TimeStamp: %s")
+	_, err = is.Insert(TimeStamp{})
+	checkNoError(t, err, "error inserting TimeStamp: %s")
 	checkFinalize(is, t)
 
 	// the format used to persist has a max precision of 1ms.
@@ -192,6 +207,18 @@ func TestTimeStamp(t *testing.T) {
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ts, id)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
 	assert.Equal(t, now, time.Time(ts))
+
+	err = db.OneValue("SELECT null", &ts)
+	checkNoError(t, err, "%s")
+	assert.T(t, ((time.Time)(ts)).IsZero())
+
+	err = db.OneValue("SELECT 'bim'", &ts)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	err = db.OneValue("SELECT 0", &ts)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestUnixTime(t *testing.T) {
@@ -206,6 +233,8 @@ func TestUnixTime(t *testing.T) {
 	now := time.Now()
 	id, err := is.Insert(UnixTime(now))
 	checkNoError(t, err, "error inserting UnixTime: %s")
+	_, err = is.Insert(UnixTime{})
+	checkNoError(t, err, "error inserting UnixTime: %s")
 	checkFinalize(is, t)
 
 	// the format used to persist has a max precision of 1s.
@@ -215,4 +244,12 @@ func TestUnixTime(t *testing.T) {
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ut, id)
 	checkNoError(t, err, "error selecting UnixTime: %s")
 	assert.Equal(t, now, time.Time(ut))
+
+	err = db.OneValue("SELECT null", &ut)
+	checkNoError(t, err, "%s")
+	assert.T(t, ((time.Time)(ut)).IsZero())
+
+	err = db.OneValue("SELECT 'bim'", &ut)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }

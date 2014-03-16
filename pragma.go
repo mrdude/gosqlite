@@ -158,7 +158,7 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 		}
 	} else {
 		if len(table) == 0 {
-			pragma = Mprintf("PRAGMA %Q.foreign_key_check", table)
+			pragma = Mprintf("PRAGMA %Q.foreign_key_check", dbName)
 		} else {
 			pragma = Mprintf2("PRAGMA %Q.foreign_key_check(%Q)", dbName, table)
 		}

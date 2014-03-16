@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"math"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -113,6 +114,10 @@ func TestScanColumn(t *testing.T) {
 	null = Must(s.ScanByIndex(2, &i3))
 	assert.T(t, !null, "expected not null value")
 	assert.Equal(t, 0, i3)
+
+	err = s.Scan(i1, i2, i3, nil)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestNamedScanColumn(t *testing.T) {
@@ -142,6 +147,10 @@ func TestNamedScanColumn(t *testing.T) {
 
 	err = s.NamedScan("invalid", &i1)
 	assert.T(t, err != nil, "expected invalid name")
+	//println(err.Error())
+
+	err = s.NamedScan("i1", i1)
+	assert.T(t, err != nil, "expected invalid type")
 	//println(err.Error())
 }
 
@@ -279,12 +288,17 @@ func TestCloseTwice(t *testing.T) {
 func TestStmtMisuse(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
+	createTable(db, t)
 
 	s, err := db.Prepare("MISUSE")
 	assert.T(t, s == nil && err != nil, "error expected")
 	//println(err.Error())
 	err = s.Finalize()
 	assert.T(t, err != nil, "error expected")
+
+	_, err = db.Prepare("INSERT INTO test VALUES (?, ?, ?, ?)", os.ErrInvalid, nil, nil, nil)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestStmtWithClosedDb(t *testing.T) {
@@ -327,7 +341,7 @@ func TestStmtExecWithSelect(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 	defer s1.Finalize()
 
-	err = s.Exec()
+	err = s1.Exec()
 	assert.T(t, err != nil, "error expected")
 	//println(err.Error())
 }
@@ -398,6 +412,8 @@ func TestNamedBind(t *testing.T) {
 	assert.T(t, err != nil, "missing params")
 	err = is.NamedBind(byt, ":b")
 	assert.T(t, err != nil, "invalid param name")
+	err = is.NamedBind(":b", byt, ":blob", os.ErrInvalid)
+	assert.T(t, err != nil, "invalid param type")
 	checkFinalize(is, t)
 
 	s, err := db.Prepare("SELECT data AS bs, byte AS b FROM test")
@@ -433,7 +449,10 @@ func TestBind(t *testing.T) {
 	_, err = is.Next()
 	checkNoError(t, err, "step error: %s")
 
-	err = is.Bind(nil, db)
+	err = is.Bind(int32(1), float32(273.1))
+	checkNoError(t, err, "bind error: %s")
+
+	err = is.Bind(nil, os.ErrInvalid)
 	assert.T(t, err != nil, "unsupported type error expected")
 }
 
@@ -577,6 +596,10 @@ func TestBlankQuery(t *testing.T) {
 	defer checkFinalize(s, t)
 	assert.T(t, s.Empty(), "empty stmt expected")
 	assert.Equal(t, "", s.Tail(), "empty tail expected")
+
+	_, err = s.SelectOneRow()
+	assert.T(t, err != nil, "error expected")
+	//fmt.Println(err.Error())
 }
 
 func TestNilStmt(t *testing.T) {
@@ -634,4 +657,54 @@ func TestBindAndScanReflect(t *testing.T) {
 	assert.Equal(t, Enum(1), enum)
 
 	checkNoError(t, is.BindReflect(1, enum), "bind error: %s")
+
+	type Amount float64
+	var amount Amount
+	null, err = s.ScanReflect(0, &amount)
+	checkNoError(t, err, "scan error: %s")
+	assert.Equal(t, Amount(1), amount)
+
+	checkNoError(t, is.BindReflect(1, amount), "bind error: %s")
+}
+
+func TestSelect(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 1 LIMIT ?")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+
+	err = s.Select(func(s *Stmt) error {
+		return s.Scan(nil)
+	}, 1)
+	checkNoError(t, err, "select error: %s")
+}
+
+func TestStmtCache(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("SELECT 1 LIMIT ?")
+	checkNoError(t, err, "prepare error: %s")
+	s.Finalize()
+
+	s, err = db.Prepare("SELECT 1 LIMIT ?", 0)
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(s, t)
+}
+
+func TestCheckTypeMismatch(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	var i int
+	err := db.OneValue("SELECT 3.14", &i)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	var f float64
+	err = db.OneValue("SELECT X'53514C697465'", &f)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }

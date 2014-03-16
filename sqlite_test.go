@@ -130,6 +130,18 @@ func TestExists(t *testing.T) {
 	assert.T(t, !b, "no row expected")
 	b = Must(db.Exists("SELECT 1 WHERE 1 = 1"))
 	assert.T(t, b, "one row expected")
+
+	_, err := db.Exists("SELECT 1", 1)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = db.Exists("SELECT 1 FROM test")
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = db.Exists("PRAGMA shrink_memory")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestInsert(t *testing.T) {
@@ -293,4 +305,43 @@ func TestCommitMisuse(t *testing.T) {
 		t.Errorf("got %s; want ConnError", reflect.TypeOf(err))
 	}
 	assert.Equal(t, err, db.LastError())
+}
+
+func TestNilDb(t *testing.T) {
+	var db *Conn
+	err := db.Exec("DROP TABLE IF EXISTS test")
+	assert.T(t, err != nil)
+	//fmt.Println(err.Error())
+
+	err = db.Close()
+	assert.T(t, err != nil)
+	//fmt.Println(err.Error())
+}
+
+func TestError(t *testing.T) {
+	err := ErrMisuse
+	assert.T(t, err.Error() != "")
+}
+
+func TestOneValueMisuse(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	var value interface{}
+	err := db.OneValue("SELECT 1", &value, 1)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	err = db.OneValue("SELECT 1 FROM test", &value)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	err = db.OneValue("PRAGMA shrink_memory", &value)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	err = db.OneValue("SELECT 1 LIMIT 0", &value)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
 }

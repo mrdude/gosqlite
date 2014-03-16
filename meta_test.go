@@ -62,7 +62,7 @@ func TestViews(t *testing.T) {
 	assert.Equal(t, 0, len(views), "table count")
 	err = db.FastExec("CREATE VIEW myview AS SELECT 1")
 	checkNoError(t, err, "error creating view: %s")
-	views, err = db.Views("", false)
+	views, err = db.Views("main", false)
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 1, len(views), "table count")
 	assert.Equal(t, "myview", views[0], "table name")
@@ -84,6 +84,9 @@ func TestIndexes(t *testing.T) {
 	tbl, ok := indexes["idx"]
 	assert.T(t, ok, "no index")
 	assert.Equalf(t, "test", tbl, "got: %s; want: %s", tbl, "test")
+
+	indexes, err = db.Indexes("main", false)
+	checkNoError(t, err, "error looking for indexes: %s")
 }
 
 func TestColumns(t *testing.T) {
@@ -147,6 +150,9 @@ func TestForeignKeys(t *testing.T) {
 	if fk.From[0] != "parentId" || fk.Table != "parent" || fk.To[0] != "id" {
 		t.Errorf("unexpected FK data: %#v", fk)
 	}
+
+	fks, err = db.ForeignKeys("main", "child")
+	checkNoError(t, err, "error listing FKs: %s")
 }
 
 func TestTableIndexes(t *testing.T) {
@@ -171,6 +177,11 @@ func TestTableIndexes(t *testing.T) {
 	}
 	column := columns[0]
 	assert.Equal(t, "a_string", column.Name, "column name")
+
+	indexes, err = db.TableIndexes("main", "test")
+	checkNoError(t, err, "error listing indexes: %s")
+	columns, err = db.IndexColumns("main", "test_index")
+	checkNoError(t, err, "error listing index columns: %s")
 }
 
 func TestColumnMetadata(t *testing.T) {
@@ -235,4 +246,20 @@ func TestColumnMetadataOnExpr(t *testing.T) {
 	assert.Equal(t, "", declType, "declared type")
 	affinity := s.ColumnTypeAffinity(0)
 	assert.Equal(t, None, affinity, "affinity")
+}
+
+func TestColumnTypeAffinity(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	checkNoError(t, db.FastExec("CREATE TABLE test (i INT, f REAL, n NUM, b BLOB, t TEXT, v);"), "%s")
+	s, err := db.Prepare("SELECT i, f, n, b, t, v FROM test")
+	checkNoError(t, err, "%s")
+	defer checkFinalize(s, t)
+
+	assert.Equal(t, Integral, s.ColumnTypeAffinity(0), "affinity")
+	assert.Equal(t, Real, s.ColumnTypeAffinity(1), "affinity")
+	assert.Equal(t, Numerical, s.ColumnTypeAffinity(2), "affinity")
+	assert.Equal(t, None, s.ColumnTypeAffinity(3), "affinity")
+	assert.Equal(t, Textual, s.ColumnTypeAffinity(4), "affinity")
+	assert.Equal(t, None, s.ColumnTypeAffinity(5), "affinity")
 }

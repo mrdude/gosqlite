@@ -130,6 +130,13 @@ func TestExplainQueryPlan(t *testing.T) {
 	defer checkFinalize(s, t)
 	w, err := os.Open(os.DevNull)
 	checkNoError(t, err, "couldn't open /dev/null: %s")
+	defer w.Close()
 	err = s.ExplainQueryPlan(w)
 	checkNoError(t, err, "error while explaining query plan: %s")
+
+	e, err := db.Prepare("")
+	checkNoError(t, err, "error while preparing stmt: %s")
+	defer checkFinalize(e, t)
+	err = e.ExplainQueryPlan(w)
+	assert.T(t, err != nil)
 }

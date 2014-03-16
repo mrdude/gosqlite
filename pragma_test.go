@@ -16,6 +16,7 @@ func TestIntegrityCheck(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 	checkNoError(t, db.IntegrityCheck("", 1, true), "Error checking integrity of database: %s")
+	checkNoError(t, db.IntegrityCheck("", 1, false), "Error checking integrity of database: %s")
 }
 
 func TestEncoding(t *testing.T) {
@@ -151,4 +152,16 @@ func TestForeignKeyCheck(t *testing.T) {
 	fk, ok := fks[v.FkId]
 	assert.Tf(t, ok, "no FK with id: %d", v.FkId)
 	assert.Equal(t, &ForeignKey{Table: "tree", From: []string{"parentId"}, To: []string{"id"}}, fk)
+
+	mvs, err := db.ForeignKeyCheck("main", "tree")
+	checkNoError(t, err, "error while checking FK: %s")
+	assert.Equal(t, vs, mvs)
+
+	mvs, err = db.ForeignKeyCheck("main", "")
+	checkNoError(t, err, "error while checking FK: %s")
+	assert.Equal(t, vs, mvs)
+
+	mvs, err = db.ForeignKeyCheck("", "")
+	checkNoError(t, err, "error while checking FK: %s")
+	assert.Equal(t, vs, mvs)
 }
