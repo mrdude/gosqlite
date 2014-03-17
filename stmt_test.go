@@ -468,6 +468,15 @@ func TestInsertMisuse(t *testing.T) {
 
 	_, err = is.Insert()
 	assert.T(t, err != nil, "missing bind parameters expected")
+
+	//db.Exec("DELETE FROM test") // to reset sqlite3_changes counter
+
+	ois, err := db.Prepare("PRAGMA shrink_memory")
+	checkNoError(t, err, "prepare error: %s")
+	defer checkFinalize(ois, t)
+	rowId, err := ois.Insert()
+	checkNoError(t, err, "insert error: %s")
+	assert.Equal(t, int64(-1), rowId)
 }
 
 func TestScanValues(t *testing.T) {
@@ -599,7 +608,7 @@ func TestBlankQuery(t *testing.T) {
 
 	_, err = s.SelectOneRow()
 	assert.T(t, err != nil, "error expected")
-	//fmt.Println(err.Error())
+	//println(err.Error())
 }
 
 func TestNilStmt(t *testing.T) {
@@ -665,6 +674,15 @@ func TestBindAndScanReflect(t *testing.T) {
 	assert.Equal(t, Amount(1), amount)
 
 	checkNoError(t, is.BindReflect(1, amount), "bind error: %s")
+
+	checkNoError(t, is.BindReflect(1, -1), "bind error: %s")
+	ok, err = is.Next()
+	checkNoError(t, err, "step error: %s")
+	assert.T(t, ok)
+
+	_, err = is.ScanReflect(0, &enum)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestSelect(t *testing.T) {
@@ -679,6 +697,16 @@ func TestSelect(t *testing.T) {
 		return s.Scan(nil)
 	}, 1)
 	checkNoError(t, err, "select error: %s")
+
+	err = s.Select(func(s *Stmt) error {
+		return os.ErrInvalid
+	}, os.ErrInvalid)
+	assert.T(t, err != nil)
+
+	err = s.Select(func(s *Stmt) error {
+		return os.ErrInvalid
+	}, 1)
+	assert.Equal(t, os.ErrInvalid, err)
 }
 
 func TestStmtCache(t *testing.T) {
@@ -691,7 +719,11 @@ func TestStmtCache(t *testing.T) {
 
 	s, err = db.Prepare("SELECT 1 LIMIT ?", 0)
 	checkNoError(t, err, "prepare error: %s")
-	defer checkFinalize(s, t)
+	s.Finalize()
+
+	_, err = db.Prepare("SELECT 1 LIMIT ?", os.ErrInvalid)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestCheckTypeMismatch(t *testing.T) {
@@ -704,6 +736,10 @@ func TestCheckTypeMismatch(t *testing.T) {
 	//println(err.Error())
 
 	var f float64
+	err = db.OneValue("SELECT 'bim'", &f)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
 	err = db.OneValue("SELECT X'53514C697465'", &f)
 	assert.T(t, err != nil)
 	//println(err.Error())

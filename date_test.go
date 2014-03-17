@@ -5,7 +5,6 @@
 package sqlite_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -207,8 +206,8 @@ func TestTimeStamp(t *testing.T) {
 	var ts TimeStamp
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ts, id)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
-	fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), time.Time(ts), time.Time(ts).Unix())
-	//assert.Equal(t, now, time.Time(ts))
+	//fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), time.Time(ts), time.Time(ts).Unix())
+	assert.Tf(t, now == time.Time(ts), "got %s; want %s", now, time.Time(ts))
 
 	err = db.OneValue("SELECT null", &ts)
 	checkNoError(t, err, "%s")

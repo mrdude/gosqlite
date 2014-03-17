@@ -6,7 +6,6 @@ package sqlite_test
 
 import (
 	"database/sql"
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -55,6 +54,13 @@ func sqlCreate(ddl string, t *testing.T) *sql.DB {
 func TestSqlOpen(t *testing.T) {
 	db := sqlOpen(t)
 	checkNoError(t, db.Close(), "Error closing database: %s")
+
+	db, err := sql.Open("sqlite3", "file:data.db?mode=readonly")
+	checkNoError(t, err, "Error opening database: %s")
+	defer checkSqlDbClose(db, t)
+	err = db.Ping()
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestSqlDdl(t *testing.T) {
@@ -243,8 +249,9 @@ func TestScanNumericalAsTime(t *testing.T) {
 	var ms time.Time
 	err = row.Scan(&ms)
 	checkNoError(t, err, "%s")
-	fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), ms, ms.Unix())
+	//fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), ms, ms.Unix())
 	//assert.Equal(t, now, ms)
+	assert.Tf(t, now == ms, "got %s; want %s", now, ms)
 
 	_, err = db.Exec("DELETE FROM test; INSERT INTO test VALUES (?)", "bim")
 	checkNoError(t, err, "%s")

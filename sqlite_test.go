@@ -311,11 +311,21 @@ func TestNilDb(t *testing.T) {
 	var db *Conn
 	err := db.Exec("DROP TABLE IF EXISTS test")
 	assert.T(t, err != nil)
-	//fmt.Println(err.Error())
+	//println(err.Error())
 
 	err = db.Close()
 	assert.T(t, err != nil)
-	//fmt.Println(err.Error())
+	//println(err.Error())
+
+	err = db.LastError()
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = db.ForeignKeyCheck("", "")
+	assert.T(t, err != nil)
+
+	_, err = db.Databases()
+	assert.T(t, err != nil)
 }
 
 func TestError(t *testing.T) {

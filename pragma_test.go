@@ -17,6 +17,9 @@ func TestIntegrityCheck(t *testing.T) {
 	defer checkClose(db, t)
 	checkNoError(t, db.IntegrityCheck("", 1, true), "Error checking integrity of database: %s")
 	checkNoError(t, db.IntegrityCheck("", 1, false), "Error checking integrity of database: %s")
+	err := db.IntegrityCheck("bim", 1, true)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestEncoding(t *testing.T) {
@@ -25,6 +28,9 @@ func TestEncoding(t *testing.T) {
 	encoding, err := db.Encoding("")
 	checkNoError(t, err, "Error reading encoding of database: %s")
 	assert.Equal(t, "UTF-8", encoding)
+
+	_, err = db.Encoding("bim")
+	assert.T(t, err != nil)
 }
 
 func TestSchemaVersion(t *testing.T) {
@@ -41,6 +47,9 @@ func TestJournalMode(t *testing.T) {
 	mode, err := db.JournalMode("")
 	checkNoError(t, err, "Error reading journaling mode of database: %s")
 	assert.Equal(t, "memory", mode)
+
+	_, err = db.JournalMode("bim")
+	assert.T(t, err != nil)
 }
 
 func TestSetJournalMode(t *testing.T) {
@@ -49,6 +58,10 @@ func TestSetJournalMode(t *testing.T) {
 	mode, err := db.SetJournalMode("", "OFF")
 	checkNoError(t, err, "Error setting journaling mode of database: %s")
 	assert.Equal(t, "off", mode)
+
+	_, err = db.SetJournalMode("bim", "OFF")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestLockingMode(t *testing.T) {
@@ -73,6 +86,9 @@ func TestSynchronous(t *testing.T) {
 	mode, err := db.Synchronous("")
 	checkNoError(t, err, "Error reading synchronous flag of database: %s")
 	assert.Equal(t, 2, mode)
+
+	_, err = db.Synchronous("bim")
+	assert.T(t, err != nil)
 }
 
 func TestSetSynchronous(t *testing.T) {
@@ -99,6 +115,9 @@ func TestQueryOnly(t *testing.T) {
 	err = db.Exec("CREATE TABLE test (data TEXT)")
 	assert.T(t, err != nil, "expected error")
 	//println(err.Error())
+
+	_, err = db.QueryOnly("bim")
+	assert.T(t, err != nil)
 }
 
 func TestApplicationId(t *testing.T) {
@@ -119,6 +138,9 @@ func TestApplicationId(t *testing.T) {
 	appId, err = db.ApplicationId("")
 	checkNoError(t, err, "error getting application Id: %s")
 	assert.Equalf(t, 123, appId, "got: %d; want: %d", appId, 123)
+
+	_, err = db.ApplicationId("bim")
+	assert.T(t, err != nil)
 }
 
 func TestForeignKeyCheck(t *testing.T) {

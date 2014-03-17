@@ -70,6 +70,9 @@ func TestViews(t *testing.T) {
 	views, err = db.Views("", true)
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 0, len(views), "table count")
+
+	_, err = db.Views("bim", false)
+	assert.T(t, err != nil)
 }
 
 func TestIndexes(t *testing.T) {
@@ -87,6 +90,12 @@ func TestIndexes(t *testing.T) {
 
 	indexes, err = db.Indexes("main", false)
 	checkNoError(t, err, "error looking for indexes: %s")
+
+	_, err = db.Indexes("", true)
+	checkNoError(t, err, "error looking for indexes: %s")
+
+	_, err = db.Indexes("bim", false)
+	assert.T(t, err != nil)
 }
 
 func TestColumns(t *testing.T) {
@@ -153,6 +162,14 @@ func TestForeignKeys(t *testing.T) {
 
 	fks, err = db.ForeignKeys("main", "child")
 	checkNoError(t, err, "error listing FKs: %s")
+
+	_, err = db.ForeignKeys("bim", "child")
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = db.ForeignKeys("", "bim")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestTableIndexes(t *testing.T) {
@@ -182,6 +199,14 @@ func TestTableIndexes(t *testing.T) {
 	checkNoError(t, err, "error listing indexes: %s")
 	columns, err = db.IndexColumns("main", "test_index")
 	checkNoError(t, err, "error listing index columns: %s")
+
+	_, err = db.TableIndexes("bim", "test")
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = db.IndexColumns("bim", "test_index")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestColumnMetadata(t *testing.T) {

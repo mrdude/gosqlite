@@ -65,7 +65,22 @@ func TestBlob(t *testing.T) {
 	_, err = br.Seek(0, os.SEEK_SET)
 	checkNoError(t, err, "blob seek error: %s")
 
-	br.Close()
+	err = br.Reopen(-1)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	n, err = br.Read(nil)
+	checkNoError(t, err, "blob read error: %s")
+	assert.Equal(t, 0, n)
+
+	_, err = br.Read(content)
+	assert.T(t, err != nil)
+
+	err = br.Close()
+	checkNoError(t, err, "blob close error: %s")
+
+	_, err = br.Size()
+	assert.T(t, err != nil)
 }
 
 func TestBlobMisuse(t *testing.T) {
