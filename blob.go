@@ -152,7 +152,7 @@ func (r *BlobReader) Seek(offset int64, whence int) (int64, error) {
 // (See http://sqlite.org/c3ref/blob_bytes.html)
 func (r *BlobReader) Size() (int32, error) {
 	if r.bl == nil {
-		return 0, errors.New("blob reader already closed")
+		return 0, errors.New("blob already closed")
 	}
 	if r.size < 0 {
 		r.size = int32(C.sqlite3_blob_bytes(r.bl))

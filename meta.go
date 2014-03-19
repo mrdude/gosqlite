@@ -26,7 +26,7 @@ func (c *Conn) Databases() (map[string]string, error) {
 	defer s.finalize()
 	var databases = make(map[string]string)
 	var name, file string
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		if err = s.Scan(nil, &name, &file); err != nil {
 			return
 		}
@@ -154,7 +154,7 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	}
 	defer s.finalize()
 	var columns = make([]Column, 0, 20)
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		c := Column{}
 		if err = s.Scan(&c.Cid, &c.Name, &c.DataType, &c.NotNull, &c.DfltValue, &c.Pk); err != nil {
 			return
@@ -296,7 +296,7 @@ func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
 	var fks = make(map[int]*ForeignKey)
 	var id, seq int
 	var ref, from, to string
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		if err = s.NamedScan("id", &id, "seq", &seq, "table", &ref, "from", &from, "to", &to); err != nil {
 			return
 		}
@@ -338,7 +338,7 @@ func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 	}
 	defer s.finalize()
 	var indexes = make([]Index, 0, 5)
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		i := Index{}
 		if err = s.Scan(nil, &i.Name, &i.Unique); err != nil {
 			return
@@ -368,7 +368,7 @@ func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	}
 	defer s.finalize()
 	var columns = make([]Column, 0, 5)
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		c := Column{}
 		if err = s.Scan(nil, &c.Cid, &c.Name); err != nil {
 			return

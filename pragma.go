@@ -170,7 +170,7 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 	defer s.finalize()
 	// table|rowid|parent|fkid
 	var violations = make([]FkViolation, 0, 20)
-	err = s.Select(func(s *Stmt) (err error) {
+	err = s.execQuery(func(s *Stmt) (err error) {
 		v := FkViolation{}
 		if err = s.Scan(&v.Table, &v.RowId, &v.Parent, &v.FkId); err != nil {
 			return
@@ -243,4 +243,23 @@ func (c *Conn) oneValue(query string, value interface{}) error { // no cache
 		return io.EOF
 	}
 	return s.error(rv, fmt.Sprintf("Conn.oneValue(%q)", query))
+}
+func (s *Stmt) execQuery(rowCallbackHandler func(s *Stmt) error, args ...interface{}) error { // no check on column count
+	if len(args) > 0 {
+		err := s.Bind(args...)
+		if err != nil {
+			return err
+		}
+	}
+	for {
+		if ok, err := s.Next(); err != nil {
+			return err
+		} else if !ok {
+			break
+		}
+		if err := rowCallbackHandler(s); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -54,15 +54,6 @@ func Mprintf2(format string, arg1, arg2 string) string {
 	return C.GoString(zSQL)
 }
 
-// Must is a helper that wraps a call to a function returning (bool, os.Error)
-// and panics if the error is non-nil.
-func Must(b bool, err error) bool {
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
 func btocint(b bool) C.int {
 	if b {
 		return 1

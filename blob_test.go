@@ -37,6 +37,10 @@ func TestBlob(t *testing.T) {
 	checkNoError(t, err, "blob write error: %s")
 	//bw.Close()
 
+	_, err = bw.Write([]byte("5678901"))
+	assert.T(t, err != nil)
+	//println(err.Error())
+
 	err = bw.Reopen(rowid)
 	checkNoError(t, err, "blob reopen error: %s")
 	bw.Close()
@@ -81,6 +85,18 @@ func TestBlob(t *testing.T) {
 
 	_, err = br.Size()
 	assert.T(t, err != nil)
+
+	_, err = br.Read(content)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	err = bw.Reopen(-1)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	_, err = bw.Write(content)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestBlobMisuse(t *testing.T) {

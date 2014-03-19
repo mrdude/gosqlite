@@ -75,7 +75,7 @@ func TestRegexpFunction(t *testing.T) {
 	defer checkClose(db, t)
 	err := db.CreateScalarFunction("regexp", 2, true, nil, re, reDestroy)
 	checkNoError(t, err, "couldn't create function: %s")
-	s, err := db.Prepare("SELECT regexp('l.s[aeiouy]', name) from (SELECT 'lisa' AS name UNION ALL SELECT 'bart')")
+	s, err := db.Prepare("SELECT regexp('l.s[aeiouy]', name) from (SELECT 'lisa' AS name UNION ALL SELECT 'bart' UNION ALL SELECT NULL)")
 	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer checkFinalize(s, t)
 
@@ -94,6 +94,13 @@ func TestRegexpFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't scan result: %s")
 	assert.Equal(t, 0, i)
 	assert.T(t, reused, "unexpected reused state")
+
+	if b := Must(s.Next()); !b {
+		t.Fatalf("No result")
+	}
+	i, _, err = s.ScanInt(0)
+	checkNoError(t, err, "couldn't scan result: %s")
+	assert.Equal(t, 0, i)
 }
 
 func user(ctx *ScalarContext, nArg int) {

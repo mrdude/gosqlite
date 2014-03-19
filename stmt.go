@@ -437,10 +437,6 @@ func (s *Stmt) BindReflect(index int, value interface{}) error {
 //		}
 //		err = s.Scan(&fnum, &inum, &sstr)
 //	}
-// With panic on error:
-// 	for Must(s.Next()) {
-//		err := s.Scan(&fnum, &inum, &sstr)
-//	}
 //
 // (See http://sqlite.org/c3ref/step.html)
 func (s *Stmt) Next() (bool, error) {

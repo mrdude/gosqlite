@@ -70,6 +70,10 @@ func TestLockingMode(t *testing.T) {
 	mode, err := db.LockingMode("")
 	checkNoError(t, err, "Error reading locking-mode of database: %s")
 	assert.Equal(t, "normal", mode)
+
+	_, err = db.LockingMode("bim")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestSetLockingMode(t *testing.T) {

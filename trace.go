@@ -448,7 +448,7 @@ func (s *Stmt) ExplainQueryPlan(w io.Writer) error {
 
 	var selectid, order, from int
 	var detail string
-	err = sExplain.Select(func(s *Stmt) error {
+	err = sExplain.execQuery(func(s *Stmt) error {
 		if err := s.Scan(&selectid, &order, &from, &detail); err != nil {
 			return err
 		}

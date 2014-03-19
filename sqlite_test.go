@@ -23,6 +23,13 @@ func checkNoError(t *testing.T, err error, format string) {
 	}
 }
 
+func Must(b bool, err error) bool {
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 func open(t *testing.T) *Conn {
 	db, err := Open(":memory:", OpenReadWrite, OpenCreate, OpenFullMutex /*OpenNoMutex*/)
 	checkNoError(t, err, "couldn't open database file: %s")

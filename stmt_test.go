@@ -683,6 +683,16 @@ func TestBindAndScanReflect(t *testing.T) {
 	_, err = is.ScanReflect(0, &enum)
 	assert.T(t, err != nil)
 	//println(err.Error())
+
+	var ut error
+	_, err = is.ScanReflect(0, &ut)
+	assert.T(t, err != nil)
+	//println(err.Error())
+
+	var ui uint64 = math.MaxUint64
+	err = is.BindReflect(1, ui)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestSelect(t *testing.T) {
