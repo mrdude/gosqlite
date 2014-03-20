@@ -20,8 +20,6 @@ static inline void my_log(int iErrCode, char *msg) {
 }
 
 int goSqlite3ConfigLog(void *udp);
-int goSqlite3ConfigThreadMode(int mode);
-int goSqlite3Config(int op, int mode);
 */
 import "C"
 
@@ -387,46 +385,6 @@ func ConfigLog(f Logger, udp interface{}) error {
 		logger = &sqliteLogger{f, udp}
 		rv = C.goSqlite3ConfigLog(unsafe.Pointer(logger))
 	}
-	if rv == C.SQLITE_OK {
-		return nil
-	}
-	return Errno(rv)
-}
-
-// ThreadingMode enumerates SQLite threading mode
-// See ConfigThreadingMode
-type ThreadingMode int32
-
-const (
-	SingleThread ThreadingMode = C.SQLITE_CONFIG_SINGLETHREAD
-	MultiThread  ThreadingMode = C.SQLITE_CONFIG_MULTITHREAD
-	Serialized   ThreadingMode = C.SQLITE_CONFIG_SERIALIZED
-)
-
-// ConfigThreadingMode alters threading mode.
-// (See sqlite3_config(SQLITE_CONFIG_SINGLETHREAD|SQLITE_CONFIG_MULTITHREAD|SQLITE_CONFIG_SERIALIZED): http://sqlite.org/c3ref/config.html)
-func ConfigThreadingMode(mode ThreadingMode) error {
-	rv := C.goSqlite3ConfigThreadMode(C.int(mode))
-	if rv == C.SQLITE_OK {
-		return nil
-	}
-	return Errno(rv)
-}
-
-// ConfigMemStatus enables or disables the collection of memory allocation statistics.
-// (See sqlite3_config(SQLITE_CONFIG_MEMSTATUS): http://sqlite.org/c3ref/config.html)
-func ConfigMemStatus(b bool) error {
-	rv := C.goSqlite3Config(C.SQLITE_CONFIG_MEMSTATUS, btocint(b))
-	if rv == C.SQLITE_OK {
-		return nil
-	}
-	return Errno(rv)
-}
-
-// ConfigUri enables or disables URI handling.
-// (See sqlite3_config(SQLITE_CONFIG_URI): http://sqlite.org/c3ref/config.html)
-func ConfigUri(b bool) error {
-	rv := C.goSqlite3Config(C.SQLITE_CONFIG_URI, btocint(b))
 	if rv == C.SQLITE_OK {
 		return nil
 	}

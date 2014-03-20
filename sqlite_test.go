@@ -75,32 +75,6 @@ func TestOpenFailure(t *testing.T) {
 	//println(err.Error())
 }
 
-func TestEnableFKey(t *testing.T) {
-	db := open(t)
-	defer checkClose(db, t)
-	b := Must(db.IsFKeyEnabled())
-	if !b {
-		b = Must(db.EnableFKey(true))
-		assert.T(t, b, "cannot enable FK")
-	}
-}
-
-func TestEnableTriggers(t *testing.T) {
-	db := open(t)
-	defer checkClose(db, t)
-	b := Must(db.AreTriggersEnabled())
-	if !b {
-		b = Must(db.EnableTriggers(true))
-		assert.T(t, b, "cannot enable triggers")
-	}
-}
-
-func TestEnableExtendedResultCodes(t *testing.T) {
-	db := open(t)
-	defer checkClose(db, t)
-	checkNoError(t, db.EnableExtendedResultCodes(true), "cannot enable extended result codes: %s")
-}
-
 func TestCreateTable(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
@@ -247,15 +221,6 @@ func TestReadonlyMisuse(t *testing.T) {
 	assert.T(t, err != nil, "error expected")
 	err.Error()
 	//println(err.Error())
-}
-
-func TestConnSettings(t *testing.T) {
-	db := open(t)
-	defer checkClose(db, t)
-	err := db.EnableLoadExtension(false)
-	checkNoError(t, err, "EnableLoadExtension error: %s")
-	err = db.SetRecursiveTriggers("main", true)
-	checkNoError(t, err, "SetRecursiveTriggers error: %s")
 }
 
 func TestComplete(t *testing.T) {
