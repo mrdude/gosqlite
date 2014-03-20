@@ -189,7 +189,7 @@ func TestInsert(t *testing.T) {
 }
 
 /*
-func TestLoadExtension(t *testing.T) {
+func TestLoadExtension(t *testing.T) { // OMIT_LOAD_EXTENSION
 	db := open(t)
 
 	db.EnableLoadExtension(true)

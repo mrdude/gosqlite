@@ -249,9 +249,9 @@ func TestScanNumericalAsTime(t *testing.T) {
 	var ms time.Time
 	err = row.Scan(&ms)
 	checkNoError(t, err, "%s")
-	//fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), ms, ms.Unix())
-	//assert.Equal(t, now, ms)
-	assert.Tf(t, now == ms, "got %s; want %s", now, ms)
+	if !now.Equal(ms) {
+		t.Errorf("got timeStamp: %s; want %s", ms, now)
+	}
 
 	_, err = db.Exec("DELETE FROM test; INSERT INTO test VALUES (?)", "bim")
 	checkNoError(t, err, "%s")

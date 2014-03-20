@@ -382,6 +382,10 @@ func TestStmtSelectWithInsert(t *testing.T) {
 		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
 	}
 	assert.T(t, !exists, "false expected")
+
+	err = s.Select(nil)
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestNamedBind(t *testing.T) {

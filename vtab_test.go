@@ -71,7 +71,7 @@ func (vc *testVTabCursor) Close() error {
 	//fmt.Printf("testVTabCursor.Close: %v\n", vc)
 	return nil
 }
-func (vc *testVTabCursor) Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error {
+func (vc *testVTabCursor) Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/ ) error {
 	//fmt.Printf("testVTabCursor.Filter: %v\n", vc)
 	vc.index = 0
 	return nil

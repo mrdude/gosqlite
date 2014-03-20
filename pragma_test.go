@@ -82,6 +82,10 @@ func TestSetLockingMode(t *testing.T) {
 	mode, err := db.SetLockingMode("", "exclusive")
 	checkNoError(t, err, "Error setting locking-mode of database: %s")
 	assert.Equal(t, "exclusive", mode)
+
+	_, err = db.SetLockingMode("bim", "exclusive")
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestSynchronous(t *testing.T) {

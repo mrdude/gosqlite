@@ -206,8 +206,9 @@ func TestTimeStamp(t *testing.T) {
 	var ts TimeStamp
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ts, id)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
-	//fmt.Printf("%v (%d) <=> %v (%d)\n", now, now.Unix(), time.Time(ts), time.Time(ts).Unix())
-	assert.Tf(t, now == time.Time(ts), "got %s; want %s", now, time.Time(ts))
+	if !now.Equal(time.Time(ts)) {
+		t.Errorf("got timeStamp: %s; want %s", time.Time(ts), now)
+	}
 
 	err = db.OneValue("SELECT null", &ts)
 	checkNoError(t, err, "%s")
