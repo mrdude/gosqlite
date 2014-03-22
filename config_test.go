@@ -34,9 +34,11 @@ func init() {
 func TestEnableFKey(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	b := Must(db.IsFKeyEnabled())
+	b, err := db.IsFKeyEnabled()
+	checkNoError(t, err, "%s")
 	if !b {
-		b = Must(db.EnableFKey(true))
+		b, err = db.EnableFKey(true)
+		checkNoError(t, err, "%s")
 		assert.T(t, b, "cannot enable FK")
 	}
 }
@@ -44,9 +46,11 @@ func TestEnableFKey(t *testing.T) {
 func TestEnableTriggers(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	b := Must(db.AreTriggersEnabled())
+	b, err := db.AreTriggersEnabled()
+	checkNoError(t, err, "%s")
 	if !b {
-		b = Must(db.EnableTriggers(true))
+		b, err = db.EnableTriggers(true)
+		checkNoError(t, err, "%s")
 		assert.T(t, b, "cannot enable triggers")
 	}
 }

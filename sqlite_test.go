@@ -107,12 +107,14 @@ func TestSavepoint(t *testing.T) {
 func TestExists(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	b := Must(db.Exists("SELECT 1 WHERE 1 = 0"))
+	b, err := db.Exists("SELECT 1 WHERE 1 = 0")
+	checkNoError(t, err, "%s")
 	assert.T(t, !b, "no row expected")
-	b = Must(db.Exists("SELECT 1 WHERE 1 = 1"))
+	b, err = db.Exists("SELECT 1 WHERE 1 = 1")
+	checkNoError(t, err, "%s")
 	assert.T(t, b, "one row expected")
 
-	_, err := db.Exists("SELECT 1", 1)
+	_, err = db.Exists("SELECT 1", 1)
 	assert.T(t, err != nil)
 	//println(err.Error())
 
