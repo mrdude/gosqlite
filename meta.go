@@ -140,6 +140,7 @@ type Column struct {
 
 // Columns returns a description for each column in the named table/view.
 // Column.Autoinc and Column.CollSeq are left unspecified.
+// No error is returned if the table does not exist.
 // (See http://www.sqlite.org/pragma.html#pragma_table_info)
 func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	var pragma string
@@ -280,6 +281,7 @@ type ForeignKey struct {
 }
 
 // ForeignKeys returns one description for each foreign key that references a column in the argument table.
+// No error is returned if the table does not exist.
 // (See http://www.sqlite.org/pragma.html#pragma_foreign_key_list)
 func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
 	var pragma string
@@ -324,6 +326,7 @@ type Index struct {
 }
 
 // TableIndexes returns one description for each index associated with the given table.
+// No error is returned if the table does not exist.
 // (See http://www.sqlite.org/pragma.html#pragma_index_list)
 func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 	var pragma string
@@ -354,6 +357,7 @@ func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 
 // IndexColumns returns one description for each column in the named index.
 // Only Column.Cid and Column.Name are specified. All other fields are unspecified.
+// No error is returned if the index does not exist.
 // (See http://www.sqlite.org/pragma.html#pragma_index_info)
 func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	var pragma string

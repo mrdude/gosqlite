@@ -79,25 +79,19 @@ func TestRegexpFunction(t *testing.T) {
 	checkNoError(t, err, "couldn't prepare statement: %s")
 	defer checkFinalize(s, t)
 
-	if b := Must(s.Next()); !b {
-		t.Fatalf("No result")
-	}
+	assert.T(t, checkStep(t, s))
 	i, _, err := s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
 	assert.Equal(t, 1, i)
 	assert.T(t, !reused, "unexpected reused state")
 
-	if b := Must(s.Next()); !b {
-		t.Fatalf("No result")
-	}
+	assert.T(t, checkStep(t, s))
 	i, _, err = s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
 	assert.Equal(t, 0, i)
 	assert.T(t, reused, "unexpected reused state")
 
-	if b := Must(s.Next()); !b {
-		t.Fatalf("No result")
-	}
+	assert.T(t, checkStep(t, s))
 	i, _, err = s.ScanInt(0)
 	checkNoError(t, err, "couldn't scan result: %s")
 	assert.Equal(t, 0, i)

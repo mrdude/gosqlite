@@ -5,9 +5,12 @@
 package sqlite_test
 
 import (
+	"fmt"
 	"math"
 	"os"
+	"path"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 	"unsafe"
@@ -18,6 +21,15 @@ import (
 
 func checkFinalize(s *Stmt, t *testing.T) {
 	checkNoError(t, s.Finalize(), "Error finalizing statement: %s")
+}
+
+func checkStep(t *testing.T, s *Stmt) bool {
+	b, err := s.Next()
+	if err != nil {
+		_, file, line, _ := runtime.Caller(1)
+		t.Fatalf("\n%s:%d: %s", path.Base(file), line, fmt.Sprintf("step error: %s", err))
+	}
+	return b
 }
 
 func TestInsertWithStatement(t *testing.T) {
@@ -57,9 +69,7 @@ func TestInsertWithStatement(t *testing.T) {
 	cs, _ := db.Prepare("SELECT COUNT(*) FROM test")
 	defer checkFinalize(cs, t)
 	assert.T(t, cs.ReadOnly(), "SELECT statement should be readonly")
-	if !Must(cs.Next()) {
-		t.Fatal("no result for count")
-	}
+	assert.T(t, checkStep(t, cs))
 	var i int
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
 	assert.Equal(t, 1000, i, "count")
@@ -71,7 +81,7 @@ func TestInsertWithStatement(t *testing.T) {
 	secondColumnName := rs.ColumnName(1)
 	assert.Equal(t, "int_num", secondColumnName, "column name")
 
-	if Must(rs.Next()) {
+	if checkStep(t, rs) {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -80,7 +90,7 @@ func TestInsertWithStatement(t *testing.T) {
 		assert.Equal(t, int64(0), inum)
 		assert.Equal(t, "hello", sstr)
 	}
-	if Must(rs.Next()) {
+	if checkStep(t, rs) {
 		var fnum float64
 		var inum int64
 		var sstr string
@@ -101,9 +111,7 @@ func TestScanColumn(t *testing.T) {
 	s, err := db.Prepare("SELECT 1, null, 0")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var i1, i2, i3 int
 	null := Must(s.ScanByIndex(0, &i1))
 	assert.T(t, !null, "expected not null value")
@@ -127,9 +135,7 @@ func TestNamedScanColumn(t *testing.T) {
 	s, err := db.Prepare("SELECT 1 AS i1, null AS i2, 0 AS i3")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var i1, i2, i3 int
 	null := Must(s.ScanByName("i1", &i1))
 	assert.T(t, !null, "expected not null value")
@@ -161,9 +167,7 @@ func TestScanCheck(t *testing.T) {
 	s, err := db.Prepare("SELECT 'hello'")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var i int
 	_, err = s.ScanByIndex(0, &i)
 	if serr, ok := err.(*StmtError); ok {
@@ -182,9 +186,7 @@ func TestScanNull(t *testing.T) {
 	s, err := db.Prepare("SELECT null")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var pi = new(int)
 	null := Must(s.ScanByIndex(0, &pi))
 	assert.T(t, null, "expected null value")
@@ -232,9 +234,7 @@ func TestScanNotNull(t *testing.T) {
 	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var pi = new(int)
 	null := Must(s.ScanByIndex(0, &pi))
 	assert.T(t, !null, "expected not null value")
@@ -263,9 +263,7 @@ func TestScanError(t *testing.T) {
 	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var pi *int
 	null, err := s.ScanByIndex(0, &pi)
 	t.Errorf("(%t,%s)", null, err)
@@ -407,8 +405,7 @@ func TestNamedBind(t *testing.T) {
 	var byt byte = '!'
 	err = is.NamedBind(":b", byt, ":blob", blob)
 	checkNoError(t, err, "named bind error: %s")
-	_, err = is.Next()
-	checkNoError(t, err, "named bind step error: %s")
+	checkStep(t, is)
 
 	err = is.NamedBind(":b", byt, ":invalid", nil)
 	assert.T(t, err != nil, "invalid param name expected")
@@ -423,9 +420,7 @@ func TestNamedBind(t *testing.T) {
 	s, err := db.Prepare("SELECT data AS bs, byte AS b FROM test")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	var bs []byte
 	var b byte
 	err = s.NamedScan("b", &b, "bs", &bs)
@@ -450,8 +445,7 @@ func TestBind(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 	err = is.Bind(nil, true)
 	checkNoError(t, err, "bind error: %s")
-	_, err = is.Next()
-	checkNoError(t, err, "step error: %s")
+	checkStep(t, is)
 
 	err = is.Bind(int32(1), float32(273.1))
 	checkNoError(t, err, "bind error: %s")
@@ -490,9 +484,7 @@ func TestScanValues(t *testing.T) {
 	s, err := db.Prepare("SELECT 1, null, 0")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	values := make([]interface{}, 3)
 	s.ScanValues(values)
 	assert.Equal(t, int64(1), values[0])
@@ -507,9 +499,7 @@ func TestScanBytes(t *testing.T) {
 	s, err := db.Prepare("SELECT 'test'")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 	blob, _ := s.ScanBlob(0)
 	assert.Equal(t, "test", string(blob))
 }
@@ -522,9 +512,7 @@ func TestBindEmptyZero(t *testing.T) {
 	s, err := db.Prepare("SELECT ?, ?", "", zero)
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 
 	var ps *string
 	var zt time.Time
@@ -552,9 +540,7 @@ func TestBindEmptyZeroNotTransformedToNull(t *testing.T) {
 	s, err := db.Prepare("SELECT ?, ?", "", zero)
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	if !Must(s.Next()) {
-		t.Fatal("no result")
-	}
+	assert.T(t, checkStep(t, s))
 
 	var st string
 	var zt time.Time
@@ -628,9 +614,7 @@ func TestBindAndScanReflect(t *testing.T) {
 	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
-	ok, err := s.Next()
-	checkNoError(t, err, "step error: %s")
-	assert.T(t, ok)
+	assert.T(t, checkStep(t, s))
 
 	is, err := db.Prepare("SELECT ?")
 	checkNoError(t, err, "prepare error: %s")
@@ -680,9 +664,7 @@ func TestBindAndScanReflect(t *testing.T) {
 	checkNoError(t, is.BindReflect(1, amount), "bind error: %s")
 
 	checkNoError(t, is.BindReflect(1, -1), "bind error: %s")
-	ok, err = is.Next()
-	checkNoError(t, err, "step error: %s")
-	assert.T(t, ok)
+	assert.T(t, checkStep(t, is))
 
 	_, err = is.ScanReflect(0, &enum)
 	assert.T(t, err != nil)

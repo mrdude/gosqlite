@@ -149,14 +149,12 @@ func TestInsert(t *testing.T) {
 	columnCount := cs.ColumnCount()
 	assert.Equal(t, 1, columnCount, "column count")
 
-	if !Must(cs.Next()) {
-		t.Fatal("no result for count")
-	}
+	assert.T(t, checkStep(t, cs))
 	assert.Equal(t, columnCount, cs.DataCount(), "column & data count expected to be equal")
 	var i int
 	checkNoError(t, cs.Scan(&i), "error scanning count: %s")
 	assert.Equal(t, 1000, i, "count")
-	if Must(cs.Next()) {
+	if checkStep(t, cs) {
 		t.Fatal("Only one row expected")
 	}
 	assert.T(t, !cs.Busy(), "expected statement to be reset")
