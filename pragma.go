@@ -244,13 +244,7 @@ func (c *Conn) oneValue(query string, value interface{}) error { // no cache
 	}
 	return s.error(rv, fmt.Sprintf("Conn.oneValue(%q)", query))
 }
-func (s *Stmt) execQuery(rowCallbackHandler func(s *Stmt) error, args ...interface{}) error { // no check on column count
-	if len(args) > 0 {
-		err := s.Bind(args...)
-		if err != nil {
-			return err
-		}
-	}
+func (s *Stmt) execQuery(rowCallbackHandler func(s *Stmt) error) error { // no check on column count
 	for {
 		if ok, err := s.Next(); err != nil {
 			return err

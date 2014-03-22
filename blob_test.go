@@ -92,6 +92,7 @@ func TestBlob(t *testing.T) {
 
 	err = bw.Reopen(-1)
 	assert.T(t, err != nil)
+	assert.T(t, err.Error() != "")
 	//println(err.Error())
 
 	_, err = bw.Write(content)

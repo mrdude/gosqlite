@@ -139,6 +139,7 @@ func TestColumn(t *testing.T) {
 
 	column, err = db.Column("", "test", "bim")
 	assert.T(t, err != nil, "expected error")
+	assert.T(t, err.Error() != "")
 	//println(err.Error())
 }
 

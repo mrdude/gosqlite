@@ -48,11 +48,11 @@ func TestEnableTriggers(t *testing.T) {
 	defer checkClose(db, t)
 	b, err := db.AreTriggersEnabled()
 	checkNoError(t, err, "%s")
-	if !b {
-		b, err = db.EnableTriggers(true)
-		checkNoError(t, err, "%s")
-		assert.T(t, b, "cannot enable triggers")
-	}
+	//if !b {
+	b, err = db.EnableTriggers(true)
+	checkNoError(t, err, "%s")
+	assert.T(t, b, "cannot enable triggers")
+	//}
 }
 
 func TestEnableExtendedResultCodes(t *testing.T) {
