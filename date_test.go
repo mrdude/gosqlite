@@ -82,7 +82,7 @@ func TestScanNullTime(t *testing.T) {
 	var unix UnixTime
 	err := db.OneValue("SELECT NULL", &unix)
 	checkNoError(t, err, "Error scanning null time: %#v")
-	if !(time.Time)(unix).IsZero() {
+	if !unix.IsZero() {
 		t.Error("Expected zero time")
 	}
 }
@@ -100,7 +100,7 @@ func TestBindTimeAsString(t *testing.T) {
 	now := time.Now()
 	//id1, err := is.Insert(YearMonthDay(now))
 	//checkNoError(t, err, "error inserting YearMonthDay: %s")
-	id2, err := is.Insert(TimeStamp(now))
+	id2, err := is.Insert(TimeStamp{now})
 	checkNoError(t, err, "error inserting TimeStamp: %s")
 
 	// The format used to persist has a max precision of 1ms.
@@ -129,9 +129,9 @@ func TestBindTimeAsNumeric(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 
 	now := time.Now()
-	id1, err := is.Insert(UnixTime(now))
+	id1, err := is.Insert(UnixTime{now})
 	checkNoError(t, err, "error inserting UnixTime: %s")
-	id2, err := is.Insert(JulianTime(now))
+	id2, err := is.Insert(JulianTime{now})
 	checkNoError(t, err, "error inserting JulianTime: %s")
 	checkFinalize(is, t)
 
@@ -158,7 +158,7 @@ func TestJulianTime(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 
 	now := time.Now()
-	id, err := is.Insert(JulianTime(now))
+	id, err := is.Insert(JulianTime{now})
 	checkNoError(t, err, "error inserting JulianTime: %s")
 	_, err = is.Insert(JulianTime{})
 	checkNoError(t, err, "error inserting JulianTime: %s")
@@ -170,11 +170,11 @@ func TestJulianTime(t *testing.T) {
 	var jt JulianTime
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &jt, id)
 	checkNoError(t, err, "error selecting JulianTime: %s")
-	assert.Equal(t, now, time.Time(jt))
+	assert.Equal(t, now, jt.Time)
 
 	err = db.OneValue("SELECT null", &jt)
 	checkNoError(t, err, "%s")
-	assert.T(t, ((time.Time)(jt)).IsZero())
+	assert.T(t, jt.IsZero())
 
 	err = db.OneValue("SELECT 0", &jt)
 	checkNoError(t, err, "%s")
@@ -194,7 +194,7 @@ func TestTimeStamp(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 
 	now := time.Now()
-	id, err := is.Insert(TimeStamp(now))
+	id, err := is.Insert(TimeStamp{now})
 	checkNoError(t, err, "error inserting TimeStamp: %s")
 	_, err = is.Insert(TimeStamp{})
 	checkNoError(t, err, "error inserting TimeStamp: %s")
@@ -206,13 +206,13 @@ func TestTimeStamp(t *testing.T) {
 	var ts TimeStamp
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ts, id)
 	checkNoError(t, err, "error selecting TimeStamp: %s")
-	if !now.Equal(time.Time(ts)) {
-		t.Errorf("got timeStamp: %s; want %s", time.Time(ts), now)
+	if !now.Equal(ts.Time) {
+		t.Errorf("got timeStamp: %s; want %s", ts, now)
 	}
 
 	err = db.OneValue("SELECT null", &ts)
 	checkNoError(t, err, "%s")
-	assert.T(t, ((time.Time)(ts)).IsZero())
+	assert.T(t, ts.IsZero())
 
 	err = db.OneValue("SELECT 'bim'", &ts)
 	assert.T(t, err != nil)
@@ -233,7 +233,7 @@ func TestUnixTime(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 
 	now := time.Now()
-	id, err := is.Insert(UnixTime(now))
+	id, err := is.Insert(UnixTime{now})
 	checkNoError(t, err, "error inserting UnixTime: %s")
 	_, err = is.Insert(UnixTime{})
 	checkNoError(t, err, "error inserting UnixTime: %s")
@@ -245,11 +245,11 @@ func TestUnixTime(t *testing.T) {
 	var ut UnixTime
 	err = db.OneValue("SELECT time FROM test where ROWID = ?", &ut, id)
 	checkNoError(t, err, "error selecting UnixTime: %s")
-	assert.Equal(t, now, time.Time(ut))
+	assert.Equal(t, now, ut.Time)
 
 	err = db.OneValue("SELECT null", &ut)
 	checkNoError(t, err, "%s")
-	assert.T(t, ((time.Time)(ut)).IsZero())
+	assert.T(t, ut.IsZero())
 
 	err = db.OneValue("SELECT 'bim'", &ut)
 	assert.T(t, err != nil)

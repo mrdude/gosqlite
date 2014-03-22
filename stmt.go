@@ -377,8 +377,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case time.Time:
 		if NullIfZeroTime && value.IsZero() {
 			rv = C.sqlite3_bind_null(s.stmt, i)
+		} else if s.c.DefaultTimeLayout == "" {
+			rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
 		} else {
-			//rv = C.sqlite3_bind_int64(s.stmt, i, C.sqlite3_int64(value.Unix()))
 			cs, l := cstring(value.Format(s.c.DefaultTimeLayout))
 			rv = C.my_bind_text(s.stmt, i, cs, l)
 		}

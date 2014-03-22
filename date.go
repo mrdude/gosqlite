@@ -39,41 +39,45 @@ func JulianDay(t time.Time) float64 {
 }
 
 // UnixTime is an alias used to persist time as int64 (max precision is 1s and timezone is lost)
-type UnixTime time.Time
+type UnixTime struct {
+	time.Time
+}
 
 // Scan implements the database/sql/Scanner interface.
 func (t *UnixTime) Scan(src interface{}) error {
 	if src == nil {
-		*t = UnixTime{}
+		t.Time = time.Time{}
 		return nil
 	} else if unixepoch, ok := src.(int64); ok {
-		*t = UnixTime(time.Unix(unixepoch, 0)) // local time
+		t.Time = time.Unix(unixepoch, 0) // local time
 		return nil
 	}
-	return fmt.Errorf("unsupported UnixTime src: %T", src)
+	return fmt.Errorf("unsupported UnixTime src: %T, %v", src, src)
 }
 
 // Value implements the database/sql/driver/Valuer interface
 func (t UnixTime) Value() (driver.Value, error) {
-	if (time.Time)(t).IsZero() {
+	if t.IsZero() {
 		return nil, nil
 	}
-	return (time.Time)(t).Unix(), nil
+	return t.Unix(), nil
 }
 
 // JulianTime is an alias used to persist time as float64 (max precision is 1s and timezone is lost)
-type JulianTime time.Time
+type JulianTime struct {
+	time.Time
+}
 
 // Scan implements the database/sql/Scanner interface.
 func (t *JulianTime) Scan(src interface{}) error {
 	if src == nil {
-		*t = JulianTime{}
+		t.Time = time.Time{}
 		return nil
 	} else if jd, ok := src.(int64); ok {
-		*t = JulianTime(JulianDayToLocalTime(float64(jd))) // local time
+		t.Time = JulianDayToLocalTime(float64(jd)) // local time
 		return nil
 	} else if jd, ok := src.(float64); ok {
-		*t = JulianTime(JulianDayToLocalTime(jd)) // local time
+		t.Time = JulianDayToLocalTime(jd) // local time
 		return nil
 	}
 	return fmt.Errorf("unsupported JulianTime src: %T", src)
@@ -81,26 +85,28 @@ func (t *JulianTime) Scan(src interface{}) error {
 
 // Value implements the database/sql/driver/Valuer interface
 func (t JulianTime) Value() (driver.Value, error) {
-	if (time.Time)(t).IsZero() {
+	if t.IsZero() {
 		return nil, nil
 	}
-	return JulianDay((time.Time)(t)), nil
+	return JulianDay(t.Time), nil
 }
 
 // TimeStamp is an alias used to persist time as '2006-01-02T15:04:05.000Z07:00' string
-type TimeStamp time.Time
+type TimeStamp struct {
+	time.Time
+}
 
 // Scan implements the database/sql/Scanner interface.
 func (t *TimeStamp) Scan(src interface{}) error {
 	if src == nil {
-		*t = TimeStamp{}
+		t.Time = time.Time{}
 		return nil
 	} else if txt, ok := src.(string); ok {
 		v, err := time.Parse("2006-01-02T15:04:05.000Z07:00", txt)
 		if err != nil {
 			return err
 		}
-		*t = TimeStamp(v)
+		t.Time = v
 		return nil
 	}
 	return fmt.Errorf("unsupported TimeStamp src: %T", src)
@@ -108,8 +114,28 @@ func (t *TimeStamp) Scan(src interface{}) error {
 
 // Value implements the database/sql/driver/Valuer interface
 func (t TimeStamp) Value() (driver.Value, error) {
-	if (time.Time)(t).IsZero() {
+	if t.IsZero() {
 		return nil, nil
 	}
-	return (time.Time)(t).Format("2006-01-02T15:04:05.000Z07:00"), nil
+	return t.Format("2006-01-02T15:04:05.000Z07:00"), nil
+}
+
+// MarshalText encoding.TextMarshaler interface.
+// TimeStamp is formatted as null when zero or RFC3339.
+func (t TimeStamp) MarshalText() ([]byte, error) {
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+	return t.Time.MarshalText()
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// Date is expected in RFC3339 format or null.
+func (t *TimeStamp) UnmarshalText(data []byte) error {
+	if len(data) > 0 && data[0] == 'n' {
+		t.Time = time.Time{}
+		return nil
+	}
+	ti := &t.Time
+	return ti.UnmarshalText(data)
 }

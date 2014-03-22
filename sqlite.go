@@ -157,6 +157,7 @@ type Conn struct {
 	timeUsed        time.Time
 	nTransaction    uint8
 	// DefaultTimeLayout specifies the layout used to persist time ("2006-01-02 15:04:05.000Z07:00" by default).
+	// When set to "", time is persisted as integer (unix time).
 	// Using type alias implementing the Scanner/Valuer interfaces is suggested...
 	DefaultTimeLayout string
 	// ScanNumericalAsTime tells the driver to try to parse column with NUMERIC affinity as time.Time (using the DefaultTimeLayout)
