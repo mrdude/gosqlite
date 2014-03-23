@@ -86,7 +86,7 @@ func (d *impl) Open(name string) (driver.Conn, error) {
 // Unwrap gives access to underlying driver connection.
 func Unwrap(db *sql.DB) *Conn {
 	_, err := db.Exec("unwrap")
-	if cerr, ok := err.(*ConnError); ok {
+	if cerr, ok := err.(ConnError); ok {
 		return cerr.c
 	}
 	return nil
@@ -99,6 +99,9 @@ func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 		return nil, driver.ErrBadConn
 	}
 	if len(args) == 0 {
+		if query == "unwrap" {
+			return nil, ConnError{c: c.c}
+		}
 		if err := c.c.FastExec(query); err != nil {
 			return nil, err
 		}

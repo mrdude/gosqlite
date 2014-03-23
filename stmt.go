@@ -48,7 +48,7 @@ type StmtError struct {
 }
 
 // SQL returns the SQL associated with the prepared statement in error.
-func (e *StmtError) SQL() string {
+func (e StmtError) SQL() string {
 	return e.s.SQL()
 }
 
@@ -63,11 +63,11 @@ func (s *Stmt) error(rv C.int, details ...string) error {
 	if len(details) > 0 {
 		err.details = details[0]
 	}
-	return &StmtError{err, s}
+	return StmtError{err, s}
 }
 
 func (s *Stmt) specificError(msg string, a ...interface{}) error {
-	return &StmtError{ConnError{c: s.c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}, s}
+	return StmtError{ConnError{c: s.c, code: ErrSpecific, msg: fmt.Sprintf(msg, a...)}, s}
 }
 
 // CheckTypeMismatch enables type check in Scan methods (default true)

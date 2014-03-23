@@ -391,6 +391,8 @@ func ConfigLog(f Logger, udp interface{}) error {
 	return Errno(rv)
 }
 
+// ExplainQueryPlan outputs the corresponding EXPLAIN QUERY PLAN report to the specified writer
+// (See http://sqlite.org/eqp.html)
 func (s *Stmt) ExplainQueryPlan(w io.Writer) error {
 	sql := s.SQL()
 	if len(sql) == 0 {

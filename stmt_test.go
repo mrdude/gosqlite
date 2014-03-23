@@ -176,7 +176,7 @@ func TestScanCheck(t *testing.T) {
 	assert.T(t, checkStep(t, s))
 	var i int
 	_, err = s.ScanByIndex(0, &i)
-	if serr, ok := err.(*StmtError); ok {
+	if serr, ok := err.(StmtError); ok {
 		assert.Equal(t, "", serr.Filename())
 		assert.Equal(t, ErrSpecific, serr.Code())
 		assert.Equal(t, s.SQL(), serr.SQL())
@@ -318,7 +318,6 @@ func TestStmtWithClosedDb(t *testing.T) {
 	s, err := db.Prepare("SELECT 1")
 	checkNoError(t, err, "prepare error: %s")
 	assert.Equal(t, db, s.Conn(), "conn")
-	defer s.Finalize()
 
 	err = db.Close()
 	checkNoError(t, err, "close error: %s")
@@ -339,7 +338,7 @@ func TestStmtExecWithSelect(t *testing.T) {
 	err = s.Exec()
 	assert.T(t, err != nil, "error expected")
 	//println(err.Error())
-	if serr, ok := err.(*StmtError); ok {
+	if serr, ok := err.(StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
 		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
@@ -384,7 +383,7 @@ func TestStmtSelectWithInsert(t *testing.T) {
 	exists, err := s.SelectOneRow()
 	assert.T(t, err != nil, "error expected")
 	//println(err.Error())
-	if serr, ok := err.(*StmtError); ok {
+	if serr, ok := err.(StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
 		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))

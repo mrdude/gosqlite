@@ -31,7 +31,7 @@ func TestInterrupt(t *testing.T) {
 		t.Fatalf("got %v; want interrupt", err)
 	}
 	//println(err.Error())
-	if se, ok := err.(*StmtError); !ok || se.Code() != ErrInterrupt {
+	if se, ok := err.(StmtError); !ok || se.Code() != ErrInterrupt {
 		t.Errorf("got %#v; want interrupt", err)
 	}
 }
@@ -58,7 +58,7 @@ func TestDefaultBusy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("got %v; want lock", err)
 	}
-	if se, ok := err.(*StmtError); !ok || se.Code() != ErrBusy {
+	if se, ok := err.(StmtError); !ok || se.Code() != ErrBusy {
 		t.Fatalf("got %#v; want lock", err)
 	}
 }

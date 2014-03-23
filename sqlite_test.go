@@ -193,7 +193,7 @@ func TestConnExecWithSelect(t *testing.T) {
 
 	err := db.Exec("SELECT 1")
 	assert.T(t, err != nil, "error expected")
-	if serr, ok := err.(*StmtError); ok {
+	if serr, ok := err.(StmtError); ok {
 		assert.Equal(t, ErrSpecific, serr.Code())
 	} else {
 		t.Errorf("got %s; want StmtError", reflect.TypeOf(err))
@@ -270,7 +270,7 @@ func TestCommitMisuse(t *testing.T) {
 
 	err := db.Commit()
 	assert.T(t, err != nil, "error expected")
-	if cerr, ok := err.(*ConnError); ok {
+	if cerr, ok := err.(ConnError); ok {
 		assert.Equal(t, ErrError, cerr.Code())
 		assert.Equal(t, 1, cerr.ExtendedCode())
 	} else {
