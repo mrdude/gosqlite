@@ -12,14 +12,13 @@ package sqlite
 static inline char *my_mprintf(char *zFormat, char *arg) {
 	return sqlite3_mprintf(zFormat, arg);
 }
-static inline char *my_mprintf2(char *zFormat, char *arg1, char *arg2) {
-	return sqlite3_mprintf(zFormat, arg1, arg2);
-}
 */
 import "C"
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"unsafe"
 )
 
@@ -37,21 +36,6 @@ func mPrintf(format, arg string) *C.char { // TODO may return nil when no memory
 	ca := C.CString(arg)
 	defer C.free(unsafe.Pointer(ca))
 	return C.my_mprintf(cf, ca)
-}
-
-// Mprintf2 is like fmt.Printf but implements some additional formatting options
-// that are useful for constructing SQL statements.
-// (See http://sqlite.org/c3ref/mprintf.html)
-func Mprintf2(format string, arg1, arg2 string) string {
-	cf := C.CString(format)
-	defer C.free(unsafe.Pointer(cf))
-	ca1 := C.CString(arg1)
-	defer C.free(unsafe.Pointer(ca1))
-	ca2 := C.CString(arg2)
-	defer C.free(unsafe.Pointer(ca2))
-	zSQL := C.my_mprintf2(cf, ca1, ca2) // TODO may return nil when no memory...
-	defer C.sqlite3_free(unsafe.Pointer(zSQL))
-	return C.GoString(zSQL)
 }
 
 func btocint(b bool) C.int {
@@ -73,3 +57,16 @@ func gostring(cs *C.char) string {
 	return *(*string)(unsafe.Pointer(&x))
 }
 */
+
+func escapeQuote(identifier string) string {
+	if strings.ContainsRune(identifier, '"') { // escape quote by doubling them
+		identifier = strings.Replace(identifier, `"`, `""`, -1)
+	}
+	return identifier
+}
+func doubleQuote(dbName string) string {
+	if dbName == "main" || dbName == "temp" {
+		return dbName
+	}
+	return fmt.Sprintf(`"%s"`, escapeQuote(dbName)) // surround identifier with quote
+}

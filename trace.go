@@ -398,7 +398,7 @@ func (s *Stmt) ExplainQueryPlan(w io.Writer) error {
 	if len(sql) == 0 {
 		return s.specificError("empty statement")
 	}
-	explain := Mprintf("EXPLAIN QUERY PLAN %s", s.SQL())
+	explain := "EXPLAIN QUERY PLAN " + s.SQL()
 
 	sExplain, err := s.Conn().prepare(explain)
 	if err != nil {

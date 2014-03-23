@@ -154,13 +154,13 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 		if len(table) == 0 {
 			pragma = "PRAGMA foreign_key_check"
 		} else {
-			pragma = Mprintf("PRAGMA foreign_key_check(%Q)", table)
+			pragma = fmt.Sprintf(`PRAGMA foreign_key_check("%s")`, escapeQuote(table))
 		}
 	} else {
 		if len(table) == 0 {
-			pragma = Mprintf("PRAGMA %Q.foreign_key_check", dbName)
+			pragma = fmt.Sprintf("PRAGMA %s.foreign_key_check", doubleQuote(dbName))
 		} else {
-			pragma = Mprintf2("PRAGMA %Q.foreign_key_check(%Q)", dbName, table)
+			pragma = fmt.Sprintf(`PRAGMA %s.foreign_key_check("%s")`, doubleQuote(dbName), escapeQuote(table))
 		}
 	}
 	s, err := c.prepare(pragma)
@@ -226,7 +226,10 @@ func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
 		return "PRAGMA " + pragmaName
 	}
-	return Mprintf("PRAGMA %Q."+pragmaName, dbName)
+	if dbName == "main" || dbName == "temp" {
+		return fmt.Sprintf("PRAGMA %s.%s", dbName, pragmaName)
+	}
+	return fmt.Sprintf("PRAGMA %s.%s", doubleQuote(dbName), pragmaName)
 }
 
 func (c *Conn) oneValue(query string, value interface{}) error { // no cache

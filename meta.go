@@ -45,7 +45,7 @@ func (c *Conn) Tables(dbName string, temp bool) ([]string, error) {
 	if len(dbName) == 0 {
 		sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY 1"
 	} else {
-		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%%' ORDER BY 1", dbName)
+		sql = fmt.Sprintf("SELECT name FROM %s.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%%' ORDER BY 1", doubleQuote(dbName))
 	}
 	if temp {
 		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
@@ -73,7 +73,7 @@ func (c *Conn) Views(dbName string, temp bool) ([]string, error) {
 	if len(dbName) == 0 {
 		sql = "SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY 1"
 	} else {
-		sql = Mprintf("SELECT name FROM %Q.sqlite_master WHERE type = 'view' ORDER BY 1", dbName)
+		sql = fmt.Sprintf("SELECT name FROM %s.sqlite_master WHERE type = 'view' ORDER BY 1", doubleQuote(dbName))
 	}
 	if temp {
 		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
@@ -102,7 +102,7 @@ func (c *Conn) Indexes(dbName string, temp bool) (map[string]string, error) {
 	if len(dbName) == 0 {
 		sql = "SELECT name, tbl_name FROM sqlite_master WHERE type = 'index'"
 	} else {
-		sql = Mprintf("SELECT name, tbl_name FROM %Q.sqlite_master WHERE type = 'index'", dbName)
+		sql = fmt.Sprintf("SELECT name, tbl_name FROM %s.sqlite_master WHERE type = 'index'", doubleQuote(dbName))
 	}
 	if temp {
 		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
@@ -145,9 +145,9 @@ type Column struct {
 func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 	var pragma string
 	if len(dbName) == 0 {
-		pragma = Mprintf("PRAGMA table_info(%Q)", table)
+		pragma = fmt.Sprintf(`PRAGMA table_info("%s")`, escapeQuote(table))
 	} else {
-		pragma = Mprintf2("PRAGMA %Q.table_info(%Q)", dbName, table)
+		pragma = fmt.Sprintf(`PRAGMA %s.table_info("%s")`, doubleQuote(dbName), escapeQuote(table))
 	}
 	s, err := c.prepare(pragma)
 	if err != nil {
@@ -286,9 +286,9 @@ type ForeignKey struct {
 func (c *Conn) ForeignKeys(dbName, table string) (map[int]*ForeignKey, error) {
 	var pragma string
 	if len(dbName) == 0 {
-		pragma = Mprintf("PRAGMA foreign_key_list(%Q)", table)
+		pragma = fmt.Sprintf(`PRAGMA foreign_key_list("%s")`, escapeQuote(table))
 	} else {
-		pragma = Mprintf2("PRAGMA %Q.foreign_key_list(%Q)", dbName, table)
+		pragma = fmt.Sprintf(`PRAGMA %s.foreign_key_list("%s")`, doubleQuote(dbName), escapeQuote(table))
 	}
 	s, err := c.prepare(pragma)
 	if err != nil {
@@ -331,9 +331,9 @@ type Index struct {
 func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 	var pragma string
 	if len(dbName) == 0 {
-		pragma = Mprintf("PRAGMA index_list(%Q)", table)
+		pragma = fmt.Sprintf(`PRAGMA index_list("%s")`, escapeQuote(table))
 	} else {
-		pragma = Mprintf2("PRAGMA %Q.index_list(%Q)", dbName, table)
+		pragma = fmt.Sprintf(`PRAGMA %s.index_list("%s")`, doubleQuote(dbName), escapeQuote(table))
 	}
 	s, err := c.prepare(pragma)
 	if err != nil {
@@ -362,9 +362,9 @@ func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 func (c *Conn) IndexColumns(dbName, index string) ([]Column, error) {
 	var pragma string
 	if len(dbName) == 0 {
-		pragma = Mprintf("PRAGMA index_info(%Q)", index)
+		pragma = fmt.Sprintf(`PRAGMA index_info("%s")`, escapeQuote(index))
 	} else {
-		pragma = Mprintf2("PRAGMA %Q.index_info(%Q)", dbName, index)
+		pragma = fmt.Sprintf(`PRAGMA %s.index_info("%s")`, doubleQuote(dbName), escapeQuote(index))
 	}
 	s, err := c.prepare(pragma)
 	if err != nil {
