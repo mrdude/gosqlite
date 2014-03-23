@@ -1013,13 +1013,13 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 // (See sqlite3_column_blob: http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanRawBytes(index int) (value sql.RawBytes, isNull bool) {
+func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool) {
 	p := C.sqlite3_column_blob(s.stmt, C.int(index))
 	if p == nil {
 		isNull = true
 	} else {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = sql.RawBytes((*[1 << 30]byte)(unsafe.Pointer(p))[:n])
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
 	}
 	return
 }
