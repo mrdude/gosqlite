@@ -235,3 +235,40 @@ func (vc *csvTabCursor) Rowid() (int64, error) {
 func LoadCsvModule(db *Conn) error {
 	return db.CreateModule("csv", csvModule{})
 }
+
+// ExportTableToCSV export table or view content to CSV.
+// 'headers' flag turn output of headers on or off.
+// NULL values are output as specified by 'nullvalue' parameter.
+func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers bool, w yacr.Writer) error {
+	var sql string
+	if len(dbName) == 0 {
+		sql = fmt.Sprintf(`SELECT * FROM "%s"`, escapeQuote(table))
+	} else {
+		sql = fmt.Sprintf(`SELECT * FROM %s."%s"`, doubleQuote(dbName), escapeQuote(table))
+	}
+	s, err := db.prepare(fmt.Sprintf("SELECT * FROM %s", qualify(dbName, table)))
+	if err != nil {
+		return err
+	}
+	defer s.finalize()
+	if headers {
+		for _, header := range s.ColumnNames() {
+			w.Write([]byte(header))
+		}
+		w.EndOfRecord()
+		if err = w.Err(); err != nil {
+			return err
+		}
+	}
+	s.Select(func(s *Stmt) error {
+		for i = 0; i < s.ColumnCount(); i++ {
+			rb, null := s.ScanRawBytes(i)
+			if null {
+				w.Write([]byte(nullvalue))
+			} else {
+				w.Write(rb)
+			}
+		}
+		return w.Err()
+	})
+}
