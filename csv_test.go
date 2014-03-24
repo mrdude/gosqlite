@@ -7,10 +7,14 @@
 package sqlite_test
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
+	"github.com/gwenn/yacr"
 )
 
 func TestCsvModule(t *testing.T) {
@@ -40,4 +44,68 @@ func TestCsvModule(t *testing.T) {
 
 	err = db.Exec("DROP TABLE vtab")
 	checkNoError(t, err, "couldn't drop CSV virtual table: %s")
+}
+
+func TestImportCSV(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	filename := "test.csv"
+	file, err := os.Open(filename)
+	checkNoError(t, err, "error opening CSV file: %s")
+	defer file.Close()
+
+	ic := ImportConfig{
+		Name:      filename,
+		Separator: ',',
+		Quoted:    true,
+		Headers:   true,
+		Log:       os.Stderr,
+	}
+
+	err = db.ImportCSV(file, ic, "", "test")
+	checkNoError(t, err, "error while importing CSV file: %s")
+}
+
+func TestExportTableToCSV(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	err := db.FastExec(`INSERT INTO test (float_num, int_num, a_string) VALUES (1.23, 0, 'qu"ote'), (NULL, 1, "new
+line"), (3.33, 2, 'test')`)
+	checkNoError(t, err, "error while inserting data: %s")
+
+	var b bytes.Buffer
+	w := yacr.NewWriter(&b, ',', true)
+	err = db.ExportTableToCSV("", "test", "", true, w)
+	checkNoError(t, err, "error while exporting CSV file: %s")
+	assert.Equal(t, `id,float_num,int_num,a_string
+1,1.23,0,"qu""ote"
+2,,1,"new
+line"
+3,3.33,2,test
+`, b.String())
+}
+
+func TestExportToCSV(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	createTable(db, t)
+	err := db.FastExec(`INSERT INTO test (float_num, int_num, a_string) VALUES (1.23, 0, 'qu"ote'), (NULL, 1, "new
+line"), (3.33, 2, 'test')`)
+	checkNoError(t, err, "error while inserting data: %s")
+
+	var b bytes.Buffer
+	w := yacr.NewWriter(&b, ',', true)
+	s, err := db.Prepare("SELECT float_num, int_num, a_string FROM test where id > ?", 0)
+	checkNoError(t, err, "error while preparing stmt: %s")
+	defer checkFinalize(s, t)
+
+	err = s.ExportToCSV("", false, w)
+	checkNoError(t, err, "error while exporting CSV file: %s")
+	assert.Equal(t, `1.23,0,"qu""ote"
+,1,"new
+line"
+3.33,2,test
+`, b.String())
 }

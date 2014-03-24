@@ -237,31 +237,38 @@ func LoadCsvModule(db *Conn) error {
 }
 
 // ExportTableToCSV export table or view content to CSV.
-// 'headers' flag turn output of headers on or off.
+// 'headers' flag turns output of headers on or off.
 // NULL values are output as specified by 'nullvalue' parameter.
-func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers bool, w yacr.Writer) error {
+func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers bool, w *yacr.Writer) error {
 	var sql string
 	if len(dbName) == 0 {
 		sql = fmt.Sprintf(`SELECT * FROM "%s"`, escapeQuote(table))
 	} else {
 		sql = fmt.Sprintf(`SELECT * FROM %s."%s"`, doubleQuote(dbName), escapeQuote(table))
 	}
-	s, err := db.prepare(fmt.Sprintf("SELECT * FROM %s", qualify(dbName, table)))
+	s, err := db.prepare(sql)
 	if err != nil {
 		return err
 	}
 	defer s.finalize()
+	return s.ExportToCSV(nullvalue, headers, w)
+}
+
+// ExportTableToCSV export statement result to CSV.
+// 'headers' flag turns output of headers on or off.
+// NULL values are output as specified by 'nullvalue' parameter.
+func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error {
 	if headers {
 		for _, header := range s.ColumnNames() {
 			w.Write([]byte(header))
 		}
 		w.EndOfRecord()
-		if err = w.Err(); err != nil {
+		if err := w.Err(); err != nil {
 			return err
 		}
 	}
 	s.Select(func(s *Stmt) error {
-		for i = 0; i < s.ColumnCount(); i++ {
+		for i := 0; i < s.ColumnCount(); i++ {
 			rb, null := s.ScanRawBytes(i)
 			if null {
 				w.Write([]byte(nullvalue))
@@ -269,6 +276,152 @@ func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers
 				w.Write(rb)
 			}
 		}
+		w.EndOfRecord()
 		return w.Err()
 	})
+	w.Flush()
+	return w.Err()
+}
+
+type ImportConfig struct {
+	Name      string     // the name of the input; used only for error reports
+	Separator byte       // CSV separator
+	Quoted    bool       // CSV field are quoted or not
+	Guess     bool       // guess separator
+	Trim      bool       // trim spaces
+	Comment   byte       // comment marker
+	Headers   bool       // skip headers (first line)
+	Types     []Affinity // optional, when target table does not exist, specify columns type
+	Log       io.Writer  // optional, used to tace lines in error
+}
+
+func (ic ImportConfig) getType(i int) string {
+	if i >= len(ic.Types) || ic.Types[i] == Textual {
+		return "TEXT"
+	}
+	if ic.Types[i] == Integral {
+		return "INT"
+	}
+	if ic.Types[i] == Real {
+		return "REAL"
+	}
+	if ic.Types[i] == Numerical {
+		return "NUMERIC"
+	}
+	return ""
+}
+
+// ImportCSV import CSV data into the specified table (which may not exist yet).
+// Code is adapted from .import command implementation in SQLite3 shell sources.
+func (db *Conn) ImportCSV(in io.Reader, ic ImportConfig, dbName, table string) error {
+	columns, err := db.Columns(dbName, table)
+	if err != nil {
+		return err
+	}
+	r := yacr.NewReader(in, ic.Separator, ic.Quoted, ic.Guess)
+	r.Trim = ic.Trim
+	r.Comment = ic.Comment
+	nCol := len(columns)
+	if nCol == 0 { // table does not exist, let's create it
+		var sql string
+		if len(dbName) == 0 {
+			sql = fmt.Sprintf(`CREATE TABLE "%s" `, escapeQuote(table))
+		} else {
+			sql = fmt.Sprintf(`CREATE TABLE %s."%s" `, doubleQuote(dbName), escapeQuote(table))
+		}
+		sep := '('
+		for i := 0; r.Scan(); i++ {
+			if r.EmptyLine() {
+				continue
+			}
+			sql += fmt.Sprintf("%c\n  \"%s\" %s", sep, r.Text(), ic.getType(i))
+			sep = ','
+			nCol++
+			if r.EndOfRecord() {
+				break
+			}
+		}
+		if err = r.Err(); err != nil {
+			return err
+		}
+		if sep == '(' {
+			return errors.New("empty file/input")
+		}
+		sql += "\n)"
+		if err = db.FastExec(sql); err != nil {
+			return err
+		}
+	} else if ic.Headers { // skip headers line
+		for r.Scan() {
+			if r.EndOfRecord() {
+				break
+			}
+		}
+		if err = r.Err(); err != nil {
+			return err
+		}
+	}
+	var sql string
+	if len(dbName) == 0 {
+		sql = fmt.Sprintf(`INSERT INTO "%s" VALUES (?%s)`, escapeQuote(table), strings.Repeat(", ?", nCol-1))
+	} else {
+		sql = fmt.Sprintf(`INSERT INTO %s."%s" VALUES (?%s)`, doubleQuote(dbName), escapeQuote(table), strings.Repeat(", ?", nCol-1))
+	}
+	s, err := db.prepare(sql)
+	if err != nil {
+		return err
+	}
+	defer s.Finalize()
+	ac := db.GetAutocommit()
+	if ac {
+		if err = db.Begin(); err != nil {
+			return err
+		}
+	}
+	defer func() {
+		if err != nil && ac {
+			_ = db.Rollback()
+		}
+	}()
+	startLine := r.LineNumber()
+	for i := 1; r.Scan(); i++ {
+		if r.EmptyLine() {
+			i = 0
+			startLine = r.LineNumber()
+			continue
+		}
+		if i <= nCol {
+			if err = s.BindByIndex(i, r.Text()); err != nil {
+				return err
+			}
+		}
+		if r.EndOfRecord() {
+			if i < nCol {
+				if ic.Log != nil {
+					fmt.Fprintf(ic.Log, "%s:%d: expected %d columns but found %d - filling the rest with NULL\n", ic.Name, startLine, nCol, i)
+				}
+				for ; i <= nCol; i++ {
+					if err = s.BindByIndex(i, nil); err != nil {
+						return err
+					}
+				}
+			} else if i > nCol && ic.Log != nil {
+				fmt.Fprintf(ic.Log, "%s:%d: expected %d columns but found %d - extras ignored\n", ic.Name, startLine, nCol, i)
+			}
+			if _, err = s.Next(); err != nil {
+				return err
+			}
+			i = 0
+			startLine = r.LineNumber()
+		}
+	}
+	if err = r.Err(); err != nil {
+		return err
+	}
+	if ac {
+		if err = db.Commit(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
