@@ -1019,7 +1019,7 @@ func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool) {
 		isNull = true
 	} else {
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
+		value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n:n]
 	}
 	return
 }
