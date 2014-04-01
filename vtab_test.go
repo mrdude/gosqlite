@@ -46,8 +46,8 @@ func (m testModule) Connect(c *Conn, args []string) (VTab, error) {
 	return m.Create(c, args)
 }
 
-func (m testModule) Destroy() {
-	//println("testModule.Destroy")
+func (m testModule) DestroyModule() {
+	//println("testModule.DestroyModule")
 }
 
 func (v *testVTab) BestIndex() error {

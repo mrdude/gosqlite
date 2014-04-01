@@ -234,16 +234,22 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	}
 	c := &Conn{db: db, stmtCache: newCache(), DefaultTimeLayout: "2006-01-02 15:04:05.000Z07:00"}
 	if os.Getenv("SQLITE_DEBUG") != "" {
-		c.SetAuthorizer(authorizer, c.db)
-		c.SetCacheSize(0)
+		//c.SetAuthorizer(authorizer, c.db)
+		c.Trace(trace, "TRACE")
+		//c.SetCacheSize(0)
 	}
 
 	return c, nil
 }
 
+/*
 func authorizer(d interface{}, action Action, arg1, arg2, dbName, triggerName string) Auth {
 	fmt.Fprintf(os.Stderr, "%p: %v, %s, %s, %s, %s\n", d, action, arg1, arg2, dbName, triggerName)
 	return AuthOk
+}
+*/
+func trace(d interface{}, sql string) {
+	fmt.Fprintf(os.Stderr, "%s: %s\n", d, sql)
 }
 
 // BusyTimeout sets a busy timeout.

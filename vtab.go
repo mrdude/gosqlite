@@ -122,7 +122,7 @@ func goVClose(pCursor unsafe.Pointer) *C.char {
 //export goMDestroy
 func goMDestroy(pClientData unsafe.Pointer) {
 	m := (*sqliteModule)(pClientData)
-	m.module.Destroy()
+	m.module.DestroyModule()
 	// TODO Check m.vts is empty
 	m.vts = nil
 	delete(m.c.modules, m.name)
@@ -181,16 +181,16 @@ func goVRowid(pCursor unsafe.Pointer, pRowid *C.sqlite3_int64) *C.char {
 type Module interface {
 	Create(c *Conn, args []string) (VTab, error)  // See http://sqlite.org/vtab.html#xcreate
 	Connect(c *Conn, args []string) (VTab, error) // See http://sqlite.org/vtab.html#xconnect
-	Destroy()                                     // See http://sqlite.org/c3ref/create_module.html
+	DestroyModule()                               // See http://sqlite.org/c3ref/create_module.html
 }
 
 // VTab describes a particular instance of the virtual table.
 // (See http://sqlite.org/c3ref/vtab.html)
 type VTab interface {
-	BestIndex( /*sqlite3_index_info**/) error // See http://sqlite.org/vtab.html#xbestindex
-	Disconnect() error                        // See http://sqlite.org/vtab.html#xdisconnect
-	Destroy() error                           // See http://sqlite.org/vtab.html#sqlite3_module.xDestroy
-	Open() (VTabCursor, error)                // See http://sqlite.org/vtab.html#xopen
+	BestIndex( /*sqlite3_index_info**/ ) error // See http://sqlite.org/vtab.html#xbestindex
+	Disconnect() error                         // See http://sqlite.org/vtab.html#xdisconnect
+	Destroy() error                            // See http://sqlite.org/vtab.html#sqlite3_module.xDestroy
+	Open() (VTabCursor, error)                 // See http://sqlite.org/vtab.html#xopen
 }
 
 // VTabExtended lists optional/extended functions.
@@ -215,10 +215,10 @@ type VTabExtended interface {
 // VTabCursor describes cursors that point into the virtual table and are used to loop through the virtual table.
 // (See http://sqlite.org/c3ref/vtab_cursor.html)
 type VTabCursor interface {
-	Close() error                                                                // See http://sqlite.org/vtab.html#xclose
-	Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/) error // See http://sqlite.org/vtab.html#xfilter
-	Next() error                                                                 // See http://sqlite.org/vtab.html#xnext
-	Eof() bool                                                                   // See http://sqlite.org/vtab.html#xeof
+	Close() error                                                                 // See http://sqlite.org/vtab.html#xclose
+	Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/ ) error // See http://sqlite.org/vtab.html#xfilter
+	Next() error                                                                  // See http://sqlite.org/vtab.html#xnext
+	Eof() bool                                                                    // See http://sqlite.org/vtab.html#xeof
 	// col is zero-based so the first column is numbered 0
 	Column(c *Context, col int) error // See http://sqlite.org/vtab.html#xcolumn
 	Rowid() (int64, error)            // See http://sqlite.org/vtab.html#xrowid

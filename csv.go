@@ -106,7 +106,7 @@ func (m csvModule) Connect(c *Conn, args []string) (VTab, error) {
 	return m.Create(c, args)
 }
 
-func (m csvModule) Destroy() { // nothing to do
+func (m csvModule) DestroyModule() { // nothing to do
 }
 
 type csvTab struct {
