@@ -45,12 +45,29 @@ func TestIntArrayModule(t *testing.T) {
 	// Fill in content of a3
 	p3.Bind([]int64{-1, -5, -10})
 
-	var i1, i2, i3 int64
+	var i1, i2, i3 int
 	for checkStep(t, s) {
 		err = s.Scan(&i1, &i2, &i3)
 		assert.T(t, err == nil)
 		assert.T(t, i1 == 1 || i1 == 3)
-		assert.T(t, i2 == 11)
-		assert.T(t, i3 == -5)
+		assert.Equal(t, 11, i2)
+		assert.Equal(t, -5, i3)
 	}
+
+	s.Reset()
+	p1.Bind([]int64{1})
+	p2.Bind([]int64{7, 11})
+	p3.Bind([]int64{-5, -10})
+	assert.T(t, checkStep(t, s))
+	err = s.Scan(&i1, &i2, &i3)
+	assert.T(t, err == nil)
+	assert.Equal(t, 1, i1)
+	assert.Equal(t, 11, i2)
+	assert.Equal(t, -5, i3)
+
+	s.Reset()
+	p1.Bind([]int64{1})
+	p2.Bind([]int64{3, 4, 5})
+	p3.Bind([]int64{0, -5})
+	assert.T(t, !checkStep(t, s))
 }
