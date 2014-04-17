@@ -32,6 +32,7 @@ $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gw
 * Named bind parameters.
 * Partial scan: scan values may be partially scanned (by index or name) or skipped/ignored by passing nil pointer(s).
 * Null value: by default, empty string and zero time are bound to null for prepared statement's parameters (no need for NullString, NullTime but still supported).
+* Correctly retrieve the time returns by `select current_timestamp` statement.
 
 ### Changes:
 
