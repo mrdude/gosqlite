@@ -1,5 +1,6 @@
 language: go
 go:
+  - 1.2
   - tip
 before_install:
  - echo "yes" | sudo add-apt-repository ppa:travis-ci/sqlite3
@@ -7,6 +8,7 @@ before_install:
  - sudo apt-get install -qq libsqlite3-dev
 before_script:
  - go get github.com/bmizerany/assert
+ - go get code.google.com/p/go.tools/cmd/cover
  - go get -tags all github.com/gwenn/gosqlite
 script:
- - go test -tags all ./...
+ - go test -tags all -cover ./...
