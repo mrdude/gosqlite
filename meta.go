@@ -40,15 +40,15 @@ func (c *Conn) Databases() (map[string]string, error) {
 }
 
 // Tables returns tables (no view) from 'sqlite_master'/'sqlite_temp_master' and filters system tables out.
-func (c *Conn) Tables(dbName string, temp bool) ([]string, error) {
+// The database name can be empty, "main", "temp" or the name of an attached database.
+func (c *Conn) Tables(dbName string) ([]string, error) {
 	var sql string
 	if len(dbName) == 0 {
 		sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY 1"
+	} else if strings.EqualFold("temp", dbName) {
+		sql = "SELECT name FROM sqlite_temp_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY 1"
 	} else {
 		sql = fmt.Sprintf("SELECT name FROM %s.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%%' ORDER BY 1", doubleQuote(dbName))
-	}
-	if temp {
-		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
 	}
 	s, err := c.prepare(sql)
 	if err != nil {
@@ -68,15 +68,15 @@ func (c *Conn) Tables(dbName string, temp bool) ([]string, error) {
 }
 
 // Views returns views from 'sqlite_master'/'sqlite_temp_master'.
-func (c *Conn) Views(dbName string, temp bool) ([]string, error) {
+// The database name can be empty, "main", "temp" or the name of an attached database.
+func (c *Conn) Views(dbName string) ([]string, error) {
 	var sql string
 	if len(dbName) == 0 {
 		sql = "SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY 1"
+	} else if strings.EqualFold("temp", dbName) {
+		sql = "SELECT name FROM sqlite_temp_master WHERE type = 'view' ORDER BY 1"
 	} else {
 		sql = fmt.Sprintf("SELECT name FROM %s.sqlite_master WHERE type = 'view' ORDER BY 1", doubleQuote(dbName))
-	}
-	if temp {
-		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
 	}
 	s, err := c.prepare(sql)
 	if err != nil {
@@ -97,15 +97,15 @@ func (c *Conn) Views(dbName string, temp bool) ([]string, error) {
 
 // Indexes returns indexes from 'sqlite_master'/'sqlite_temp_master'.
 // As the index name is unique by database, (index name, table name) couples are returned.
-func (c *Conn) Indexes(dbName string, temp bool) (map[string]string, error) {
+// The database name can be empty, "main", "temp" or the name of an attached database.
+func (c *Conn) Indexes(dbName string) (map[string]string, error) {
 	var sql string
 	if len(dbName) == 0 {
 		sql = "SELECT name, tbl_name FROM sqlite_master WHERE type = 'index'"
+	} else if strings.EqualFold("temp", dbName) {
+		sql = "SELECT name, tbl_name FROM sqlite_temp_master WHERE type = 'index'"
 	} else {
 		sql = fmt.Sprintf("SELECT name, tbl_name FROM %s.sqlite_master WHERE type = 'index'", doubleQuote(dbName))
-	}
-	if temp {
-		sql = strings.Replace(sql, "sqlite_master", "sqlite_temp_master", 1)
 	}
 	s, err := c.prepare(sql)
 	if err != nil {

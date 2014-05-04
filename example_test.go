@@ -59,7 +59,7 @@ func ExampleConn_Exec() {
 
 	err = db.Exec("CREATE TABLE test1 (content TEXT); CREATE TABLE test2 (content TEXT); INSERT INTO test1 VALUES ('DATA')")
 	check(err)
-	tables, err := db.Tables("", false)
+	tables, err := db.Tables("")
 	check(err)
 	fmt.Printf("%d tables\n", len(tables))
 	// Output: 2 tables

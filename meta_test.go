@@ -35,20 +35,20 @@ func TestTables(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	tables, err := db.Tables("", false)
+	tables, err := db.Tables("")
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 0, len(tables), "table count")
 	createTable(db, t)
-	tables, err = db.Tables("main", false)
+	tables, err = db.Tables("main")
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 1, len(tables), "table count")
 	assert.Equal(t, "test", tables[0], "table name")
 
-	tables, err = db.Tables("", true)
+	tables, err = db.Tables("temp")
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 0, len(tables), "table count")
 
-	tables, err = db.Tables("bim", false)
+	tables, err = db.Tables("bim")
 	assert.T(t, err != nil, "error expected")
 	//println(err.Error())
 }
@@ -57,21 +57,21 @@ func TestViews(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	views, err := db.Views("", false)
+	views, err := db.Views("")
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 0, len(views), "table count")
 	err = db.FastExec("CREATE VIEW myview AS SELECT 1")
 	checkNoError(t, err, "error creating view: %s")
-	views, err = db.Views("main", false)
+	views, err = db.Views("main")
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 1, len(views), "table count")
 	assert.Equal(t, "myview", views[0], "table name")
 
-	views, err = db.Views("", true)
+	views, err = db.Views("temp")
 	checkNoError(t, err, "error looking for views: %s")
 	assert.Equal(t, 0, len(views), "table count")
 
-	_, err = db.Views("bim", false)
+	_, err = db.Views("bim")
 	assert.T(t, err != nil)
 }
 
@@ -81,20 +81,20 @@ func TestIndexes(t *testing.T) {
 	createTable(db, t)
 	checkNoError(t, db.Exec("CREATE INDEX idx ON test(a_string)"), "%s")
 
-	indexes, err := db.Indexes("", false)
+	indexes, err := db.Indexes("")
 	checkNoError(t, err, "error looking for indexes: %s")
 	assert.Equal(t, 1, len(indexes), "index count")
 	tbl, ok := indexes["idx"]
 	assert.T(t, ok, "no index")
 	assert.Equalf(t, "test", tbl, "got: %s; want: %s", tbl, "test")
 
-	indexes, err = db.Indexes("main", false)
+	indexes, err = db.Indexes("main")
 	checkNoError(t, err, "error looking for indexes: %s")
 
-	_, err = db.Indexes("", true)
+	_, err = db.Indexes("temp")
 	checkNoError(t, err, "error looking for indexes: %s")
 
-	_, err = db.Indexes("bim", false)
+	_, err = db.Indexes("bim")
 	assert.T(t, err != nil)
 }
 
