@@ -531,7 +531,7 @@ var typeText = map[Type]string{
 // After a type conversion, the value returned by sqlite3_column_type() is undefined.
 // (See sqlite3_column_type: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ColumnType(index int) Type {
-	return Type(C.sqlite3_column_type(s.stmt, C.int(index)))
+	return Type(C.sqlite3_column_type(s.stmt, C.int(index))) // TODO request all columns type at once
 }
 
 // NamedScan scans result values from a query by name (name1, value1, ...).
@@ -1031,7 +1031,8 @@ func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool) {
 // Returns true when column is null.
 // The column type affinity must be consistent with the format used (INTEGER or NUMERIC or NONE for unix time, REAL or NONE for julian day).
 func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
-	switch s.ColumnType(index) {
+	ctype := s.ColumnType(index)
+	switch ctype {
 	case Null:
 		isNull = true
 	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
@@ -1080,7 +1081,7 @@ func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
 		jd := float64(C.sqlite3_column_double(s.stmt, C.int(index)))
 		value = JulianDayToLocalTime(jd) // local time
 	default:
-		panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, or SQLITE_NULL")
+		s.specificError("unexpected column type affinity for time persistence: %q", ctype)
 	}
 	return
 }
