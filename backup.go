@@ -45,7 +45,7 @@ type Backup struct {
 
 // Step copies up to N pages between the source and destination databases.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
-func (b *Backup) Step(npage int) error {
+func (b *Backup) Step(npage int32) error {
 	if b == nil {
 		return errors.New("nil sqlite backup")
 	}
@@ -78,7 +78,7 @@ func (b *Backup) Status() BackupStatus {
 // Sleeping is disabled if 'sleepNs' is zero or negative.
 // Notification is disabled if 'c' is null.
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep, sqlite3_backup_remaining and sqlite3_backup_pagecount)
-func (b *Backup) Run(npage int, sleepNs time.Duration, c chan<- BackupStatus) error {
+func (b *Backup) Run(npage int32, sleepNs time.Duration, c chan<- BackupStatus) error {
 	var err error
 	for {
 		err = b.Step(npage)

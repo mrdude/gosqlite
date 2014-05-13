@@ -54,6 +54,7 @@ import "C"
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"unsafe"
 )
@@ -138,6 +139,10 @@ func (c *FunctionContext) ResultBool(b bool) {
 // ResultBlob sets the result of an SQL function.
 // (See sqlite3_result_blob, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultBlob(b []byte) {
+	if i64 && len(b) > math.MaxInt32 {
+		C.sqlite3_result_error_toobig((*C.sqlite3_context)(c))
+		return
+	}
 	var p *byte
 	if len(b) > 0 {
 		p = &b[0]
@@ -189,7 +194,11 @@ func (c *FunctionContext) ResultErrorCode(e Errno) {
 // ResultInt sets the result of an SQL function.
 // (See sqlite3_result_int, http://sqlite.org/c3ref/result_blob.html)
 func (c *Context) ResultInt(i int) {
-	C.sqlite3_result_int((*C.sqlite3_context)(c), C.int(i))
+	if i64 && (i > math.MaxInt32 || i < math.MinInt32) {
+		C.sqlite3_result_int64((*C.sqlite3_context)(c), C.sqlite3_int64(i))
+	} else {
+		C.sqlite3_result_int((*C.sqlite3_context)(c), C.int(i))
+	}
 }
 
 // ResultInt sets the result of an SQL function.
@@ -463,7 +472,7 @@ const sqliteDeterministic = 0x800 // C.SQLITE_DETERMINISTIC
 // CreateScalarFunction creates or redefines SQL scalar functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
-func (c *Conn) CreateScalarFunction(functionName string, nArg int, deterministic bool, pApp interface{},
+func (c *Conn) CreateScalarFunction(functionName string, nArg int32, deterministic bool, pApp interface{},
 	f ScalarFunction, d DestroyDataFunction) error {
 	var eTextRep C.int = C.SQLITE_UTF8
 	if deterministic {
@@ -491,7 +500,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int, deterministic
 // CreateAggregateFunction creates or redefines SQL aggregate functions.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
-func (c *Conn) CreateAggregateFunction(functionName string, nArg int, pApp interface{},
+func (c *Conn) CreateAggregateFunction(functionName string, nArg int32, pApp interface{},
 	step StepFunction, final FinalFunction, d DestroyDataFunction) error {
 	fname := C.CString(functionName)
 	defer C.free(unsafe.Pointer(fname))

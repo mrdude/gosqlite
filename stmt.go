@@ -347,6 +347,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		if NullIfEmptyString && len(value) == 0 {
 			rv = C.sqlite3_bind_null(s.stmt, i)
 		} else {
+			if i64 && len(value) > math.MaxInt32 {
+				return s.specificError("string too big: %d at index %d", len(value), index)
+			}
 			cs, l := cstring(value)
 			rv = C.my_bind_text(s.stmt, i, cs, l)
 		}
@@ -369,6 +372,9 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case float64:
 		rv = C.sqlite3_bind_double(s.stmt, i, C.double(value))
 	case []byte:
+		if i64 && len(value) > math.MaxInt32 {
+			return s.specificError("blob too big: %d at index %d", len(value), index)
+		}
 		var p *byte
 		if len(value) > 0 {
 			p = &value[0]
@@ -1139,7 +1145,7 @@ func (s *Stmt) finalize() error {
 	}
 	rv := C.sqlite3_finalize(s.stmt)
 	if rv != C.SQLITE_OK {
-		Log(int(rv), "error while finalizing Stmt")
+		Log(int32(rv), "error while finalizing Stmt")
 		return s.error(rv, "Stmt.finalize")
 	}
 	s.stmt = nil

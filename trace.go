@@ -285,7 +285,7 @@ func goXProgress(udp unsafe.Pointer) C.int {
 // ProgressHandler registers or clears a query progress callback.
 // The progress callback will be invoked every numOps opcodes.
 // (See http://sqlite.org/c3ref/progress_handler.html)
-func (c *Conn) ProgressHandler(f ProgressHandler, numOps int, udp interface{}) {
+func (c *Conn) ProgressHandler(f ProgressHandler, numOps int32, udp interface{}) {
 	if f == nil {
 		c.progressHandler = nil
 		C.sqlite3_progress_handler(c.db, 0, nil, nil)
@@ -347,7 +347,7 @@ func Complete(sql string) bool {
 
 // Log writes a message into the error log established by ConfigLog method.
 // (See http://sqlite.org/c3ref/log.html)
-func Log(err /*Errno*/ int, msg string) {
+func Log(err /*Errno*/ int32, msg string) {
 	cs := C.CString(msg)
 	defer C.free(unsafe.Pointer(cs))
 	C.my_log(C.int(err), cs)
