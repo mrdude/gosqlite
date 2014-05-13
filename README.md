@@ -2,7 +2,9 @@ Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
 
-This binding implements the "database/sql/driver" interface.
+There are two layers:
+ * one matching the SQLite API (with Backup, Blob, user-defined Function/Module, ...).
+ * and another implementing the "database/sql/driver" interface.
 
 [![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.png)](https://godoc.org/github.com/gwenn/gosqlite)
 
