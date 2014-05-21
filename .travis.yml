@@ -9,6 +9,7 @@ before_install:
 before_script:
  - go get github.com/bmizerany/assert
  - go get code.google.com/p/go.tools/cmd/cover
+ - go get github.com/sauerbraten/radix
  - go get -tags all github.com/gwenn/gosqlite
 script:
  - go test -tags all -cover ./...
