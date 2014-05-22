@@ -128,7 +128,7 @@ func TestQueryOnly(t *testing.T) {
 	assert.T(t, err != nil)
 }
 
-func TestApplicationId(t *testing.T) {
+func TestApplicationID(t *testing.T) {
 	if VersionNumber() < 3007017 {
 		return
 	}
@@ -136,18 +136,18 @@ func TestApplicationId(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
 
-	appId, err := db.ApplicationId("")
+	appID, err := db.ApplicationID("")
 	checkNoError(t, err, "error getting application Id: %s")
-	assert.Equalf(t, 0, appId, "got: %d; want: %d", appId, 0)
+	assert.Equalf(t, 0, appID, "got: %d; want: %d", appID, 0)
 
-	err = db.SetApplicationId("", 123)
+	err = db.SetApplicationID("", 123)
 	checkNoError(t, err, "error setting application Id: %s")
 
-	appId, err = db.ApplicationId("")
+	appID, err = db.ApplicationID("")
 	checkNoError(t, err, "error getting application Id: %s")
-	assert.Equalf(t, 123, appId, "got: %d; want: %d", appId, 123)
+	assert.Equalf(t, 123, appID, "got: %d; want: %d", appID, 123)
 
-	_, err = db.ApplicationId("bim")
+	_, err = db.ApplicationID("bim")
 	assert.T(t, err != nil)
 }
 
@@ -176,11 +176,11 @@ func TestForeignKeyCheck(t *testing.T) {
 	checkNoError(t, err, "error while checking FK: %s")
 	assert.Equal(t, 1, len(vs), "one FK violation expected")
 	v := vs[0]
-	assert.Equal(t, FkViolation{Table: "tree", RowId: 4, Parent: "tree", FkId: 0}, v)
+	assert.Equal(t, FkViolation{Table: "tree", RowID: 4, Parent: "tree", FkID: 0}, v)
 	fks, err := db.ForeignKeys("", "tree")
 	checkNoError(t, err, "error while loading FK: %s")
-	fk, ok := fks[v.FkId]
-	assert.Tf(t, ok, "no FK with id: %d", v.FkId)
+	fk, ok := fks[v.FkID]
+	assert.Tf(t, ok, "no FK with id: %d", v.FkID)
 	assert.Equal(t, &ForeignKey{Table: "tree", From: []string{"parentId"}, To: []string{"id"}}, fk)
 
 	mvs, err := db.ForeignKeyCheck("main", "tree")

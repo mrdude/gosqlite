@@ -18,7 +18,7 @@ void* goSqlite3RollbackHook(sqlite3 *db, void *udp) {
 	return sqlite3_rollback_hook(db, goXRollbackHook, udp);
 }
 
-extern void goXUpdateHook(void *udp, int action, char const *dbName, char const *tableName, sqlite3_int64 rowId);
+extern void goXUpdateHook(void *udp, int action, char const *dbName, char const *tableName, sqlite3_int64 rowID);
 
 void* goSqlite3UpdateHook(sqlite3 *db, void *udp) {
 	return sqlite3_update_hook(db, goXUpdateHook, udp);

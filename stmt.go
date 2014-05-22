@@ -514,6 +514,7 @@ func (t Type) String() string {
 	return typeText[t]
 }
 
+// SQLite fundamental datatypes
 const (
 	Integer = Type(C.SQLITE_INTEGER)
 	Float   = Type(C.SQLITE_FLOAT)

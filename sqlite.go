@@ -73,6 +73,7 @@ func (e Errno) Error() string {
 	return s
 }
 
+// SQLite result codes
 const (
 	ErrError      = Errno(C.SQLITE_ERROR)      /* SQL error or missing database */
 	ErrInternal   = Errno(C.SQLITE_INTERNAL)   /* Internal logic error in SQLite */
@@ -180,6 +181,7 @@ func VersionNumber() int32 {
 // OpenFlag enumerates flags for file open operations
 type OpenFlag int32
 
+// Flags for file open operations
 const (
 	OpenReadOnly     OpenFlag = C.SQLITE_OPEN_READONLY
 	OpenReadWrite    OpenFlag = C.SQLITE_OPEN_READWRITE
@@ -386,6 +388,7 @@ func (c *Conn) GetAutocommit() bool {
 // See Conn.BeginTransaction
 type TransactionType uint8
 
+// Transaction types
 const (
 	Deferred  TransactionType = 0
 	Immediate TransactionType = 1

@@ -138,9 +138,9 @@ func (c *Conn) SetSynchronous(dbName string, mode int) error {
 // FkViolation is the description of one foreign key constraint violation.
 type FkViolation struct {
 	Table  string
-	RowId  int64
+	RowID  int64
 	Parent string
-	FkId   int
+	FkID   int
 }
 
 // ForeignKeyCheck checks the database, or the table, for foreign key constraints that are violated
@@ -172,7 +172,7 @@ func (c *Conn) ForeignKeyCheck(dbName, table string) ([]FkViolation, error) {
 	var violations = make([]FkViolation, 0, 20)
 	err = s.execQuery(func(s *Stmt) (err error) {
 		v := FkViolation{}
-		if err = s.Scan(&v.Table, &v.RowId, &v.Parent, &v.FkId); err != nil {
+		if err = s.Scan(&v.Table, &v.RowID, &v.Parent, &v.FkID); err != nil {
 			return
 		}
 		violations = append(violations, v)
@@ -203,10 +203,10 @@ func (c *Conn) SetQueryOnly(dbName string, mode bool) error {
 	return c.FastExec(pragma(dbName, fmt.Sprintf("query_only=%t", mode)))
 }
 
-// ApplicationId queries the "Application ID" integer located into the database header.
+// ApplicationID queries the "Application ID" integer located into the database header.
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_application_id)
-func (c *Conn) ApplicationId(dbName string) (int, error) {
+func (c *Conn) ApplicationID(dbName string) (int, error) {
 	var id int
 	err := c.oneValue(pragma(dbName, "application_id"), &id)
 	if err != nil {
@@ -215,10 +215,10 @@ func (c *Conn) ApplicationId(dbName string) (int, error) {
 	return id, nil
 }
 
-// SetApplicationId changes the "Application ID".
+// SetApplicationID changes the "Application ID".
 // Database name is optional (default is 'main').
 // (See http://sqlite.org/pragma.html#pragma_application_id)
-func (c *Conn) SetApplicationId(dbName string, id int) error {
+func (c *Conn) SetApplicationID(dbName string, id int) error {
 	return c.FastExec(pragma(dbName, fmt.Sprintf("application_id=%d", id)))
 }
 

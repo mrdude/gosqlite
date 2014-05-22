@@ -151,7 +151,7 @@ func goVNext(pCursor unsafe.Pointer) *C.char {
 //export goVEof
 func goVEof(pCursor unsafe.Pointer) C.int {
 	vtc := (*sqliteVTabCursor)(pCursor)
-	return btocint(vtc.vTabCursor.Eof())
+	return btocint(vtc.vTabCursor.EOF())
 }
 
 //export goVColumn
@@ -218,7 +218,7 @@ type VTabCursor interface {
 	Close() error                                                                 // See http://sqlite.org/vtab.html#xclose
 	Filter( /*idxNum int, idxStr string, int argc, sqlite3_value **argv*/ ) error // See http://sqlite.org/vtab.html#xfilter
 	Next() error                                                                  // See http://sqlite.org/vtab.html#xnext
-	Eof() bool                                                                    // See http://sqlite.org/vtab.html#xeof
+	EOF() bool                                                                    // See http://sqlite.org/vtab.html#xeof
 	// col is zero-based so the first column is numbered 0
 	Column(c *Context, col int) error // See http://sqlite.org/vtab.html#xcolumn
 	Rowid() (int64, error)            // See http://sqlite.org/vtab.html#xrowid

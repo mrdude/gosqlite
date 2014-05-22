@@ -81,8 +81,8 @@ func (vc *testVTabCursor) Next() error {
 	vc.index++
 	return nil
 }
-func (vc *testVTabCursor) Eof() bool {
-	//fmt.Printf("testVTabCursor.Eof: %v\n", vc)
+func (vc *testVTabCursor) EOF() bool {
+	//fmt.Printf("testVTabCursor.EOF: %v\n", vc)
 	return vc.index >= len(vc.vTab.intarray)
 }
 func (vc *testVTabCursor) Column(c *Context, col int) error {

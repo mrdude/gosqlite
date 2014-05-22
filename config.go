@@ -24,6 +24,7 @@ import "unsafe"
 // See ConfigThreadingMode
 type ThreadingMode int32
 
+// SQLite threading modes
 const (
 	SingleThread ThreadingMode = C.SQLITE_CONFIG_SINGLETHREAD
 	MultiThread  ThreadingMode = C.SQLITE_CONFIG_MULTITHREAD

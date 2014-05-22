@@ -74,7 +74,7 @@ func (c *Conn) RollbackHook(f RollbackHook, udp interface{}) {
 }
 
 // UpdateHook is the callback function signature.
-type UpdateHook func(udp interface{}, a Action, dbName, tableName string, rowId int64)
+type UpdateHook func(udp interface{}, a Action, dbName, tableName string, rowID int64)
 
 type sqliteUpdateHook struct {
 	f   UpdateHook
@@ -82,9 +82,9 @@ type sqliteUpdateHook struct {
 }
 
 //export goXUpdateHook
-func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, rowId C.sqlite3_int64) {
+func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, rowID C.sqlite3_int64) {
 	arg := (*sqliteUpdateHook)(udp)
-	arg.f(arg.udp, Action(action), C.GoString(dbName), C.GoString(tableName), int64(rowId))
+	arg.f(arg.udp, Action(action), C.GoString(dbName), C.GoString(tableName), int64(rowID))
 }
 
 // UpdateHook registers a callback to be invoked each time a row is updated,

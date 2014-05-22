@@ -210,7 +210,7 @@ func (vc *csvTabCursor) Next() error {
 	}
 	return err
 }
-func (vc *csvTabCursor) Eof() bool {
+func (vc *csvTabCursor) EOF() bool {
 	return vc.vTab.eof
 }
 func (vc *csvTabCursor) Column(c *Context, col int) error {
@@ -254,7 +254,7 @@ func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers
 	return s.ExportToCSV(nullvalue, headers, w)
 }
 
-// ExportTableToCSV export statement result to CSV.
+// ExportToCSV export statement result to CSV.
 // 'headers' flag turns output of headers on or off.
 // NULL values are output as specified by 'nullvalue' parameter.
 func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error {
@@ -283,6 +283,7 @@ func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error
 	return w.Err()
 }
 
+// ImportConfig gathers import parameters.
 type ImportConfig struct {
 	Name      string     // the name of the input; used only for error reports
 	Separator byte       // CSV separator

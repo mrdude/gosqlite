@@ -8,7 +8,7 @@ package sqlite
 
 import "fmt"
 
-// This is the Go-language interface definition for the "intarray" or
+// IntArray is the Go-language interface definition for the "intarray" or
 // integer array virtual table for SQLite.
 //
 // The intarray virtual table is designed to facilitate using an
@@ -89,17 +89,17 @@ func (m *intArray) Connect(c *Conn, args []string) (VTab, error) {
 func (m *intArray) DestroyModule() {
 }
 
-func (v *intArray) BestIndex() error {
+func (m *intArray) BestIndex() error {
 	return nil
 }
-func (v *intArray) Disconnect() error {
+func (m *intArray) Disconnect() error {
 	return nil
 }
-func (v *intArray) Destroy() error {
+func (m *intArray) Destroy() error {
 	return nil
 }
-func (v *intArray) Open() (VTabCursor, error) {
-	return &intArrayVTabCursor{v, 0}, nil
+func (m *intArray) Open() (VTabCursor, error) {
+	return &intArrayVTabCursor{m, 0}, nil
 }
 
 type intArrayVTabCursor struct {
@@ -118,7 +118,7 @@ func (vc *intArrayVTabCursor) Next() error {
 	vc.i++
 	return nil
 }
-func (vc *intArrayVTabCursor) Eof() bool {
+func (vc *intArrayVTabCursor) EOF() bool {
 	return vc.i >= len(vc.vTab.content)
 }
 func (vc *intArrayVTabCursor) Column(c *Context, col int) error {
@@ -157,6 +157,6 @@ func (c *Conn) CreateIntArray(name string) (IntArray, error) {
 // The array of integers bound must be unchanged for the duration of
 // any query against the corresponding virtual table.  If the integer
 // array does change or is deallocated undefined behavior will result.
-func (ia *intArray) Bind(elements []int64) {
-	ia.content = elements
+func (m *intArray) Bind(elements []int64) {
+	m.content = elements
 }

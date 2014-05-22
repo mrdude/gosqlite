@@ -15,6 +15,7 @@ import "C"
 // (See http://www.sqlite.org/c3ref/c_limit_attached.html)
 type Limit int32
 
+// Run-time limit categories
 const (
 	LimitLength            Limit = C.SQLITE_LIMIT_LENGTH // The maximum size of any string or BLOB or table row, in bytes.
 	LimitColumn            Limit = C.SQLITE_LIMIT_COLUMN

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Adapted from https://code.google.com/p/vitess/source/browse/go/pools/roundrobin.go
+// Pool adapted from https://code.google.com/p/vitess/source/browse/go/pools/roundrobin.go
 type Pool struct {
 	mu          sync.Mutex
 	available   *sync.Cond
@@ -144,7 +144,7 @@ func (p *Pool) IsClosed() bool {
 	return p.factory == nil
 }
 
-// Set capacity changes the capacity of the pool.
+// SetCapacity changes the capacity of the pool.
 // You can use it to expand or shrink.
 func (p *Pool) SetCapacity(capacity int) {
 	p.mu.Lock()

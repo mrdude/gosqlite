@@ -228,6 +228,7 @@ func (s *Stmt) ColumnDeclaredType(index int) string {
 // Affinity enumerates SQLite column type affinity
 type Affinity string
 
+// SQLite column type affinities
 const (
 	Integral  = Affinity("INTEGER") // Integer affinity
 	Real      = Affinity("REAL")

@@ -27,11 +27,11 @@ func rollbackHook(d interface{}) {
 	}
 }
 
-func updateHook(d interface{}, a Action, dbName, tableName string, rowId int64) {
+func updateHook(d interface{}, a Action, dbName, tableName string, rowID int64) {
 	if t, ok := d.(*testing.T); ok {
-		t.Logf("UPD: %d, %s.%s.%d\n", a, dbName, tableName, rowId)
+		t.Logf("UPD: %d, %s.%s.%d\n", a, dbName, tableName, rowID)
 	} else {
-		fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowId)
+		fmt.Printf("%s: %d, %s.%s.%d\n", d, a, dbName, tableName, rowID)
 	}
 }
 

@@ -91,6 +91,7 @@ func (c *Conn) Profile(f Profiler, udp interface{}) {
 // Auth enumerates Authorizer return codes
 type Auth int32
 
+// Authorizer return codes
 const (
 	AuthOk     Auth = C.SQLITE_OK
 	AuthDeny   Auth = C.SQLITE_DENY
@@ -100,6 +101,7 @@ const (
 // Action enumerates Authorizer action codes
 type Action int32
 
+// Authorizer action codes
 const (
 	CreateIndex       Action = C.SQLITE_CREATE_INDEX
 	CreateTable       Action = C.SQLITE_CREATE_TABLE
@@ -299,6 +301,7 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int32, udp interface{})
 // StmtStatus enumerates status parameters for prepared statements
 type StmtStatus int32
 
+// status counters for prepared statements
 const (
 	StmtStatusFullScanStep StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
 	StmtStatusSort         StmtStatus = C.SQLITE_STMTSTATUS_SORT

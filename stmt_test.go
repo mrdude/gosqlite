@@ -481,9 +481,9 @@ func TestInsertMisuse(t *testing.T) {
 	ois, err := db.Prepare("PRAGMA shrink_memory")
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(ois, t)
-	rowId, err := ois.Insert()
+	rowID, err := ois.Insert()
 	checkNoError(t, err, "insert error: %s")
-	assert.Equal(t, int64(-1), rowId)
+	assert.Equal(t, int64(-1), rowID)
 }
 
 func TestScanValues(t *testing.T) {
