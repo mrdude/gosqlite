@@ -25,10 +25,6 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("cannot activate uri handling: '%s'", err))
 	}
-	err = EnableSharedCache(false)
-	if err != nil {
-		panic(fmt.Sprintf("couldn't disable shared cache: '%s'", err))
-	}
 }
 
 func TestEnableFKey(t *testing.T) {
@@ -64,8 +60,6 @@ func TestEnableExtendedResultCodes(t *testing.T) {
 func TestConnSettings(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
-	err := db.EnableLoadExtension(false)
-	checkNoError(t, err, "EnableLoadExtension error: %s")
-	err = db.SetRecursiveTriggers("main", true)
+	err := db.SetRecursiveTriggers("main", true)
 	checkNoError(t, err, "SetRecursiveTriggers error: %s")
 }

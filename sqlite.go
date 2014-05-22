@@ -10,6 +10,12 @@ package sqlite
 
 #include <sqlite3.h>
 #include <stdlib.h>
+
+#if SQLITE_VERSION_NUMBER < 3007015
+const char *sqlite3_errstr(int rc) {
+	return "";
+}
+#endif
 */
 import "C"
 
