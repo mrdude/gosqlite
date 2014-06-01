@@ -5,6 +5,7 @@
 package sqlite
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"fmt"
 	"time"
@@ -132,7 +133,7 @@ func (t TimeStamp) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // Date is expected in RFC3339 format or null.
 func (t *TimeStamp) UnmarshalText(data []byte) error {
-	if len(data) > 0 && data[0] == 'n' {
+	if bytes.Equal(data, []byte("null")) {
 		t.Time = time.Time{}
 		return nil
 	}

@@ -301,7 +301,7 @@ func (c *Conn) ProgressHandler(f ProgressHandler, numOps int32, udp interface{})
 // StmtStatus enumerates status parameters for prepared statements
 type StmtStatus int32
 
-// status counters for prepared statements
+// Status counters for prepared statements
 const (
 	StmtStatusFullScanStep StmtStatus = C.SQLITE_STMTSTATUS_FULLSCAN_STEP
 	StmtStatusSort         StmtStatus = C.SQLITE_STMTSTATUS_SORT
