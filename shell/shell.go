@@ -15,11 +15,13 @@ import (
 	"os/signal"
 	"os/user"
 	"path"
+	"strings"
 	"syscall"
 	"text/tabwriter"
 	"unicode"
 
 	"github.com/gwenn/gosqlite"
+	"github.com/gwenn/gosqlite/shell"
 	"github.com/gwenn/liner"
 )
 
@@ -116,7 +118,32 @@ func catchInterrupt() {
 	signal.Notify(ch, syscall.SIGINT)
 }
 
+func completion(line string, pos int) (string, []string, string) {
+	if isBlank(line) {
+		return line[:pos], nil, line[pos:]
+	}
+	prefix := line[:pos]
+	var matches []string
+	if isCommand(line) {
+		i := strings.LastIndex(prefix, " ")
+		if i == -1 {
+			matches = shell.CompleteCmd(prefix)
+			if len(matches) > 0 {
+				prefix = ""
+			}
+		}
+	} else {
+		fields := strings.Fields(prefix)
+		if strings.EqualFold("PRAGMA", fields[0]) { // TODO check pos
+			matches = shell.CompletePragma(fields[1])
+		}
+	}
+	return prefix, matches, line[pos:]
+}
+
 func main() {
+	var err error
+	check(err)
 	if !liner.IsTerminal() {
 		return // TODO non-interactive mode
 	}
@@ -129,7 +156,7 @@ func main() {
 		}
 		state.Close()
 	}()
-	// TODO state.SetCompleter(completion)
+	state.SetWordCompleter(completion)
 	err = loadHistory(state, historyFileName)
 	check(err)
 
@@ -219,3 +246,41 @@ func main() {
 		b.Reset()
 	}
 }
+
+/*
+.backup ?DB? FILE      Backup DB (default "main") to FILE => NewBackup(dst, "main", db, ?DB?)
+.bail ON|OFF           Stop after hitting an error.  Default OFF
+.clone NEWDB           Clone data into NEWDB from the existing database => ???
+.databases             List names and files of attached databases => db.Databases
+.dump ?TABLE? ...      Dump the database in an SQL text format => ???
+.echo ON|OFF           Turn command echo on or off
+.exit                  Exit this program => *
+.explain ?ON|OFF?      Turn output mode suitable for EXPLAIN on or off.
+.header(s) ON|OFF      Turn display of headers on or off => *
+.help                  Show this message => *
+.import FILE TABLE     Import data from FILE into TABLE => ImportCSV(FILE, ImportConfig, ???, TABLE) (TABLE may be qualified)
+.indices ?TABLE?       Show names of all indices => db.Indexes("main", both) + filter
+.load FILE ?ENTRY?     Load an extension library => db.LoadExtension(FILE, ?ENTRY?)
+.log FILE|off          Turn logging on or off.  FILE can be stderr/stdout
+.mode MODE ?TABLE?     Set output mode
+.nullvalue STRING      Use STRING in place of NULL values
+.open ?FILENAME?       Close existing database and reopen FILENAME
+.output FILENAME       Send output to FILENAME => *
+.output stdout         Send output to the screen => *
+.print STRING...       Print literal STRING
+.prompt MAIN CONTINUE  Replace the standard prompts
+.quit                  Exit this program => *
+.read FILENAME         Execute SQL in FILENAME => *
+.restore ?DB? FILE     Restore content of DB (default "main") from FILE => NewBackup(db, ?DB?, src, "main")
+.save FILE             Write in-memory database into FILE => NewBackup(dst, "main", db, "main")
+.schema ?TABLE?        Show the CREATE statements => *
+.separator STRING      Change separator used by output mode and .import => *
+.show                  Show the current values for various settings
+.stats ON|OFF          Turn stats on or off
+.tables ?TABLE?        List names of tables => *
+.timeout MS            Try opening locked tables for MS milliseconds
+.trace FILE|off        Output each SQL statement as it is run => db.Trace(???, nil)
+.vfsname ?AUX?         Print the name of the VFS stack
+.width NUM1 NUM2 ...   Set column widths for "column" mode
+.timer ON|OFF          Turn the CPU timer measurement on or off
+*/
