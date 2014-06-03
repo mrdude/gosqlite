@@ -287,7 +287,7 @@ func (c *ScalarContext) SetAuxData(n int, ad interface{}) {
 // Bool obtains a SQL function parameter value.
 // The leftmost value is number 0.
 func (c *FunctionContext) Bool(i int) bool {
-	return c.Int(i) == 1
+	return c.Int(i) != 0
 }
 
 // Blob obtains a SQL function parameter value.

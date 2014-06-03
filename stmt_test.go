@@ -749,3 +749,28 @@ func TestCheckTypeMismatch(t *testing.T) {
 	assert.T(t, err != nil)
 	//println(err.Error())
 }
+
+func TestReadOnly(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	s, err := db.Prepare("DROP TABLE IF EXISTS test")
+	checkNoError(t, err, "prepare error: %s")
+	assert.T(t, s.ReadOnly())
+	//checkNoError(t, s.Exec(), "exe error: %s")
+	checkFinalize(s, t)
+
+	s, err = db.Prepare("CREATE TABLE test (data TEXT)")
+	checkNoError(t, err, "prepare error: %s")
+	assert.T(t, !s.ReadOnly())
+	checkNoError(t, s.Exec(), "exe error: %s")
+	checkFinalize(s, t)
+
+	s, err = db.Prepare("DROP TABLE IF EXISTS test")
+	//s, err = db.Prepare("DROP TABLE test")
+	checkNoError(t, err, "prepare error: %s")
+	assert.T(t, s.ReadOnly()) // FIXME
+	checkNoError(t, s.Exec(), "exe error: %s")
+	checkFinalize(s, t)
+	assert.T(t, !s.ReadOnly())
+}

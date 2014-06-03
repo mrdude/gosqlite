@@ -978,7 +978,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 		if CheckTypeMismatch {
 			err = s.checkTypeMismatch(ctype, Integer)
 		}
-		value = C.sqlite3_column_int(s.stmt, C.int(index)) == 1
+		value = C.sqlite3_column_int(s.stmt, C.int(index)) != 0
 	}
 	return
 }
@@ -1162,5 +1162,5 @@ func (s *Stmt) Conn() *Conn {
 // ReadOnly returns true if the prepared statement is guaranteed to not modify the database.
 // (See http://sqlite.org/c3ref/stmt_readonly.html)
 func (s *Stmt) ReadOnly() bool {
-	return C.sqlite3_stmt_readonly(s.stmt) == 1
+	return C.sqlite3_stmt_readonly(s.stmt) != 0
 }

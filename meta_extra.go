@@ -38,8 +38,8 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, fmt.Sprintf("Conn.Column(db: %q, tbl: %q, col: %q)", dbName, tableName, columnName))
 	}
-	return &Column{-1, columnName, C.GoString(zDataType), notNull == 1, "", int(primaryKey),
-		autoinc == 1, C.GoString(zCollSeq)}, nil
+	return &Column{-1, columnName, C.GoString(zDataType), notNull != 0, "", int(primaryKey),
+		autoinc != 0, C.GoString(zCollSeq)}, nil
 }
 
 // ColumnDatabaseName returns the database
