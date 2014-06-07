@@ -537,8 +537,8 @@ func (c *Conn) Close() error {
 		} else {
 			Log(C.SQLITE_MISUSE, "Dangling statement (not finalize): \""+C.GoString(C.sqlite3_sql(stmt))+"\"")
 		}
-		C.sqlite3_finalize(stmt)
-		stmt = C.sqlite3_next_stmt(c.db, nil)
+		//C.sqlite3_finalize(stmt)
+		stmt = C.sqlite3_next_stmt(c.db, stmt)
 	}
 
 	rv := C.sqlite3_close(c.db)

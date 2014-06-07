@@ -401,6 +401,7 @@ func (cc *CompletionCache) complete(tbl, prefix string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer s.Finalize()
 	var names []string
 	if err = s.Select(func(s *sqlite.Stmt) error {
 		name, _ := s.ScanText(0)

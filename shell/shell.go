@@ -161,6 +161,7 @@ func main() {
 	}()
 	completionCache, err := shell.CreateCache()
 	check(err)
+	defer completionCache.Close()
 	state.SetWordCompleter(func(line string, pos int) (string, []string, string) {
 		return completion(completionCache, line, pos)
 	})

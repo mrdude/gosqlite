@@ -20,6 +20,7 @@ func createCache(t *testing.T) *CompletionCache {
 
 func TestPragmaNames(t *testing.T) {
 	cc := createCache(t)
+	defer cc.Close()
 	pragmas, err := cc.CompletePragma("fo")
 	assert.Tf(t, err == nil, "%v", err)
 	assert.Equalf(t, 3, len(pragmas), "got %d pragmas; expected %d", len(pragmas), 3)
@@ -27,6 +28,7 @@ func TestPragmaNames(t *testing.T) {
 }
 func TestFuncNames(t *testing.T) {
 	cc := createCache(t)
+	defer cc.Close()
 	funcs, err := cc.CompleteFunc("su")
 	assert.Tf(t, err == nil, "%v", err)
 	assert.Equal(t, 2, len(funcs), "got %d functions; expected %d", len(funcs), 2)
@@ -34,6 +36,7 @@ func TestFuncNames(t *testing.T) {
 }
 func TestCmdNames(t *testing.T) {
 	cc := createCache(t)
+	defer cc.Close()
 	cmds, err := cc.CompleteCmd(".h")
 	assert.Tf(t, err == nil, "%v", err)
 	assert.Equal(t, 2, len(cmds), "got %d commands; expected %d", len(cmds), 2)
@@ -44,6 +47,7 @@ func TestCache(t *testing.T) {
 	assert.Tf(t, err == nil, "%v", err)
 	defer db.Close()
 	cc := createCache(t)
+	defer cc.Close()
 	err = cc.Update(db)
 	assert.Tf(t, err == nil, "%v", err)
 }
