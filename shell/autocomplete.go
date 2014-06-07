@@ -5,15 +5,13 @@
 package shell
 
 import (
-	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/gwenn/gosqlite"
-	"github.com/sauerbraten/radix"
 )
 
-type completionCache struct {
+type CompletionCache struct {
+	memDb    *sqlite.Conn
 	dbNames  []string // "main", "temp", ...
 	dbCaches map[string]*databaseCache
 }
@@ -27,11 +25,269 @@ type databaseCache struct {
 	// trigNames []string // trigger by dbName (seems useful only in DROP TRIGGER statement)
 }
 
-func CreateCache(db *sqlite.Conn) *completionCache {
-	return &completionCache{dbNames: make([]string, 0, 2), dbCaches: make(map[string]*databaseCache)}
+func CreateCache() (*CompletionCache, error) {
+	db, err := sqlite.Open(":memory:")
+	if err != nil {
+		return nil, err
+	}
+	cc := &CompletionCache{memDb: db, dbNames: make([]string, 0, 2), dbCaches: make(map[string]*databaseCache)}
+	if err = cc.init(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return cc, nil
 }
 
-func (cc *completionCache) Update(db *sqlite.Conn) error {
+func (cc *CompletionCache) init() error {
+	cmd := `CREATE VIRTUAL TABLE pragmaNames USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed="args");
+	CREATE VIRTUAL TABLE funcNames USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed="args");
+	CREATE VIRTUAL TABLE moduleNames USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed="args");
+	CREATE VIRTUAL TABLE cmdNames USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed="args");
+	`
+	var err error
+	if err = cc.memDb.FastExec(cmd); err != nil {
+		return err
+	}
+	if err = cc.memDb.Begin(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			cc.memDb.Rollback()
+		} else {
+			err = cc.memDb.Commit()
+		}
+	}()
+	s, err := cc.memDb.Prepare("INSERT INTO pragmaNames (name, args) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+	pragmas := []struct {
+		Name string
+		Args string
+	}{
+		{Name: "application_id", Args: "integer"},
+		{Name: "auto_vacuum", Args: "0 | NONE | 1 | FULL | 2 | INCREMENTAL"},
+		{Name: "automatic_index", Args: "boolean"},
+		{Name: "busy_timeout", Args: "milliseconds"},
+		{Name: "cache_size", Args: "pages or -kibibytes"},
+		{Name: "cache_spill", Args: "boolean"},
+		{Name: "case_sensitive_like=", Args: "boolean"}, // set-only
+		{Name: "checkpoint_fullfsync", Args: "boolean"},
+		{Name: "collation_list", Args: ""},  // no =
+		{Name: "compile_options", Args: ""}, // no =
+		//{Name: "count_changes", Args: "boolean"},
+		//{Name: "data_store_directory", Args: "'directory-name'"},
+		{Name: "database_list", Args: ""},
+		//{Name: "default_cache_size", Args: "Number-of-pages"},
+		{Name: "defer_foreign_keys", Args: "boolean"},
+		//{Name: "empty_result_callbacks","boolean"},
+		{Name: "encoding", Args: "UTF-8 | UTF-16 | UTF-16le | UTF-16be"},
+		{Name: "foreign_key_check", Args: "(table-name)"}, // no =
+		{Name: "foreign_key_list(", Args: "table-name"},   // no =
+		{Name: "foreign_keys", Args: "boolean"},
+		{Name: "freelist_count", Args: ""},
+		//{Name: "full_column_names", Args: "boolean"},
+		{Name: "fullfsync", Args: "boolean"},
+		{Name: "ignore_check_constraints=", Args: "boolean"},
+		{Name: "incremental_vacuum(", Args: "N"},
+		{Name: "index_info(", Args: "index-name"}, // no =
+		{Name: "index_list(", Args: "table-name"}, // no =
+		{Name: "integrity_check", Args: "(N)"},
+		{Name: "journal_mode", Args: "DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF"},
+		{Name: "journal_size_limit", Args: "N"},
+		{Name: "legacy_file_format", Args: "boolean"},
+		{Name: "locking_mode", Args: "NORMAL | EXCLUSIVE"},
+		{Name: "max_page_count", Args: "N"},
+		{Name: "mmap_size", Args: "N"},
+		{Name: "page_count", Args: ""}, // no =
+		{Name: "page_size", Args: "bytes"},
+		//{Name: "parser_trace=", Args: "boolean"},
+		{Name: "query_only", Args: "boolean"},
+		{Name: "quick_check", Args: "(N)"}, // no =
+		{Name: "read_uncommitted", Args: "boolean"},
+		{Name: "recursive_triggers", Args: "boolean"},
+		{Name: "reverse_unordered_selects", Args: "boolean"},
+		{Name: "schema_version", Args: "integer"},
+		{Name: "secure_delete", Args: "boolean"},
+		//{Name: "short_column_names", Args: "boolean"},
+		{Name: "shrink_memory", Args: ""}, // no =
+		{Name: "soft_heap_limit", Args: "N"},
+		//{Name: "stats", Args: ""},
+		{Name: "synchronous", Args: "0 | OFF | 1 | NORMAL | 2 | FULL"},
+		{Name: "table_info(", Args: "table-name"}, // no =
+		{Name: "temp_store", Args: "0 | DEFAULT | 1 | FILE | 2 | MEMORY"},
+		//{Name: "temp_store_directory", Args: "'directory-name'"},
+		{Name: "user_version", Args: "integer"},
+		//{Name: "vdbe_addoptrace=", Args: "boolean"},
+		//{Name: "vdbe_debug=", Args: "boolean"},
+		//{Name: "vdbe_listing=", Args: "boolean"},
+		//{Name: "vdbe_trace=", Args: "boolean"},
+		{Name: "wal_autocheckpoint", Args: "N"},
+		{Name: "wal_checkpoint", Args: "(PASSIVE | FULL | RESTART)"}, // no =
+		{Name: "writable_schema=", Args: "boolean"},                  // set-only
+	}
+	for _, pragma := range pragmas {
+		if err = s.Exec(pragma.Name, pragma.Args); err != nil {
+			return err
+		}
+	}
+	if err = s.Finalize(); err != nil {
+		return err
+	}
+	// Only built-in functions are supported.
+	// TODO make possible to register extended/user-defined functions
+	s, err = cc.memDb.Prepare("INSERT INTO funcNames (name, args) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+	funs := []struct {
+		Name string
+		Args string
+	}{
+		{Name: "abs(", Args: "X"},
+		{Name: "changes()", Args: ""},
+		{Name: "char(", Args: "X1,X2,...,XN"},
+		{Name: "coalesce(", Args: "X,Y,..."},
+		{Name: "glob(", Args: "X,Y"},
+		{Name: "ifnull(", Args: "X,Y"},
+		{Name: "instr(", Args: "X,Y"},
+		{Name: "hex(", Args: "X"},
+		{Name: "last_insert_rowid()", Args: ""},
+		{Name: "length(", Args: "X"},
+		{Name: "like(", Args: "X,Y[,Z]"},
+		{Name: "likelihood(", Args: "X,Y"},
+		{Name: "load_extension(", Args: "X[,Y]"},
+		{Name: "lower(", Args: "X"},
+		{Name: "ltrim(", Args: "X[,Y]"},
+		{Name: "max(", Args: "X[,Y,...]"},
+		{Name: "min(", Args: "X[,Y,...]"},
+		{Name: "nullif(", Args: "X,Y"},
+		{Name: "printf(", Args: "FORMAT,..."},
+		{Name: "quote(", Args: "X"},
+		{Name: "random()", Args: ""},
+		{Name: "randomblob(", Args: "N"},
+		{Name: "replace", Args: "X,Y,Z"},
+		{Name: "round(", Args: "X[,Y]"},
+		{Name: "rtrim(", Args: "X[,Y]"},
+		{Name: "soundex(", Args: "X"},
+		{Name: "sqlite_compileoption_get(", Args: "N"},
+		{Name: "sqlite_compileoption_used(", Args: "X"},
+		{Name: "sqlite_source_id()", Args: ""},
+		{Name: "sqlite_version()", Args: ""},
+		{Name: "substr(", Args: "X,Y[,Z]"},
+		{Name: "total_changes()", Args: ""},
+		{Name: "trim(", Args: "X[,Y]"},
+		{Name: "typeof(", Args: "X"},
+		{Name: "unlikely(", Args: "X"},
+		{Name: "unicode(", Args: "X"},
+		{Name: "upper(", Args: "X"},
+		{Name: "zeroblob(", Args: "N"},
+		// aggregate functions
+		{Name: "avg(", Args: "X"},
+		{Name: "count(", Args: "X|*"},
+		{Name: "group_concat(", Args: "X[,Y]"},
+		//{Name: "max(", Args: "X"},
+		//{Name: "min(", Args: "X"},
+		{Name: "sum(", Args: "X"},
+		{Name: "total(", Args: "X"},
+		// date functions
+		{Name: "date(", Args: "timestring, modifier, modifier, ..."},
+		{Name: "time(", Args: "timestring, modifier, modifier, ..."},
+		{Name: "datetime(", Args: "timestring, modifier, modifier, ..."},
+		{Name: "julianday(", Args: "timestring, modifier, modifier, ..."},
+		{Name: "strftime(", Args: "format, timestring, modifier, modifier, ..."},
+	}
+	for _, fun := range funs {
+		if err = s.Exec(fun.Name, fun.Args); err != nil {
+			return err
+		}
+	}
+	if err = s.Finalize(); err != nil {
+		return err
+	}
+	// Only built-in modules are supported.
+	// TODO make possible to register extended/user-defined modules
+	s, err = cc.memDb.Prepare("INSERT INTO moduleNames (name, args) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+	mods := []struct {
+		Name string
+		Args string
+	}{
+		{Name: "fts3(", Args: ""},
+		{Name: "fts4(", Args: ""},
+		{Name: "rtree(", Args: ""},
+	}
+	for _, mod := range mods {
+		if err = s.Exec(mod.Name, mod.Args); err != nil {
+			return err
+		}
+	}
+	if err = s.Finalize(); err != nil {
+		return err
+	}
+	s, err = cc.memDb.Prepare("INSERT INTO cmdNames (name, args) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+	cmds := []struct {
+		Name string
+		Args string
+	}{
+		{Name: ".backup", Args: "?DB? FILE"},
+		{Name: ".bail", Args: "ON|OFF"},
+		{Name: ".clone", Args: "NEWDB"},
+		{Name: ".databases", Args: ""},
+		{Name: ".dump", Args: "?TABLE? ..."},
+		{Name: ".echo", Args: "ON|OFF"},
+		{Name: ".exit", Args: ""},
+		{Name: ".explain", Args: "?ON|OFF?"},
+		//{Name: ".header", Args: "ON|OFF"},
+		{Name: ".headers", Args: "ON|OFF"},
+		{Name: ".help", Args: ""},
+		{Name: ".import", Args: "FILE TABLE"},
+		{Name: ".indices", Args: "?TABLE?"},
+		{Name: ".load", Args: "FILE ?ENTRY?"},
+		{Name: ".log", Args: "FILE|off"},
+		{Name: ".mode", Args: "MODE ?TABLE?"},
+		{Name: ".nullvalue", Args: "STRING"},
+		{Name: ".open", Args: "?FILENAME?"},
+		{Name: ".output", Args: "stdout | FILENAME"},
+		{Name: ".print", Args: "STRING..."},
+		{Name: ".prompt", Args: "MAIN CONTINUE"},
+		{Name: ".quit", Args: ""},
+		{Name: ".read", Args: "FILENAME"},
+		{Name: ".restore", Args: "?DB? FILE"},
+		{Name: ".save", Args: "FILE"},
+		{Name: ".schema", Args: "?TABLE?"},
+		{Name: ".separator", Args: "STRING"},
+		{Name: ".show", Args: ""},
+		{Name: ".stats", Args: "ON|OFF"},
+		{Name: ".tables", Args: "?TABLE?"},
+		{Name: ".timeout", Args: "MS"},
+		{Name: ".trace", Args: "FILE|off"},
+		{Name: ".vfsname", Args: "?AUX?"},
+		{Name: ".width", Args: "NUM1 NUM2 ..."},
+		{Name: ".timer", Args: "ON|OFF"},
+	}
+	for _, cmd := range cmds {
+		if err = s.Exec(cmd.Name, cmd.Args); err != nil {
+			return err
+		}
+	}
+	if err = s.Finalize(); err != nil {
+		return err
+	}
+	return err
+}
+
+func (cc *CompletionCache) Close() error {
+	return cc.memDb.Close()
+}
+
+func (cc *CompletionCache) Update(db *sqlite.Conn) error {
 	// update database list (TODO only on ATTACH ...)
 	cc.dbNames = cc.dbNames[:0]
 	dbNames, err := db.Databases()
@@ -39,7 +295,7 @@ func (cc *completionCache) Update(db *sqlite.Conn) error {
 		return err
 	}
 	// update databases cache
-	for dbName, _ := range dbNames {
+	for dbName := range dbNames {
 		cc.dbNames = append(cc.dbNames, dbName)
 		dbc := cc.dbCaches[dbName]
 		if dbc == nil {
@@ -127,215 +383,31 @@ func (dc *databaseCache) update(db *sqlite.Conn, dbName string) error {
 	}
 
 	dc.schemaVersion = sv
-	fmt.Printf("%#v\n", dc)
 	return nil
 }
 
-var pragmaNames = radix.New()
-
-// Only built-in functions are supported.
-// TODO make possible to register extended/user-defined functions
-var funcNames = radix.New()
-
-// Only built-in modules are supported.
-// TODO make possible to register extended/user-defined modules
-var moduleNames = radix.New()
-
-var cmdNames = radix.New()
-
-func init() {
-	radixSet(pragmaNames, "application_id", "integer")
-	radixSet(pragmaNames, "auto_vacuum", "0 | NONE | 1 | FULL | 2 | INCREMENTAL")
-	radixSet(pragmaNames, "automatic_index", "boolean")
-	radixSet(pragmaNames, "busy_timeout", "milliseconds")
-	radixSet(pragmaNames, "cache_size", "pages or -kibibytes")
-	radixSet(pragmaNames, "cache_spill", "boolean")
-	radixSet(pragmaNames, "case_sensitive_like=", "boolean") // set-only
-	radixSet(pragmaNames, "checkpoint_fullfsync", "boolean")
-	radixSet(pragmaNames, "collation_list", "")  // no =
-	radixSet(pragmaNames, "compile_options", "") // no =
-	//radixSet(pragmaNames,"count_changes", "boolean")
-	//radixSet(pragmaNames,"data_store_directory", "'directory-name'")
-	radixSet(pragmaNames, "database_list", "")
-	//radixSet(pragmaNames,"default_cache_size", "Number-of-pages")
-	radixSet(pragmaNames, "defer_foreign_keys", "boolean")
-	//radixSet(pragmaNames,"empty_result_callbacks","boolean")
-	radixSet(pragmaNames, "encoding", "UTF-8 | UTF-16 | UTF-16le | UTF-16be")
-	radixSet(pragmaNames, "foreign_key_check", "(table-name)") // no =
-	radixSet(pragmaNames, "foreign_key_list(", "table-name")   // no =
-	radixSet(pragmaNames, "foreign_keys", "boolean")
-	radixSet(pragmaNames, "freelist_count", "")
-	//radixSet(pragmaNames,"full_column_names", "boolean")
-	radixSet(pragmaNames, "fullfsync", "boolean")
-	radixSet(pragmaNames, "ignore_check_constraints=", "boolean")
-	radixSet(pragmaNames, "incremental_vacuum(", "N")
-	radixSet(pragmaNames, "index_info(", "index-name") // no =
-	radixSet(pragmaNames, "index_list(", "table-name") // no =
-	radixSet(pragmaNames, "integrity_check", "(N)")
-	radixSet(pragmaNames, "journal_mode", "DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF")
-	radixSet(pragmaNames, "journal_size_limit", "N")
-	radixSet(pragmaNames, "legacy_file_format", "boolean")
-	radixSet(pragmaNames, "locking_mode", "NORMAL | EXCLUSIVE")
-	radixSet(pragmaNames, "max_page_count", "N")
-	radixSet(pragmaNames, "mmap_size", "N")
-	radixSet(pragmaNames, "page_count", "") // no =
-	radixSet(pragmaNames, "page_size", "bytes")
-	//radixSet(pragmaNames,"parser_trace=", "boolean")
-	radixSet(pragmaNames, "query_only", "boolean")
-	radixSet(pragmaNames, "quick_check", "(N)") // no =
-	radixSet(pragmaNames, "read_uncommitted", "boolean")
-	radixSet(pragmaNames, "recursive_triggers", "boolean")
-	radixSet(pragmaNames, "reverse_unordered_selects", "boolean")
-	radixSet(pragmaNames, "schema_version", "integer")
-	radixSet(pragmaNames, "secure_delete", "boolean")
-	//radixSet(pragmaNames,"short_column_names", "boolean")
-	radixSet(pragmaNames, "shrink_memory", "") // no =
-	radixSet(pragmaNames, "soft_heap_limit", "N")
-	//radixSet(pragmaNames,"stats", "")
-	radixSet(pragmaNames, "synchronous", "0 | OFF | 1 | NORMAL | 2 | FULL")
-	radixSet(pragmaNames, "table_info(", "table-name") // no =
-	radixSet(pragmaNames, "temp_store", "0 | DEFAULT | 1 | FILE | 2 | MEMORY")
-	//radixSet(pragmaNames,"temp_store_directory", "'directory-name'")
-	radixSet(pragmaNames, "user_version", "integer")
-	//radixSet(pragmaNames,"vdbe_addoptrace=", "boolean")
-	//radixSet(pragmaNames,"vdbe_debug=", "boolean")
-	//radixSet(pragmaNames,"vdbe_listing=", "boolean")
-	//radixSet(pragmaNames,"vdbe_trace=", "boolean")
-	radixSet(pragmaNames, "wal_autocheckpoint", "N")
-	radixSet(pragmaNames, "wal_checkpoint", "(PASSIVE | FULL | RESTART)") // no =
-	radixSet(pragmaNames, "writable_schema=", "boolean")                  // set-only
-
-	radixSet(funcNames, "abs(", "X")
-	radixSet(funcNames, "changes()", "")
-	radixSet(funcNames, "char(", "X1,X2,...,XN")
-	radixSet(funcNames, "coalesce(", "X,Y,...")
-	radixSet(funcNames, "glob(", "X,Y")
-	radixSet(funcNames, "ifnull(", "X,Y")
-	radixSet(funcNames, "instr(", "X,Y")
-	radixSet(funcNames, "hex(", "X")
-	radixSet(funcNames, "last_insert_rowid()", "")
-	radixSet(funcNames, "length(", "X")
-	radixSet(funcNames, "like(", "X,Y[,Z]")
-	radixSet(funcNames, "likelihood(", "X,Y")
-	radixSet(funcNames, "load_extension(", "X[,Y]")
-	radixSet(funcNames, "lower(", "X")
-	radixSet(funcNames, "ltrim(", "X[,Y]")
-	radixSet(funcNames, "max(", "X[,Y,...]")
-	radixSet(funcNames, "min(", "X[,Y,...]")
-	radixSet(funcNames, "nullif(", "X,Y")
-	radixSet(funcNames, "printf(", "FORMAT,...")
-	radixSet(funcNames, "quote(", "X")
-	radixSet(funcNames, "random()", "")
-	radixSet(funcNames, "randomblob(", "N")
-	radixSet(funcNames, "replace", "X,Y,Z")
-	radixSet(funcNames, "round(", "X[,Y]")
-	radixSet(funcNames, "rtrim(", "X[,Y]")
-	radixSet(funcNames, "soundex(", "X")
-	radixSet(funcNames, "sqlite_compileoption_get(", "N")
-	radixSet(funcNames, "sqlite_compileoption_used(", "X")
-	radixSet(funcNames, "sqlite_source_id()", "")
-	radixSet(funcNames, "sqlite_version()", "")
-	radixSet(funcNames, "substr(", "X,Y[,Z]")
-	radixSet(funcNames, "total_changes()", "")
-	radixSet(funcNames, "trim(", "X[,Y]")
-	radixSet(funcNames, "typeof(", "X")
-	radixSet(funcNames, "unlikely(", "X")
-	radixSet(funcNames, "unicode(", "X")
-	radixSet(funcNames, "upper(", "X")
-	radixSet(funcNames, "zeroblob(", "N")
-	// aggregate functions
-	radixSet(funcNames, "avg(", "X")
-	radixSet(funcNames, "count(", "X|*")
-	radixSet(funcNames, "group_concat(", "X[,Y]")
-	//radixSet(funcNames,"max(", "X")
-	//radixSet(funcNames,"min(", "X")
-	radixSet(funcNames, "sum(", "X")
-	radixSet(funcNames, "total(", "X")
-	// date functions
-	radixSet(funcNames, "date(", "timestring, modifier, modifier, ...")
-	radixSet(funcNames, "time(", "timestring, modifier, modifier, ...")
-	radixSet(funcNames, "datetime(", "timestring, modifier, modifier, ...")
-	radixSet(funcNames, "julianday(", "timestring, modifier, modifier, ...")
-	radixSet(funcNames, "strftime(", "format, timestring, modifier, modifier, ...")
-
-	radixSet(moduleNames, "fts3(", "")
-	radixSet(moduleNames, "fts4(", "")
-	radixSet(moduleNames, "rtree(", "")
-
-	radixSet(cmdNames, ".backup", "?DB? FILE")
-	radixSet(cmdNames, ".bail", "ON|OFF")
-	radixSet(cmdNames, ".clone", "NEWDB")
-	radixSet(cmdNames, ".databases", "")
-	radixSet(cmdNames, ".dump", "?TABLE? ...")
-	radixSet(cmdNames, ".echo", "ON|OFF")
-	radixSet(cmdNames, ".exit", "")
-	radixSet(cmdNames, ".explain", "?ON|OFF?")
-	//radixSet(cmdNames, ".header", "ON|OFF")
-	radixSet(cmdNames, ".headers", "ON|OFF")
-	radixSet(cmdNames, ".help", "")
-	radixSet(cmdNames, ".import", "FILE TABLE")
-	radixSet(cmdNames, ".indices", "?TABLE?")
-	radixSet(cmdNames, ".load", "FILE ?ENTRY?")
-	radixSet(cmdNames, ".log", "FILE|off")
-	radixSet(cmdNames, ".mode", "MODE ?TABLE?")
-	radixSet(cmdNames, ".nullvalue", "STRING")
-	radixSet(cmdNames, ".open", "?FILENAME?")
-	radixSet(cmdNames, ".output", "stdout | FILENAME")
-	radixSet(cmdNames, ".print", "STRING...")
-	radixSet(cmdNames, ".prompt", "MAIN CONTINUE")
-	radixSet(cmdNames, ".quit", "")
-	radixSet(cmdNames, ".read", "FILENAME")
-	radixSet(cmdNames, ".restore", "?DB? FILE")
-	radixSet(cmdNames, ".save", "FILE")
-	radixSet(cmdNames, ".schema", "?TABLE?")
-	radixSet(cmdNames, ".separator", "STRING")
-	radixSet(cmdNames, ".show", "")
-	radixSet(cmdNames, ".stats", "ON|OFF")
-	radixSet(cmdNames, ".tables", "?TABLE?")
-	radixSet(cmdNames, ".timeout", "MS")
-	radixSet(cmdNames, ".trace", "FILE|off")
-	radixSet(cmdNames, ".vfsname", "?AUX?")
-	radixSet(cmdNames, ".width", "NUM1 NUM2 ...")
-	radixSet(cmdNames, ".timer", "ON|OFF")
+func (cc *CompletionCache) CompletePragma(prefix string) ([]string, error) {
+	return cc.complete("pragmaNames", prefix)
+}
+func (cc *CompletionCache) CompleteFunc(prefix string) ([]string, error) {
+	return cc.complete("funcNames", prefix)
+}
+func (cc *CompletionCache) CompleteCmd(prefix string) ([]string, error) {
+	return cc.complete("cmdNames", prefix)
 }
 
-type radixValue struct {
-	name string
-	desc string
-}
-
-func radixSet(r *radix.Radix, name string, desc string) {
-	r.Set(name, radixValue{name, desc})
-}
-
-func CompletePragma(prefix string) []string {
-	return complete(pragmaNames, prefix)
-}
-func CompleteFunc(prefix string) []string {
-	return complete(funcNames, prefix)
-}
-func CompleteCmd(prefix string) []string {
-	return complete(cmdNames, prefix)
-}
-
-func complete(root *radix.Radix, prefix string) []string {
-	r := root.SubTreeWithPrefix(prefix)
-	if r == nil {
+func (cc *CompletionCache) complete(tbl, prefix string) ([]string, error) {
+	s, err := cc.memDb.Prepare("SELECT name FROM " + tbl + " WHERE name MATCH ?||'*' ORDER BY 1")
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	if err = s.Select(func(s *sqlite.Stmt) error {
+		name, _ := s.ScanText(0)
+		names = append(names, name)
 		return nil
+	}, prefix); err != nil {
+		return nil, err
 	}
-	names := make([]string, 0, 5)
-	names = getChildrenNames(r, names)
-	sort.Strings(names)
-	return names
-}
-func getChildrenNames(r *radix.Radix, names []string) []string {
-	for _, c := range r.Children() {
-		names = getChildrenNames(c, names)
-	}
-
-	v := r.Value()
-	if v, ok := v.(radixValue); ok {
-		names = append(names, v.name)
-	}
-	return names
+	return names, nil
 }

@@ -118,16 +118,18 @@ func catchInterrupt() {
 	signal.Notify(ch, syscall.SIGINT)
 }
 
-func completion(line string, pos int) (string, []string, string) {
+func completion(cc *shell.CompletionCache, line string, pos int) (string, []string, string) {
 	if isBlank(line) {
 		return line[:pos], nil, line[pos:]
 	}
 	prefix := line[:pos]
+	var err error
 	var matches []string
 	if isCommand(line) {
 		i := strings.LastIndex(prefix, " ")
 		if i == -1 {
-			matches = shell.CompleteCmd(prefix)
+			matches, err = cc.CompleteCmd(prefix)
+			check(err)
 			if len(matches) > 0 {
 				prefix = ""
 			}
@@ -135,7 +137,8 @@ func completion(line string, pos int) (string, []string, string) {
 	} else {
 		fields := strings.Fields(prefix)
 		if strings.EqualFold("PRAGMA", fields[0]) { // TODO check pos
-			matches = shell.CompletePragma(fields[1])
+			matches, err = cc.CompletePragma(fields[1])
+			check(err)
 		}
 	}
 	return prefix, matches, line[pos:]
@@ -156,7 +159,11 @@ func main() {
 		}
 		state.Close()
 	}()
-	state.SetWordCompleter(completion)
+	completionCache, err := shell.CreateCache()
+	check(err)
+	state.SetWordCompleter(func(line string, pos int) (string, []string, string) {
+		return completion(completionCache, line, pos)
+	})
 	err = loadHistory(state, historyFileName)
 	check(err)
 
