@@ -11,4 +11,4 @@ before_script:
  - go get code.google.com/p/go.tools/cmd/cover
  - go get -tags all github.com/gwenn/gosqlite
 script:
- - go test -tags all -cover ./...
+ - go test -tags all -cover

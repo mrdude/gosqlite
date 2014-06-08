@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
-
 package shell_test
 
 import (
@@ -50,6 +48,8 @@ func TestCache(t *testing.T) {
 	defer db.Close()
 	cc := createCache(t)
 	defer cc.Close()
-	err = cc.Update(db)
+	err = cc.Cache(db)
+	assert.Tf(t, err == nil, "%v", err)
+	err = cc.Flush(db)
 	assert.Tf(t, err == nil, "%v", err)
 }

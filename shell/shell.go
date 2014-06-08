@@ -178,6 +178,9 @@ func main() {
 
 	catchInterrupt()
 
+	err = completionCache.Cache(db)
+	check(err)
+
 	// TODO .mode MODE ?TABLE?     Set output mode where MODE is one of:
 	// TODO .separator STRING      Change separator used by output mode and .import
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -252,6 +255,7 @@ func main() {
 			cmd = s.Tail()
 		} // exec
 		b.Reset()
+		completionCache.Update(db)
 	}
 }
 
