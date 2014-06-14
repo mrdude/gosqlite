@@ -342,10 +342,14 @@ func SetSoftHeapLimit(n int64) int64 {
 
 // Complete determines if an SQL statement is complete.
 // (See http://sqlite.org/c3ref/complete.html)
-func Complete(sql string) bool {
+func Complete(sql string) (bool, error) {
 	cs := C.CString(sql)
 	defer C.free(unsafe.Pointer(cs))
-	return C.sqlite3_complete(cs) != 0
+	rv := C.sqlite3_complete(cs)
+	if rv == C.SQLITE_NOMEM {
+		return false, ErrNoMem
+	}
+	return rv != 0, nil
 }
 
 // Log writes a message into the error log established by ConfigLog method.

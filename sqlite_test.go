@@ -224,7 +224,9 @@ func TestReadonlyMisuse(t *testing.T) {
 }
 
 func TestComplete(t *testing.T) {
-	assert.T(t, Complete("SELECT 1;"), "expected complete statement")
+	c, err := Complete("SELECT 1;")
+	checkNoError(t, err, "error: %s")
+	assert.T(t, c, "expected complete statement")
 }
 
 func TestExecMisuse(t *testing.T) {
