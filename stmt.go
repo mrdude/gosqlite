@@ -842,7 +842,7 @@ func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool) 
 	case Null:
 		return nil, true
 	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
-		if s.c.ScanNumericalAsTime && s.ColumnTypeAffinity(index) == Numerical {
+		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout != "" && s.ColumnTypeAffinity(index) == Numerical {
 			p := C.sqlite3_column_text(s.stmt, C.int(index))
 			txt := C.GoString((*C.char)(unsafe.Pointer(p)))
 			value, err := time.Parse(s.c.DefaultTimeLayout, txt)
@@ -859,7 +859,11 @@ func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool) 
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
 		return C.GoString((*C.char)(unsafe.Pointer(p))), false
 	case Integer:
-		return int64(C.sqlite3_column_int64(s.stmt, C.int(index))), false
+		value := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
+		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout == "" && s.ColumnTypeAffinity(index) == Numerical {
+			return time.Unix(value, 0), false
+		}
+		return value, false
 	case Float: // does not work as expected if column type affinity is REAL but inserted value was an integer
 		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false
 	case Blob:
