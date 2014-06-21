@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build all
-
 package sqlite
 
 import (
@@ -287,13 +285,13 @@ func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error
 type ImportConfig struct {
 	Name      string     // the name of the input; used only for error reports
 	Separator byte       // CSV separator
-	Quoted    bool       // CSV field are quoted or not
+	Quoted    bool       // CSV fields are quoted or not
 	Guess     bool       // guess separator
-	Trim      bool       // trim spaces
-	Comment   byte       // comment marker
+	Trim      bool       // optional, trim spaces
+	Comment   byte       // optinal, comment marker
 	Headers   bool       // skip headers (first line)
 	Types     []Affinity // optional, when target table does not exist, specify columns type
-	Log       io.Writer  // optional, used to tace lines in error
+	Log       io.Writer  // optional, used to trace lines in error
 }
 
 func (ic ImportConfig) getType(i int) string {

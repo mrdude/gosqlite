@@ -2,11 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build all
-
 package sqlite_test
 
 import (
+	"fmt"
+	"math/rand"
+	"strings"
+
 	"github.com/bmizerany/assert"
 	. "github.com/gwenn/gosqlite"
 
@@ -70,4 +72,82 @@ func TestIntArrayModule(t *testing.T) {
 	p2.Bind([]int64{3, 4, 5})
 	p3.Bind([]int64{0, -5})
 	assert.T(t, !checkStep(t, s))
+
+	checkNoError(t, p1.Drop(), "%s")
+	checkNoError(t, p2.Drop(), "%s")
+	checkNoError(t, p3.Drop(), "%s")
+}
+
+func BenchmarkNoIntArray(b *testing.B) {
+	b.StopTimer()
+	db, err := Open(":memory:")
+	panicOnError(b, err)
+	defer db.Close()
+
+	panicOnError(b, db.Exec("CREATE TABLE rand (r INT)"))
+	values := rand.Perm(1000)
+	for _, v := range values {
+		panicOnError(b, db.Exec("INSERT INTO rand (r) VALUES (?)", v))
+	}
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		l := rand.Intn(999) + 1 // at least one value
+		sql := fmt.Sprintf("SELECT * FROM rand WHERE r IN (?%s)", strings.Repeat(", ?", l-1))
+		s, err := db.Prepare(sql)
+		panicOnError(b, err)
+		for j := 0; j < l; j++ {
+			panicOnError(b, s.BindByIndex(j+1, values[j]))
+		}
+		nr := 0
+		err = s.Select(func(s *Stmt) error {
+			_, _, err = s.ScanInt32(0)
+			nr++
+			return err
+		})
+		panicOnError(b, err)
+		if nr != l {
+			b.Fatalf("Only %d values; %d expected", nr, l)
+		}
+		panicOnError(b, s.Finalize())
+	}
+}
+
+func BenchmarkIntArray(b *testing.B) {
+	b.StopTimer()
+	db, err := Open(":memory:")
+	panicOnError(b, err)
+	defer db.Close()
+
+	panicOnError(b, db.Exec("CREATE TABLE rand (r INT)"))
+	perms := rand.Perm(1000)
+	values := make([]int64, len(perms))
+	for i, v := range perms {
+		panicOnError(b, db.Exec("INSERT INTO rand (r) VALUES (?)", v))
+		values[i] = int64(v)
+	}
+
+	b.StartTimer()
+
+	p, err := db.CreateIntArray("myia")
+	panicOnError(b, err)
+	defer p.Drop()
+	s, err := db.Prepare("SELECT * FROM rand WHERE r IN myia")
+	panicOnError(b, err)
+	defer s.Finalize()
+
+	for i := 0; i < b.N; i++ {
+		l := rand.Intn(999) + 1 // at least one value
+		p.Bind(values[0:l])
+		nr := 0
+		err = s.Select(func(s *Stmt) error {
+			_, _, err = s.ScanInt32(0)
+			nr++
+			return err
+		})
+		panicOnError(b, err)
+		if nr != l {
+			b.Fatalf("Only %d values; %d expected", nr, l)
+		}
+	}
 }

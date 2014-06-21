@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build all
-
 package sqlite
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // IntArray is the Go-language interface definition for the "intarray" or
 // integer array virtual table for SQLite.
@@ -69,9 +70,12 @@ import "fmt"
 // action to free the intarray objects (except if connections are pooled...).
 type IntArray interface {
 	Bind(elements []int64)
+	Drop() error
 }
 
 type intArray struct {
+	c       *Conn
+	name    string
 	content []int64
 }
 
@@ -141,12 +145,12 @@ func (vc *intArrayVTabCursor) Rowid() (int64, error) {
 // explicitly by the application, the virtual table will be dropped implicitly
 // by the system when the database connection is closed.
 func (c *Conn) CreateIntArray(name string) (IntArray, error) {
-	module := new(intArray)
+	module := &intArray{c: c, name: name}
 	if err := c.CreateModule(name, module); err != nil {
 		return nil, err
 	}
 	name = escapeQuote(name)
-	if err := c.FastExec(fmt.Sprintf("CREATE VIRTUAL TABLE temp.%s USING %s", name, name)); err != nil {
+	if err := c.FastExec(fmt.Sprintf(`CREATE VIRTUAL TABLE temp."%s" USING "%s"`, name, name)); err != nil {
 		return nil, err
 	}
 	return module, nil
@@ -159,4 +163,20 @@ func (c *Conn) CreateIntArray(name string) (IntArray, error) {
 // array does change or is deallocated undefined behavior will result.
 func (m *intArray) Bind(elements []int64) {
 	m.content = elements
+}
+
+// Drop underlying virtual table.
+func (m *intArray) Drop() error {
+	if m == nil {
+		return errors.New("nil sqlite intarray")
+	}
+	if m.c == nil {
+		return nil
+	}
+	err := m.c.FastExec(fmt.Sprintf(`DROP TABLE temp."%s"`, escapeQuote(m.name)))
+	if err != nil {
+		return err
+	}
+	m.c = nil
+	return nil
 }
