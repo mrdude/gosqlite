@@ -4,16 +4,28 @@
 
 package sqlite
 
+/*
+#include <sqlite3.h>
+#include <stdlib.h>
+
+// An sqlite3_intarray is an abstract type to stores an instance of an integer array.
+typedef struct sqlite3_intarray sqlite3_intarray;
+int sqlite3_intarray_bind(sqlite3_intarray *pIntArray, int nElements, sqlite3_int64 *aElements, void (*xFree)(void*));
+int sqlite3_intarray_create(sqlite3 *db, const char *zName, sqlite3_intarray **ppReturn);
+*/
+import "C"
+
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 )
 
 // IntArray is the Go-language interface definition for the "intarray" or
 // integer array virtual table for SQLite.
 //
 // The intarray virtual table is designed to facilitate using an
-// aray of integers as the right-hand side of an IN operator. So
+// array of integers as the right-hand side of an IN operator. So
 // instead of doing a prepared statement like this:
 //
 //	SELECT * FROM table WHERE x IN (?,?,?,...,?);
@@ -75,65 +87,9 @@ type IntArray interface {
 
 type intArray struct {
 	c       *Conn
+	ia      *C.sqlite3_intarray
 	name    string
 	content []int64
-}
-
-func (m *intArray) Create(c *Conn, args []string) (VTab, error) {
-	err := c.DeclareVTab("CREATE TABLE x(value INTEGER PRIMARY KEY)")
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-func (m *intArray) Connect(c *Conn, args []string) (VTab, error) {
-	return m.Create(c, args)
-}
-
-func (m *intArray) DestroyModule() {
-}
-
-func (m *intArray) BestIndex() error {
-	return nil
-}
-func (m *intArray) Disconnect() error {
-	return nil
-}
-func (m *intArray) Destroy() error {
-	return nil
-}
-func (m *intArray) Open() (VTabCursor, error) {
-	return &intArrayVTabCursor{m, 0}, nil
-}
-
-type intArrayVTabCursor struct {
-	vTab *intArray
-	i    int /* Current cursor position */
-}
-
-func (vc *intArrayVTabCursor) Close() error {
-	return nil
-}
-func (vc *intArrayVTabCursor) Filter() error {
-	vc.i = 0
-	return nil
-}
-func (vc *intArrayVTabCursor) Next() error {
-	vc.i++
-	return nil
-}
-func (vc *intArrayVTabCursor) EOF() bool {
-	return vc.i >= len(vc.vTab.content)
-}
-func (vc *intArrayVTabCursor) Column(c *Context, col int) error {
-	if col != 0 {
-		return fmt.Errorf("column index out of bounds: %d", col)
-	}
-	c.ResultInt64(vc.vTab.content[vc.i])
-	return nil
-}
-func (vc *intArrayVTabCursor) Rowid() (int64, error) {
-	return int64(vc.i), nil
 }
 
 // CreateIntArray create a specific instance of an intarray object.
@@ -145,14 +101,17 @@ func (vc *intArrayVTabCursor) Rowid() (int64, error) {
 // explicitly by the application, the virtual table will be dropped implicitly
 // by the system when the database connection is closed.
 func (c *Conn) CreateIntArray(name string) (IntArray, error) {
-	module := &intArray{c: c, name: name}
-	if err := c.CreateModule(name, module); err != nil {
-		return nil, err
+	var ia *C.sqlite3_intarray
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	rv := C.sqlite3_intarray_create(c.db, cname, &ia)
+	if rv != C.SQLITE_OK {
+		return nil, Errno(rv)
 	}
-	name = escapeQuote(name)
-	if err := c.FastExec(fmt.Sprintf(`CREATE VIRTUAL TABLE temp."%s" USING "%s"`, name, name)); err != nil {
-		return nil, err
+	if ia == nil {
+		return nil, errors.New("sqlite succeeded without returning an intarray")
 	}
+	module := &intArray{c: c, ia: ia, name: name}
 	return module, nil
 }
 
@@ -162,7 +121,15 @@ func (c *Conn) CreateIntArray(name string) (IntArray, error) {
 // any query against the corresponding virtual table.  If the integer
 // array does change or is deallocated undefined behavior will result.
 func (m *intArray) Bind(elements []int64) {
+	if m.ia == nil {
+		return
+	}
 	m.content = elements
+	var p *int64
+	if len(elements) > 0 {
+		p = &elements[0]
+	}
+	C.sqlite3_intarray_bind(m.ia, C.int(len(elements)), (*C.sqlite3_int64)(unsafe.Pointer(p)), nil)
 }
 
 // Drop underlying virtual table.
@@ -178,5 +145,6 @@ func (m *intArray) Drop() error {
 		return err
 	}
 	m.c = nil
+	m.ia = nil
 	return nil
 }

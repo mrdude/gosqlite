@@ -78,6 +78,8 @@ func TestIntArrayModule(t *testing.T) {
 	checkNoError(t, p3.Drop(), "%s")
 }
 
+const INTARRAY_SIZE = 100
+
 func BenchmarkNoIntArray(b *testing.B) {
 	b.StopTimer()
 	db, err := Open(":memory:")
@@ -85,14 +87,14 @@ func BenchmarkNoIntArray(b *testing.B) {
 	defer db.Close()
 
 	panicOnError(b, db.Exec("CREATE TABLE rand (r INT)"))
-	values := rand.Perm(1000)
+	values := rand.Perm(INTARRAY_SIZE)
 	for _, v := range values {
 		panicOnError(b, db.Exec("INSERT INTO rand (r) VALUES (?)", v))
 	}
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		l := rand.Intn(999) + 1 // at least one value
+		l := rand.Intn(INTARRAY_SIZE-1) + 1 // at least one value
 		sql := fmt.Sprintf("SELECT * FROM rand WHERE r IN (?%s)", strings.Repeat(", ?", l-1))
 		s, err := db.Prepare(sql)
 		panicOnError(b, err)
@@ -120,7 +122,7 @@ func BenchmarkIntArray(b *testing.B) {
 	defer db.Close()
 
 	panicOnError(b, db.Exec("CREATE TABLE rand (r INT)"))
-	perms := rand.Perm(1000)
+	perms := rand.Perm(INTARRAY_SIZE)
 	values := make([]int64, len(perms))
 	for i, v := range perms {
 		panicOnError(b, db.Exec("INSERT INTO rand (r) VALUES (?)", v))
@@ -137,7 +139,7 @@ func BenchmarkIntArray(b *testing.B) {
 	defer s.Finalize()
 
 	for i := 0; i < b.N; i++ {
-		l := rand.Intn(999) + 1 // at least one value
+		l := rand.Intn(INTARRAY_SIZE-1) + 1 // at least one value
 		p.Bind(values[0:l])
 		nr := 0
 		err = s.Select(func(s *Stmt) error {
