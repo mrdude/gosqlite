@@ -14,10 +14,9 @@ type pendingAction struct {
 }
 
 type CompletionCache struct {
-	memDb          *sqlite.Conn
-	insert         *sqlite.Stmt
-	schemaVersions map[string]int
-	pendingActions []pendingAction
+	memDb          *sqlite.Conn    // SQLite FTS extension is used to do auto-completion
+	insert         *sqlite.Stmt    // statement used to update col_names table
+	pendingActions []pendingAction // actions trapped by the authorizer for deferred cache update
 }
 
 func CreateCache() (*CompletionCache, error) {
@@ -25,7 +24,7 @@ func CreateCache() (*CompletionCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	cc := &CompletionCache{memDb: db, schemaVersions: make(map[string]int), pendingActions: make([]pendingAction, 0, 5)}
+	cc := &CompletionCache{memDb: db, pendingActions: make([]pendingAction, 0, 5)}
 	if err = cc.init(); err != nil {
 		db.Close()
 		return nil, err
@@ -292,12 +291,15 @@ func (cc *CompletionCache) Close() error {
 }
 
 func (cc *CompletionCache) Cache(db *sqlite.Conn) error {
+	// It seems not necessary to disable the SQLite statement cache to make this authorizer work
+	// because DDL are re-prepared when the schema has been touched.
 	db.SetAuthorizer(func(udp interface{}, action sqlite.Action, arg1, arg2, dbName, triggerName string) sqlite.Auth {
 		switch action {
 		case sqlite.Detach:
 			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: arg1})
 		case sqlite.Attach:
-			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: dbName})
+			// database name is not available, only the path...
+			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: arg1})
 		case sqlite.DropTable, sqlite.DropTempTable, sqlite.DropView, sqlite.DropTempView, sqlite.DropVTable:
 			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: dbName, tblName: arg1})
 		case sqlite.CreateTable, sqlite.CreateTempTable, sqlite.CreateVTable:
@@ -325,13 +327,6 @@ func (cc *CompletionCache) Cache(db *sqlite.Conn) error {
 }
 
 func (cc *CompletionCache) cache(db *sqlite.Conn, dbName string) error {
-	var sv int
-	if sv, err := db.SchemaVersion(dbName); err != nil {
-		return err
-	} else if osv, ok := cc.schemaVersions[dbName]; ok && osv == sv { // up to date
-		return nil
-	}
-
 	ts, err := db.Tables(dbName)
 	if err != nil {
 		return err
@@ -358,7 +353,6 @@ func (cc *CompletionCache) cache(db *sqlite.Conn, dbName string) error {
 		}
 	}
 
-	cc.schemaVersions[dbName] = sv
 	return nil
 }
 
@@ -379,8 +373,16 @@ func (cc *CompletionCache) Update(db *sqlite.Conn) error {
 	for _, pa := range cc.pendingActions {
 		switch pa.action {
 		case sqlite.Attach:
-			if err := cc.cache(db, pa.dbName); err != nil {
+			dbs, err := db.Databases()
+			if err != nil {
 				return err
+			}
+			for dbName, dbPath := range dbs {
+				if dbPath == pa.dbName {
+					if err := cc.cache(db, dbName); err != nil {
+						return err
+					}
+				}
 			}
 		case sqlite.Detach:
 			if err := cc.memDb.Exec("DELETE FROM col_names WHERE db_name = ?", pa.dbName); err != nil {
@@ -406,9 +408,6 @@ func (cc *CompletionCache) Update(db *sqlite.Conn) error {
 }
 
 func (cc *CompletionCache) Flush(db *sqlite.Conn) error {
-	for dbName := range cc.schemaVersions {
-		delete(cc.schemaVersions, dbName)
-	}
 	cc.pendingActions = cc.pendingActions[:0]
 	return cc.memDb.FastExec("DELETE FROM col_names")
 }
