@@ -320,6 +320,58 @@ func (c *Conn) Exec(cmd string, args ...interface{}) error {
 	return nil
 }
 
+// ExecDml helps executing DML statement:
+// (1) it binds the specified args,
+// (2) it executes the statement,
+// (3) it returns the number of rows that were changed or inserted or deleted.
+func (c *Conn) ExecDml(cmd string, args ...interface{}) (changes int, err error) {
+	s, err := c.Prepare(cmd)
+	if err != nil {
+		return -1, err
+	}
+	defer s.Finalize()
+	return s.ExecDml(args...)
+}
+
+// Insert is like ExecDml but returns the autoincremented rowid.
+func (c *Conn) Insert(cmd string, args ...interface{}) (rowid int64, err error) {
+	n, err := c.ExecDml(cmd, args...)
+	if err != nil {
+		return -1, err
+	}
+	if n == 0 { // No change => no insert...
+		return -1, nil
+	}
+	return c.LastInsertRowid(), nil
+}
+
+// Select helps executing SELECT statement:
+// (1) it binds the specified args,
+// (2) it steps on the rows returned,
+// (3) it delegates scanning to a callback function.
+// The callback function is invoked for each result row coming out of the statement.
+func (c *Conn) Select(query string, rowCallbackHandler func(s *Stmt) error, args ...interface{}) error {
+	s, err := c.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer s.Finalize()
+	return s.Select(rowCallbackHandler, args...)
+}
+
+// SelectById helps executing SELECT statement that is expected to return only one row.
+// Args are for scanning (not binding).
+// Returns false if there is no matching row.
+// No check is done to ensure that no more than one row is returned by the statement.
+func (c *Conn) SelectById(query string, id interface{}, args ...interface{}) (found bool, err error) {
+	s, err := c.Prepare(query, id)
+	if err != nil {
+		return false, err
+	}
+	defer s.Finalize()
+	return s.SelectOneRow(args...)
+}
+
 // Exists returns true if the specified query returns at least one row.
 func (c *Conn) Exists(query string, args ...interface{}) (bool, error) {
 	s, err := c.Prepare(query, args...)
