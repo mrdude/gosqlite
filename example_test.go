@@ -29,17 +29,14 @@ func Example() {
 	defer ins.Finalize()
 	_, err = ins.Insert("gosqlite driver")
 	check(err)
-	s, err := db.Prepare("SELECT name FROM test WHERE name LIKE ?", "%go%")
-	check(err)
-	defer s.Finalize()
 	var name string
-	err = s.Select(func(s *sqlite.Stmt) (err error) {
+	err = db.Select("SELECT name FROM test WHERE name LIKE ?", func(s *sqlite.Stmt) (err error) {
 		if err = s.Scan(&name); err != nil {
 			return
 		}
 		fmt.Println(name)
 		return
-	})
+	}, "%go%")
 	check(err)
 	// Output: gosqlite driver
 }
