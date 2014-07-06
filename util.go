@@ -45,7 +45,7 @@ func btocint(b bool) C.int {
 	return 0
 }
 func cstring(s string) (*C.char, C.int) {
-	cs := *(*reflect.StringHeader)(unsafe.Pointer(&s))
+	cs := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	return (*C.char)(unsafe.Pointer(cs.Data)), C.int(cs.Len)
 }
 

@@ -359,11 +359,11 @@ func (c *Conn) Select(query string, rowCallbackHandler func(s *Stmt) error, args
 	return s.Select(rowCallbackHandler, args...)
 }
 
-// SelectById helps executing SELECT statement that is expected to return only one row.
+// SelectByID helps executing SELECT statement that is expected to return only one row.
 // Args are for scanning (not binding).
 // Returns false if there is no matching row.
 // No check is done to ensure that no more than one row is returned by the statement.
-func (c *Conn) SelectById(query string, id interface{}, args ...interface{}) (found bool, err error) {
+func (c *Conn) SelectByID(query string, id interface{}, args ...interface{}) (found bool, err error) {
 	s, err := c.Prepare(query, id)
 	if err != nil {
 		return false, err
@@ -470,7 +470,6 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 		return c.FastExec("BEGIN EXCLUSIVE")
 	}
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
-	return nil // Go 1.1 unreachable code
 }
 
 // Commit commits transaction
