@@ -260,7 +260,8 @@ func trace(d interface{}, sql string) {
 	fmt.Fprintf(os.Stderr, "%s: %s\n", d, sql)
 }
 
-// BusyTimeout sets a busy timeout.
+// BusyTimeout sets a busy timeout and clears any previously set handler.
+// If duration is zero or negative, turns off busy handler.
 // (See http://sqlite.org/c3ref/busy_timeout.html)
 func (c *Conn) BusyTimeout(d time.Duration) error {
 	c.busyHandler = nil

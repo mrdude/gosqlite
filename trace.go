@@ -47,6 +47,9 @@ func goXTrace(udp unsafe.Pointer, sql *C.char) {
 
 // Trace registers or clears a trace function.
 // Prepared statement placeholders are replaced/logged with their assigned values.
+// There can only be a single tracer defined for each database connection.
+// Setting a new tracer clears the old one.
+// If f is nil, the current tracer is removed.
 // (See sqlite3_trace, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Trace(f Tracer, udp interface{}) {
 	if f == nil {
@@ -76,6 +79,9 @@ func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 
 // Profile registers or clears a profile function.
 // Prepared statement placeholders are not logged with their assigned values.
+// There can only be a single profiler defined for each database connection.
+// Setting a new profiler clears the old one.
+// If f is nil, the current profiler is removed.
 // (See sqlite3_profile, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Profile(f Profiler, udp interface{}) {
 	if f == nil {
@@ -239,7 +245,7 @@ func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 }
 
 // BusyHandler is the signature of callback to handle SQLITE_BUSY errors.
-// Returns true to try again.
+// Returns true to try again. Returns false to abort.
 // See Conn.BusyHandler
 type BusyHandler func(udp interface{}, count int) bool
 
@@ -256,6 +262,9 @@ func goXBusy(udp unsafe.Pointer, count int) C.int {
 }
 
 // BusyHandler registers a callback to handle SQLITE_BUSY errors.
+// There can only be a single busy handler defined for each database connection.
+// Setting a new busy handler clears any previously set handler.
+// If f is nil, the current handler is removed.
 // (See http://sqlite.org/c3ref/busy_handler.html)
 func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
@@ -269,6 +278,7 @@ func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 
 // ProgressHandler is the signature of query progress callback.
 // Returns true to interrupt.
+// For example, to cancel long-running queries.
 // See Conn.ProgressHandler
 type ProgressHandler func(udp interface{}) (interrupt bool)
 
@@ -286,6 +296,9 @@ func goXProgress(udp unsafe.Pointer) C.int {
 
 // ProgressHandler registers or clears a query progress callback.
 // The progress callback will be invoked every numOps opcodes.
+// Only a single progress handler may be defined at one time per database connection.
+// Setting a new progress handler cancels the old one.
+// If f is nil, the current handler is removed.
 // (See http://sqlite.org/c3ref/progress_handler.html)
 func (c *Conn) ProgressHandler(f ProgressHandler, numOps int32, udp interface{}) {
 	if f == nil {
