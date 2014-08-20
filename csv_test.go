@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/bmizerany/assert"
@@ -63,6 +64,36 @@ func TestImportCSV(t *testing.T) {
 
 	err = db.ImportCSV(file, ic, "", "test")
 	checkNoError(t, err, "error while importing CSV file: %s")
+}
+
+func TestImportAffinity(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+
+	r := strings.NewReader("t,i,r,b,n\n123,123,123,123,123")
+	ic := ImportConfig{
+		Name:      "test",
+		Separator: ',',
+		Headers:   true,
+		Types:     []Affinity{Textual, Integral, Real, None, Numerical},
+		Log:       os.Stderr,
+	}
+	err := db.ImportCSV(r, ic, "", "test")
+	checkNoError(t, err, "error while importing CSV file: %s")
+	err = db.Select("SELECT typeof(t), typeof(i), typeof(r), typeof(b), typeof(n) from test", func(s *Stmt) error {
+		tot, _ := s.ScanText(0)
+		assert.Equal(t, "text", tot)
+		toi, _ := s.ScanText(1)
+		assert.Equal(t, "integer", toi)
+		tor, _ := s.ScanText(2)
+		assert.Equal(t, "real", tor)
+		tob, _ := s.ScanText(3)
+		assert.Equal(t, "text", tob)
+		ton, _ := s.ScanText(4)
+		assert.Equal(t, "integer", ton)
+		return nil
+	})
+	checkNoError(t, err, "error while selecting: %s")
 }
 
 func TestExportTableToCSV(t *testing.T) {

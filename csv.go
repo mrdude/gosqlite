@@ -22,6 +22,9 @@ type csvModule struct {
 // args[1] => db name
 // args[2] => table name
 
+// TODO http://www.ch-werner.de/sqliteodbc/html/csvtable_8c.html make possible to specify the column/type name
+// TODO https://github.com/karbarcca/SQLite.jl & infer
+
 func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if len(args) < 4 {
 		return nil, errors.New("no CSV file specified")
@@ -234,7 +237,7 @@ func LoadCsvModule(db *Conn) error {
 	return db.CreateModule("csv", csvModule{})
 }
 
-// ExportTableToCSV export table or view content to CSV.
+// ExportTableToCSV exports table or view content to CSV.
 // 'headers' flag turns output of headers on or off.
 // NULL values are output as specified by 'nullvalue' parameter.
 func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers bool, w *yacr.Writer) error {
@@ -252,7 +255,7 @@ func (db *Conn) ExportTableToCSV(dbName, table string, nullvalue string, headers
 	return s.ExportToCSV(nullvalue, headers, w)
 }
 
-// ExportToCSV export statement result to CSV.
+// ExportToCSV exports statement result to CSV.
 // 'headers' flag turns output of headers on or off.
 // NULL values are output as specified by 'nullvalue' parameter.
 func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error {
@@ -310,7 +313,7 @@ func (ic ImportConfig) getType(i int) string {
 	return ""
 }
 
-// ImportCSV import CSV data into the specified table (which may not exist yet).
+// ImportCSV imports CSV data into the specified table (which may not exist yet).
 // Code is adapted from .import command implementation in SQLite3 shell sources.
 func (db *Conn) ImportCSV(in io.Reader, ic ImportConfig, dbName, table string) error {
 	columns, err := db.Columns(dbName, table)
