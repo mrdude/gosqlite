@@ -35,7 +35,7 @@ $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gw
 * Partial scan: scan values may be partially scanned (by index or name) or skipped/ignored by passing nil pointer(s).
 * Null value: by default, empty string and zero time are bound to NULL for prepared statement's parameters (no need for NullString, NullTime but still supported).
 * Null value: Stmt.*Scan* methods return default Go zero value (0, "", ...) for SQL NULL (no need for NullInt64, NullString, NullTime but still supported).
-* Correctly retrieve the time returns by `select current_timestamp` statement.
+* Correctly retrieve the time returns by `select current_timestamp` statement or others expressions: in SQLite, [expression affinity](http://www.sqlite.org/datatype3.html#expraff) is NONE.
 * [Full control over connection pool](https://code.google.com/p/go/issues/detail?id=4805)
 * [No restrictive converter](https://code.google.com/p/go/issues/detail?id=6918)
 * [Support for metadata](https://code.google.com/p/go/issues/detail?id=7408)
