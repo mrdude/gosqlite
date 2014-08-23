@@ -202,25 +202,29 @@ func (s *Stmt) ColumnTypeAffinity(index int) Affinity {
 		}
 	}
 	declType := s.ColumnDeclaredType(index)
+	affinity := typeAffinity(declType)
+	s.affinities[index] = affinity
+	return affinity
+}
+
+func (c Column) Affinity() Affinity {
+	return typeAffinity(c.DataType)
+}
+
+func typeAffinity(declType string) Affinity {
 	if declType == "" {
-		s.affinities[index] = None
 		return None
 	}
 	declType = strings.ToUpper(declType)
 	if strings.Contains(declType, "INT") {
-		s.affinities[index] = Integral
 		return Integral
 	} else if strings.Contains(declType, "TEXT") || strings.Contains(declType, "CHAR") || strings.Contains(declType, "CLOB") {
-		s.affinities[index] = Textual
 		return Textual
 	} else if strings.Contains(declType, "BLOB") {
-		s.affinities[index] = None
 		return None
 	} else if strings.Contains(declType, "REAL") || strings.Contains(declType, "FLOA") || strings.Contains(declType, "DOUB") {
-		s.affinities[index] = Real
 		return Real
 	}
-	s.affinities[index] = Numerical
 	return Numerical
 }
 

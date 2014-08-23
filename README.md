@@ -6,7 +6,7 @@ There are two layers:
  * one matching the SQLite API (with Backup, Blob, user-defined Function/Module, ...).
  * and another implementing the "database/sql/driver" interface.
 
-[![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.png)](https://godoc.org/github.com/gwenn/gosqlite)
+[![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.svg)](https://godoc.org/github.com/gwenn/gosqlite)
 
 [![Build Status][1]][2]
 

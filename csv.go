@@ -18,13 +18,20 @@ import (
 type csvModule struct {
 }
 
-// args[0] => module name
-// args[1] => db name
-// args[2] => table name
-
 // TODO http://www.ch-werner.de/sqliteodbc/html/csvtable_8c.html make possible to specify the column/type name
 // TODO https://github.com/karbarcca/SQLite.jl & infer
 
+// args[0] => module name
+// args[1] => db name
+// args[2] => table name
+// args[3] => filename (maybe quoted: '...')
+// args[i>3] :
+//  - contains HEADER ignoring case => use first line in file as column names or skip first line if NAMES are specified
+//  - contains NO_QUOTE ignoring case => no double quoted field expected in file
+//  - single char (;) or quoted char (';') => values separator in file
+//  - contains NAMES ignoring case => use args[i+1], ... as column names (until _TYPES_)
+//  - contains TYPES ignoring case => use args[I+1], ... as column types
+// Beware, empty args are skipped (..., ,...), use '' empty SQL string instead (..., '', ...).
 func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if len(args) < 4 {
 		return nil, errors.New("no CSV file specified")
@@ -37,22 +44,38 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	/* if a custom delimiter specified, pull it out */
 	var separator byte = ','
 	/* should the header zRow be used */
-	useHeaderRow := false
+	header := false
 	quoted := true
 	guess := true
+	var cols, types []string
 	for i := 4; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case strings.Contains(strings.ToUpper(arg), "HEADER"):
-			useHeaderRow = true
-		case strings.Contains(strings.ToUpper(arg), "NO_QUOTE"):
-			quoted = false
+		case types != nil:
+			if arg[0] == '\'' {
+				arg = arg[1 : len(arg)-1]
+			}
+			types = append(types, arg)
+		case cols != nil:
+			if strings.ToUpper(arg) == "_TYPES_" {
+				types = make([]string, 0, len(cols))
+			} else {
+				cols = append(cols, arg)
+			}
 		case len(arg) == 1:
 			separator = arg[0]
 			guess = false
 		case len(arg) == 3 && arg[0] == '\'':
 			separator = arg[1]
 			guess = false
+		case strings.Contains(strings.ToUpper(arg), "HEADER"):
+			header = true
+		case strings.Contains(strings.ToUpper(arg), "NO_QUOTE"):
+			quoted = false
+		case strings.Contains(strings.ToUpper(arg), "NAMES"):
+			cols = make([]string, 0, 10)
+		case strings.Contains(strings.ToUpper(arg), "TYPES"):
+			types = make([]string, 0, 10)
 		}
 	}
 	/* open the source csv file */
@@ -67,15 +90,25 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	vTab.maxColumn = int(c.Limit(LimitColumn))
 
 	reader := yacr.NewReader(file, separator, quoted, guess)
-	if useHeaderRow {
+	if header {
 		reader.Split(vTab.split(reader.ScanField))
 	}
-	if err = vTab.readRow(reader); err != nil || len(vTab.cols) == 0 {
-		if err == nil {
-			err = errors.New("no columns found")
-		}
+	if err = vTab.readRow(reader); err != nil {
 		return nil, err
 	}
+	named := header
+	if len(cols) > 0 { // headers ignored
+		// TODO check len(cols) == len(vTab.cols) ?
+		vTab.cols = cols
+		named = true
+	}
+	if len(vTab.cols) == 0 {
+		if len(types) == 0 {
+			return nil, errors.New("no column name/type specified")
+		}
+		vTab.cols = types
+	}
+
 	if guess {
 		vTab.sep = reader.Sep()
 	}
@@ -89,13 +122,17 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 		if i == len(vTab.cols)-1 {
 			tail = ");"
 		}
-		if useHeaderRow {
+		colType := ""
+		if len(types) > i {
+			colType = " " + types[i]
+		}
+		if named {
 			if len(col) == 0 {
 				return nil, errors.New("no column name found")
 			}
-			sql = fmt.Sprintf("%s\"%s\"%s", sql, col, tail)
+			sql = fmt.Sprintf("%s\"%s\"%s%s", sql, col, colType, tail)
 		} else {
-			sql = fmt.Sprintf("%scol%d%s", sql, i+1, tail)
+			sql = fmt.Sprintf("%scol%d%s%s", sql, i+1, colType, tail)
 		}
 	}
 	if err = c.DeclareVTab(sql); err != nil {
@@ -363,6 +400,7 @@ func (db *Conn) ImportCSV(in io.Reader, ic ImportConfig, dbName, table string) e
 			return err
 		}
 	}
+
 	var sql string
 	if len(dbName) == 0 {
 		sql = fmt.Sprintf(`INSERT INTO "%s" VALUES (?%s)`, escapeQuote(table), strings.Repeat(", ?", nCol-1))

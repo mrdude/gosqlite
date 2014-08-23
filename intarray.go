@@ -94,7 +94,7 @@ type intArray struct {
 
 // CreateIntArray create a specific instance of an intarray object.
 //
-// Each intarray object corresponds to a virtual table in the TEMP table
+// Each intarray object corresponds to a virtual table in the TEMP database
 // with the specified name.
 //
 // Destroy the intarray object by dropping the virtual table.  If not done

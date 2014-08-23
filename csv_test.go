@@ -45,6 +45,120 @@ func TestCsvModule(t *testing.T) {
 	checkNoError(t, err, "couldn't drop CSV virtual table: %s")
 }
 
+var csvModuleTests = []struct {
+	Name string
+	Args []string
+
+	Count int
+	Names []string
+	Types []string
+	Error string
+}{
+	{
+		Name:  "No file",
+		Args:  []string{},
+		Error: "no CSV file specified",
+	},
+	{
+		Name:  "File not found",
+		Args:  []string{"blam.csv"},
+		Error: "error opening CSV file: 'blam.csv'",
+	},
+	{
+		Name:  "No header",
+		Args:  []string{"test.csv"},
+		Count: 6,
+		Names: []string{"col1", "col2", "col3"},
+		Types: []string{"", "", ""},
+	},
+	{
+		Name:  "Headers",
+		Args:  []string{"test.csv", "USE_HEADER_ROW"},
+		Count: 5,
+		Names: []string{"colA", "colB", "colC"},
+		Types: []string{"", "", ""},
+	},
+	{
+		Name:  "Names",
+		Args:  []string{"test.csv", "COL_NAMES", "C1", "C2", "C3"},
+		Count: 6,
+		Names: []string{"C1", "C2", "C3"},
+		Types: []string{"", "", ""},
+	},
+	{
+		Name:  "Names & Headers",
+		Args:  []string{"test.csv", "HEADERS", "COL_NAMES", "C1", "C2", "C3"},
+		Count: 5,
+		Names: []string{"C1", "C2", "C3"},
+		Types: []string{"", "", ""},
+	},
+	{
+		Name:  "Types",
+		Args:  []string{"test.csv", "TYPES", "TEXT", "''", "TEXT"},
+		Names: []string{"col1", "col2", "col3"},
+		Types: []string{"TEXT", "", "TEXT"},
+	},
+}
+
+func TestCsvModuleArguments(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	err := LoadCsvModule(db)
+	checkNoError(t, err, "couldn't create CSV module: %s")
+	for _, tt := range csvModuleTests {
+		ddl := []byte("CREATE VIRTUAL TABLE vtab USING csv(")
+		for i, arg := range tt.Args {
+			if i > 0 {
+				ddl = append(ddl, ", "...)
+			}
+			ddl = append(ddl, arg...)
+		}
+		ddl = append(ddl, ")"...)
+		//println("DDL: ", string(ddl))
+		err = db.Exec(string(ddl))
+		if tt.Error != "" {
+			if err == nil || !strings.Contains(err.Error(), tt.Error) {
+				t.Errorf("%s: error %v, want error %q", tt.Name, err, tt.Error)
+			}
+			continue
+		} else {
+			checkNoError(t, err, "couldn't create CSV virtual table: %s")
+		}
+
+		if tt.Count > 0 {
+			var count int
+			err = db.OneValue("SELECT count(1) FROM vtab", &count)
+			checkNoError(t, err, "couldn't select from CSV virtual table: %s")
+			assert.Equalf(t, tt.Count, count, "%s: got %d rows, want %d", tt.Name, count, tt.Count)
+		}
+
+		/*var schema string
+		err = db.OneValue("SELECT sql FROM sqlite_master WHERE name like ? and type = ?", &schema, "vtab", "table")
+		checkNoError(t, err, "couldn't get schema of CSV virtual table: %s")
+		println("SCHEMA:", schema)*/
+
+		if len(tt.Names) > 0 {
+			cols, err := db.Columns("", "vtab")
+			checkNoError(t, err, "couldn't get columns of CSV virtual table: %s")
+			assert.Equalf(t, len(tt.Names), len(cols), "%s: got %d columns, want %d", tt.Name, len(cols), len(tt.Names))
+			for i, col := range cols {
+				assert.Equalf(t, tt.Names[i], col.Name, "%s: got %s, want %s as column name at %d", tt.Name, col.Name, tt.Names[i], i+1)
+			}
+		}
+		if len(tt.Types) > 0 {
+			cols, err := db.Columns("", "vtab")
+			checkNoError(t, err, "couldn't get columns of CSV virtual table: %s")
+			assert.Equalf(t, len(tt.Types), len(cols), "%s: got %d columns, want %d", tt.Name, len(cols), len(tt.Types))
+			for i, col := range cols {
+				assert.Equalf(t, tt.Types[i], col.DataType, "%s: got %s, want %s as column type at %d", tt.Name, col.DataType, tt.Types[i], i+1)
+			}
+		}
+
+		err = db.Exec("DROP TABLE vtab")
+		checkNoError(t, err, "couldn't drop CSV virtual table: %s")
+	}
+}
+
 func TestImportCSV(t *testing.T) {
 	db := open(t)
 	defer checkClose(db, t)
