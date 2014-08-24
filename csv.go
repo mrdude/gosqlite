@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gwenn/yacr"
@@ -17,9 +18,6 @@ import (
 
 type csvModule struct {
 }
-
-// TODO http://www.ch-werner.de/sqliteodbc/html/csvtable_8c.html make possible to specify the column/type name
-// TODO https://github.com/karbarcca/SQLite.jl & infer
 
 // args[0] => module name
 // args[1] => db name
@@ -32,6 +30,9 @@ type csvModule struct {
 //  - contains NAMES ignoring case => use args[i+1], ... as column names (until _TYPES_)
 //  - contains TYPES ignoring case => use args[I+1], ... as column types
 // Beware, empty args are skipped (..., ,...), use '' empty SQL string instead (..., '', ...).
+// Adapted from:
+//  - https://github.com/gwenn/sqlite-csv-ext
+//  - http://www.ch-werner.de/sqliteodbc/html/csvtable_8c.html
 func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if len(args) < 4 {
 		return nil, errors.New("no CSV file specified")
@@ -138,6 +139,16 @@ func (m csvModule) Create(c *Conn, args []string) (VTab, error) {
 	if err = c.DeclareVTab(sql); err != nil {
 		return nil, err
 	}
+
+	vTab.affinities = make([]Affinity, len(vTab.cols))
+	if len(types) > 0 {
+		for i, typ := range types {
+			if i >= len(vTab.affinities) {
+				break
+			}
+			vTab.affinities[i] = typeAffinity(typ)
+		}
+	}
 	return vTab, nil
 }
 func (m csvModule) Connect(c *Conn, args []string) (VTab, error) {
@@ -154,6 +165,7 @@ type csvTab struct {
 	eof            bool
 	offsetFirstRow int64
 	cols           []string
+	affinities     []Affinity
 
 	maxLength int
 	maxColumn int
@@ -260,7 +272,19 @@ func (vc *csvTabCursor) Column(c *Context, col int) error {
 		c.ResultNull()
 		return nil
 	}
-	// TODO dynamic typing c.ResultInt64()
+	affinity := vc.vTab.affinities[col]
+	if affinity == Integral || affinity == Numerical {
+		if i, err := strconv.ParseInt(cols[col], 10, 64); err == nil {
+			c.ResultInt64(i)
+			return nil
+		}
+	}
+	if affinity == Real || affinity == Numerical {
+		if f, err := strconv.ParseFloat(cols[col], 64); err == nil {
+			c.ResultDouble(f)
+			return nil
+		}
+	}
 	c.ResultText(cols[col])
 	return nil
 }

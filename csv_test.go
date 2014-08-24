@@ -21,7 +21,7 @@ func TestCsvModule(t *testing.T) {
 	defer checkClose(db, t)
 	err := LoadCsvModule(db)
 	checkNoError(t, err, "couldn't create CSV module: %s")
-	err = db.Exec("CREATE VIRTUAL TABLE vtab USING csv('test.csv', USE_HEADER_ROW)")
+	err = db.Exec("CREATE VIRTUAL TABLE vtab USING csv('test.csv', USE_HEADER_ROW, TYPES, INT, TEXT, TEXT)")
 	checkNoError(t, err, "couldn't create CSV virtual table: %s")
 
 	s, err := db.Prepare("SELECT rowid, * FROM vtab ORDER BY rowid LIMIT 3 OFFSET 2")
@@ -30,6 +30,8 @@ func TestCsvModule(t *testing.T) {
 
 	w, err := os.Open(os.DevNull)
 	checkNoError(t, err, "couldn't open /dev/null: %s")
+	defer w.Close()
+	//w := os.Stderr
 	var i int
 	var col1, col2, col3 string
 	err = s.Select(func(s *Stmt) (err error) {
@@ -37,6 +39,15 @@ func TestCsvModule(t *testing.T) {
 			return
 		}
 		fmt.Fprintf(w, "%d: %s|%s|%s\n", i, col1, col2, col3)
+		return
+	})
+	checkNoError(t, err, "couldn't select from CSV virtual table: %s")
+
+	err = db.Select("SELECT typeof(colA), typeof(colB), typeof(colC) FROM vtab", func(s *Stmt) (err error) {
+		if err = s.Scan(&col1, &col2, &col3); err != nil {
+			return
+		}
+		fmt.Fprintf(w, "%s|%s|%s\n", col1, col2, col3)
 		return
 	})
 	checkNoError(t, err, "couldn't select from CSV virtual table: %s")
