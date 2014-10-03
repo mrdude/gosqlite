@@ -18,6 +18,8 @@ int goSqlite3Config(int op, int mode);
 */
 import "C"
 
+import "unsafe"
+
 // ThreadingMode enumerates SQLite threading mode
 // See ConfigThreadingMode
 type ThreadingMode int32
@@ -116,4 +118,12 @@ func (c *Conn) queryOrSetEnableDbConfig(key, i C.int) (bool, error) {
 // (See http://sqlite.org/c3ref/extended_result_codes.html)
 func (c *Conn) EnableExtendedResultCodes(b bool) error {
 	return c.error(C.sqlite3_extended_result_codes(c.db, btocint(b)), "Conn.EnableExtendedResultCodes")
+}
+
+// CompileOptionUsed returns false or true indicating whether the specified option was defined at compile time.
+// (See http://sqlite.org/c3ref/compileoption_get.html)
+func CompileOptionUsed(optName string) bool {
+	cOptName := C.CString(optName)
+	defer C.free(unsafe.Pointer(cOptName))
+	return C.sqlite3_compileoption_used(cOptName) == 1
 }

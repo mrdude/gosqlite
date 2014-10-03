@@ -63,3 +63,8 @@ func TestConnSettings(t *testing.T) {
 	err := db.SetRecursiveTriggers("main", true)
 	checkNoError(t, err, "SetRecursiveTriggers error: %s")
 }
+
+func TestCompileOptionUsed(t *testing.T) {
+	b := CompileOptionUsed("SQLITE_ENABLE_COLUMN_METADATA")
+	assert.T(t, b, "COLUMN_METADATA disabled")
+}
