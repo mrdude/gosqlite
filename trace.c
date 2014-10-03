@@ -42,6 +42,6 @@ int goSqlite3ConfigLog(void *udp) {
 	if (udp) {
 		return sqlite3_config(SQLITE_CONFIG_LOG, goXLog, udp);
 	} else {
-		return sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
+		return sqlite3_config(SQLITE_CONFIG_LOG, 0, 0);
 	}
 }

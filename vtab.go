@@ -287,7 +287,7 @@ o                                    |- int (*xRelease)(sqlite3_vtab *pVTab, int
 o                                    \- int (*xRollbackTo)(sqlite3_vtab *pVTab, int)
                                     }
 
-                                    int sqlite3_declare_vtab( (Called in xCreate/xConnect)
+DeclareVTab                         int sqlite3_declare_vtab( (Called in xCreate/xConnect)
                                      |- sqlite3 *db,
                                      \- const char *zCreateTable
                                     )
@@ -299,7 +299,7 @@ sqliteVTab                          sqlite3_vtab { (Created by xCreate/xConnect)
                                      \- ...
                                     }
 
-?                                   sqlite3_vtab_cursor { (Created by xOpen)
+sqliteVTabCursor                    sqlite3_vtab_cursor { (Created by xOpen)
                                      |- sqlite3_vtab *pVtab
                                      \- ...
                                     }

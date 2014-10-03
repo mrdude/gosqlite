@@ -473,7 +473,8 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 	panic(fmt.Sprintf("Unsupported transaction type: '%#v'", t))
 }
 
-// Commit commits transaction
+// Commit commits transaction.
+// It is strongly discouraged to defer Commit without checking the error returned.
 func (c *Conn) Commit() error {
 	return c.FastExec("COMMIT")
 }
@@ -563,10 +564,10 @@ func (c *Conn) exec(cmd string) error {
 */
 
 // FastExec executes one or many non-parameterized statement(s) (separated by semi-colon) with no control and no stmt cache.
-func (c *Conn) FastExec(cmd string) error {
-	cmdstr := C.CString(cmd)
-	defer C.free(unsafe.Pointer(cmdstr))
-	return c.error(C.sqlite3_exec(c.db, cmdstr, nil, nil, nil))
+func (c *Conn) FastExec(sql string) error {
+	sqlstr := C.CString(sql)
+	defer C.free(unsafe.Pointer(sqlstr))
+	return c.error(C.sqlite3_exec(c.db, sqlstr, nil, nil, nil))
 }
 
 // Close closes a database connection and any dangling statements.

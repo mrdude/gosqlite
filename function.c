@@ -27,8 +27,8 @@ static inline void cXFinal(sqlite3_context *ctx) {
 }
 
 int goSqlite3CreateScalarFunction(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
-	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, cXFunc, NULL, NULL, goXDestroy);
+	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, cXFunc, 0, 0, goXDestroy);
 }
 int goSqlite3CreateAggregateFunction(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp) {
-	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, NULL, cXStep, cXFinal, goXDestroy);
+	return sqlite3_create_function_v2(db, zFunctionName, nArg, eTextRep, pApp, 0, cXStep, cXFinal, goXDestroy);
 }

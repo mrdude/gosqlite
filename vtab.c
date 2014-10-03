@@ -27,7 +27,7 @@ static int cXInit(sqlite3 *db, void *pAux, int argc, const char *const*argv, sql
   pvTab->vTab = vTab;
 
   *ppVTab = (sqlite3_vtab *)pvTab;
-  *pzErr = NULL;
+  *pzErr = 0;
   return SQLITE_OK;
 }
 

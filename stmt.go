@@ -17,11 +17,11 @@ package sqlite
 // #define SQLITE_STATIC      ((sqlite3_destructor_type)0)
 // #define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
 
-static inline int my_bind_text(sqlite3_stmt *stmt, int n, const char *p, int np) {
-	return sqlite3_bind_text(stmt, n, p, np, SQLITE_TRANSIENT);
+static inline int my_bind_text(sqlite3_stmt *stmt, int pidx, const char *data, int data_len) {
+	return sqlite3_bind_text(stmt, pidx, data, data_len, SQLITE_TRANSIENT);
 }
-static inline int my_bind_blob(sqlite3_stmt *stmt, int n, void *p, int np) {
-	return sqlite3_bind_blob(stmt, n, p, np, SQLITE_TRANSIENT);
+static inline int my_bind_blob(sqlite3_stmt *stmt, int pidx, void *data, int data_len) {
+	return sqlite3_bind_blob(stmt, pidx, data, data_len, SQLITE_TRANSIENT);
 }
 */
 import "C"
@@ -89,18 +89,18 @@ type Stmt struct {
 	Cacheable bool
 }
 
-func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
+func (c *Conn) prepare(sql string, args ...interface{}) (*Stmt, error) {
 	if c == nil {
 		return nil, errors.New("nil sqlite database")
 	}
-	cmdstr := C.CString(cmd)
-	defer C.free(unsafe.Pointer(cmdstr))
+	sqlstr := C.CString(sql)
+	defer C.free(unsafe.Pointer(sqlstr))
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
 	// If the caller knows that the supplied string is nul-terminated, then there is a small performance advantage to be gained by passing an nByte parameter that is equal to the number of bytes in the input string including the nul-terminator bytes as this saves SQLite from having to make a copy of the input string.
-	rv := C.sqlite3_prepare_v2(c.db, cmdstr, C.int(len(cmd)+1), &stmt, &tail)
+	rv := C.sqlite3_prepare_v2(c.db, sqlstr, C.int(len(sql)+1), &stmt, &tail)
 	if rv != C.SQLITE_OK {
-		return nil, c.error(rv, cmd)
+		return nil, c.error(rv, sql)
 	}
 	var t string
 	if tail != nil && C.strlen(tail) > 0 {
@@ -120,8 +120,8 @@ func (c *Conn) prepare(cmd string, args ...interface{}) (*Stmt, error) {
 // Prepare first looks in the statement cache or compiles the SQL statement.
 // And optionally bind values.
 // (See sqlite3_prepare_v2: http://sqlite.org/c3ref/prepare.html)
-func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
-	s := c.stmtCache.find(cmd)
+func (c *Conn) Prepare(sql string, args ...interface{}) (*Stmt, error) {
+	s := c.stmtCache.find(sql)
 	if s != nil {
 		if len(args) > 0 {
 			err := s.Bind(args...)
@@ -132,7 +132,7 @@ func (c *Conn) Prepare(cmd string, args ...interface{}) (*Stmt, error) {
 		}
 		return s, nil
 	}
-	s, err := c.prepare(cmd, args...)
+	s, err := c.prepare(sql, args...)
 	if s != nil && s.stmt != nil {
 		s.Cacheable = true
 	}
@@ -280,10 +280,10 @@ func (s *Stmt) BindParameterIndex(name string) (int, error) {
 // Returns "" if the index is out of range or if the wildcard is unnamed.
 // The first host parameter has an index of 1, not 0.
 // (See http://sqlite.org/c3ref/bind_parameter_name.html)
-func (s *Stmt) BindParameterName(i int) (string, error) {
-	name := C.sqlite3_bind_parameter_name(s.stmt, C.int(i))
+func (s *Stmt) BindParameterName(index int) (string, error) {
+	name := C.sqlite3_bind_parameter_name(s.stmt, C.int(index))
 	if name == nil {
-		return "", s.specificError("invalid parameter index: %d", i)
+		return "", s.specificError("invalid parameter index: %d", index)
 	}
 	return C.GoString(name), nil
 }
