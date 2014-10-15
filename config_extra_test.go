@@ -18,9 +18,11 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("couldn't disable shared cache: '%s'", err))
 	}
-	err = ConfigMMapSize(0, 268435456)
-	if err != nil {
-		panic(fmt.Sprintf("cannot change mmap size: '%s'", err))
+	if VersionNumber() >= 3007017 {
+		err = ConfigMMapSize(0, 268435456)
+		if err != nil {
+			panic(fmt.Sprintf("cannot change mmap size: '%s'", err))
+		}
 	}
 }
 
