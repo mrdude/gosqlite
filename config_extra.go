@@ -12,7 +12,11 @@ package sqlite
 #include <stdlib.h>
 
 static int goSqlite3ConfigMMapSize(sqlite3_int64 defaultSize, sqlite3_int64 maxSize) {
+#if SQLITE_VERSION_NUMBER < 3007017
+	return -1;
+#else
 	return sqlite3_config(SQLITE_CONFIG_MMAP_SIZE, defaultSize, maxSize);
+#endif
 }
 */
 import "C"
