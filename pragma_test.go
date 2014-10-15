@@ -6,6 +6,8 @@ package sqlite_test
 
 import (
 	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/bmizerany/assert"
@@ -194,4 +196,25 @@ func TestForeignKeyCheck(t *testing.T) {
 	mvs, err = db.ForeignKeyCheck("", "")
 	checkNoError(t, err, "error while checking FK: %s")
 	assert.Equal(t, vs, mvs)
+}
+
+func TestMMapSize(t *testing.T) {
+	if VersionNumber() < 3007017 {
+		return
+	}
+	f, err := ioutil.TempFile("", "gosqlite.db.")
+	checkNoError(t, err, "couldn't create temp file: %s")
+	checkNoError(t, f.Close(), "couldn't close temp file: %s")
+	defer os.Remove(f.Name())
+
+	db, err := Open(f.Name(), OpenReadWrite, OpenCreate, OpenFullMutex)
+	checkNoError(t, err, "couldn't open database file: %s")
+
+	size, err := db.MMapSize("")
+	checkNoError(t, err, "error while getting mmap size: %s")
+	assert.Equal(t, int64(0), size)
+
+	newSize, err := db.SetMMapSize("", 1048576)
+	checkNoError(t, err, "error while setting mmap size: %s")
+	assert.Equal(t, int64(1048576), newSize)
 }

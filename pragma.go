@@ -222,6 +222,33 @@ func (c *Conn) SetApplicationID(dbName string, id int) error {
 	return c.FastExec(pragma(dbName, fmt.Sprintf("application_id=%d", id)))
 }
 
+// MMapSize queries the maximum number of bytes that are set aside for memory-mapped I/O.
+// Database name is optional (default is 'main').
+// (See http://www.sqlite.org/pragma.html#pragma_mmap_size and http://sqlite.org/mmap.html)
+func (c *Conn) MMapSize(dbName string) (int64, error) {
+	var size int64
+	err := c.oneValue(pragma(dbName, "mmap_size"), &size)
+	if err != nil {
+		return -1, err
+	}
+	return size, nil
+}
+
+// SetMMapSize changes the maximum number of bytes that are set aside for memory-mapped I/O.
+// Database name is optional (default is 'main').
+// If the specified size is zero then memory mapped I/O is disabled.
+// If the specified size is negative, then the limit reverts to the default value.
+// The size of the memory-mapped I/O region cannot be changed while the memory-mapped I/O region is in active use.
+// (See http://www.sqlite.org/pragma.html#pragma_mmap_size and http://sqlite.org/mmap.html)
+func (c *Conn) SetMMapSize(dbName string, size int64) (int64, error) {
+	var newSize int64
+	err := c.oneValue(pragma(dbName, fmt.Sprintf("mmap_size=%d", size)), &newSize)
+	if err != nil {
+		return -1, err
+	}
+	return newSize, nil
+}
+
 func pragma(dbName, pragmaName string) string {
 	if len(dbName) == 0 {
 		return "PRAGMA " + pragmaName

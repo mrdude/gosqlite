@@ -9,6 +9,7 @@ package sqlite_test
 import (
 	"fmt"
 	"testing"
+
 	. "github.com/gwenn/gosqlite"
 )
 
@@ -16,6 +17,10 @@ func init() {
 	err := EnableSharedCache(false)
 	if err != nil {
 		panic(fmt.Sprintf("couldn't disable shared cache: '%s'", err))
+	}
+	err = ConfigMMapSize(0, 268435456)
+	if err != nil {
+		panic(fmt.Sprintf("cannot change mmap size: '%s'", err))
 	}
 }
 

@@ -366,7 +366,9 @@ func Complete(sql string) (bool, error) {
 }
 
 // Log writes a message into the error log established by ConfigLog method.
-// (See http://sqlite.org/c3ref/log.html)
+// (See http://sqlite.org/c3ref/log.html and http://www.sqlite.org/errlog.html)
+//
+// Applications can use the sqlite3_log(E,F,..) API to send new messages to the log, if desired, but this is discouraged.
 func Log(err /*Errno*/ int32, msg string) {
 	cs := C.CString(msg)
 	defer C.free(unsafe.Pointer(cs))
@@ -394,7 +396,7 @@ var logger *sqliteLogger
 // ConfigLog configures the logger of the SQLite library.
 // Only one logger can be registered at a time for the whole program.
 // The logger must be threadsafe.
-// (See sqlite3_config(SQLITE_CONFIG_LOG,...): http://sqlite.org/c3ref/config.html)
+// (See sqlite3_config(SQLITE_CONFIG_LOG,...): http://sqlite.org/c3ref/config.html and http://www.sqlite.org/errlog.html)
 func ConfigLog(f Logger, udp interface{}) error {
 	var rv C.int
 	if f == nil {

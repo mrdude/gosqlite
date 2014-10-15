@@ -38,6 +38,7 @@ func TestInterrupt(t *testing.T) {
 
 func openTwoConnSameDb(t *testing.T) (*os.File, *Conn, *Conn) {
 	f, err := ioutil.TempFile("", "gosqlite-test")
+	checkNoError(t, err, "couldn't create temp file: %s")
 	checkNoError(t, f.Close(), "couldn't close temp file: %s")
 	db1, err := Open(f.Name(), OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "couldn't open database file: %s")

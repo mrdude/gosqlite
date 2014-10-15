@@ -10,6 +10,10 @@ package sqlite
 /*
 #include <sqlite3.h>
 #include <stdlib.h>
+
+static int goSqlite3ConfigMMapSize(sqlite3_int64 defaultSize, sqlite3_int64 maxSize) {
+	return sqlite3_config(SQLITE_CONFIG_MMAP_SIZE, defaultSize, maxSize);
+}
 */
 import "C"
 
@@ -44,4 +48,14 @@ func (c *Conn) LoadExtension(file string, proc ...string) error {
 		return c.error(rv, C.GoString(errMsg))
 	}
 	return nil
+}
+
+// ConfigMMapSize decreases or increases the default mmap_size/reduces the hard upper bound at start time.
+// (See http://www.sqlite.org/c3ref/c_config_covering_index_scan.html#sqliteconfigmmapsize)
+func ConfigMMapSize(defaultSize, maxSize int64) error {
+	rv := C.goSqlite3ConfigMMapSize(C.sqlite3_int64(defaultSize), C.sqlite3_int64(maxSize))
+	if rv == C.SQLITE_OK {
+		return nil
+	}
+	return Errno(rv)
 }
