@@ -132,7 +132,7 @@ func TestQueryOnly(t *testing.T) {
 
 func TestApplicationID(t *testing.T) {
 	if VersionNumber() < 3007017 {
-		return
+		t.Skipf("SQLite version too old (%d < %d)", VersionNumber(), 3007017)
 	}
 
 	db := open(t)
@@ -155,7 +155,7 @@ func TestApplicationID(t *testing.T) {
 
 func TestForeignKeyCheck(t *testing.T) {
 	if VersionNumber() < 3007016 {
-		return
+		t.Skipf("SQLite version too old (%d < %d)", VersionNumber(), 3007016)
 	}
 
 	db := open(t)
@@ -200,7 +200,7 @@ func TestForeignKeyCheck(t *testing.T) {
 
 func TestMMapSize(t *testing.T) {
 	if VersionNumber() < 3007017 {
-		return
+		t.Skipf("SQLite version too old (%d < %d)", VersionNumber(), 3007017)
 	}
 	f, err := ioutil.TempFile("", "gosqlite.db.")
 	checkNoError(t, err, "couldn't create temp file: %s")
