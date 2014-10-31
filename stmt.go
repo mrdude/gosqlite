@@ -20,6 +20,9 @@ package sqlite
 static inline int my_bind_text(sqlite3_stmt *stmt, int pidx, const char *data, int data_len) {
 	return sqlite3_bind_text(stmt, pidx, data, data_len, SQLITE_TRANSIENT);
 }
+static inline int my_bind_empty_text(sqlite3_stmt *stmt, int pidx) {
+	return sqlite3_bind_text(stmt, pidx, "", 0, SQLITE_STATIC);
+}
 static inline int my_bind_blob(sqlite3_stmt *stmt, int pidx, void *data, int data_len) {
 	return sqlite3_bind_blob(stmt, pidx, data, data_len, SQLITE_TRANSIENT);
 }
@@ -344,8 +347,12 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 	case nil:
 		rv = C.sqlite3_bind_null(s.stmt, i)
 	case string:
-		if NullIfEmptyString && len(value) == 0 {
-			rv = C.sqlite3_bind_null(s.stmt, i)
+		if len(value) == 0 {
+			if NullIfEmptyString {
+				rv = C.sqlite3_bind_null(s.stmt, i)
+			} else {
+				rv = C.my_bind_empty_text(s.stmt, i)
+			}
 		} else {
 			if i64 && len(value) > math.MaxInt32 {
 				return s.specificError("string too big: %d at index %d", len(value), index)
