@@ -59,13 +59,13 @@ func (c *Conn) NewBlobReadWriter(db, table, column string, row int64) (*BlobRead
 
 func (c *Conn) blobOpen(db, table, column string, row int64, write bool) (*C.sqlite3_blob, error) {
 	zDb := C.CString(db)
-	defer C.free(unsafe.Pointer(zDb))
 	zTable := C.CString(table)
-	defer C.free(unsafe.Pointer(zTable))
 	zColumn := C.CString(column)
-	defer C.free(unsafe.Pointer(zColumn))
 	var bl *C.sqlite3_blob
 	rv := C.sqlite3_blob_open(c.db, zDb, zTable, zColumn, C.sqlite3_int64(row), btocint(write), &bl)
+	C.free(unsafe.Pointer(zColumn))
+	C.free(unsafe.Pointer(zTable))
+	C.free(unsafe.Pointer(zDb))
 	if rv != C.SQLITE_OK {
 		if bl != nil {
 			C.sqlite3_blob_close(bl)

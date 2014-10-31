@@ -103,8 +103,8 @@ type intArray struct {
 func (c *Conn) CreateIntArray(name string) (IntArray, error) {
 	var ia *C.sqlite3_intarray
 	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
 	rv := C.sqlite3_intarray_create(c.db, cname, &ia)
+	C.free(unsafe.Pointer(cname))
 	if rv != C.SQLITE_OK {
 		return nil, Errno(rv)
 	}

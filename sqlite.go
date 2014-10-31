@@ -272,8 +272,8 @@ func (c *Conn) BusyTimeout(d time.Duration) error {
 // (See http://sqlite.org/c3ref/db_readonly.html)
 func (c *Conn) Readonly(dbName string) (bool, error) {
 	cname := C.CString(dbName)
-	defer C.free(unsafe.Pointer(cname))
 	rv := C.sqlite3_db_readonly(c.db, cname)
+	C.free(unsafe.Pointer(cname))
 	if rv == -1 {
 		return false, c.specificError("%q is not the name of a database", dbName)
 	}
@@ -566,8 +566,9 @@ func (c *Conn) exec(cmd string) error {
 // FastExec executes one or many non-parameterized statement(s) (separated by semi-colon) with no control and no stmt cache.
 func (c *Conn) FastExec(sql string) error {
 	sqlstr := C.CString(sql)
-	defer C.free(unsafe.Pointer(sqlstr))
-	return c.error(C.sqlite3_exec(c.db, sqlstr, nil, nil, nil))
+	err := c.error(C.sqlite3_exec(c.db, sqlstr, nil, nil, nil))
+	C.free(unsafe.Pointer(sqlstr))
+	return err
 }
 
 // Close closes a database connection and any dangling statements.

@@ -26,10 +26,10 @@ func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backu
 	}
 	dname := C.CString(dstDbName)
 	sname := C.CString(srcDbName)
-	defer C.free(unsafe.Pointer(dname))
-	defer C.free(unsafe.Pointer(sname))
 
 	sb := C.sqlite3_backup_init(dst.db, dname, src.db, sname)
+	C.free(unsafe.Pointer(sname))
+	C.free(unsafe.Pointer(dname))
 	if sb == nil {
 		return nil, dst.error(C.sqlite3_errcode(dst.db), "backup init failed")
 	}

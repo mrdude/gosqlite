@@ -357,8 +357,8 @@ func SetSoftHeapLimit(n int64) int64 {
 // (See http://sqlite.org/c3ref/complete.html)
 func Complete(sql string) (bool, error) {
 	cs := C.CString(sql)
-	defer C.free(unsafe.Pointer(cs))
 	rv := C.sqlite3_complete(cs)
+	C.free(unsafe.Pointer(cs))
 	if rv == C.SQLITE_NOMEM {
 		return false, ErrNoMem
 	}
@@ -371,8 +371,8 @@ func Complete(sql string) (bool, error) {
 // Applications can use the sqlite3_log(E,F,..) API to send new messages to the log, if desired, but this is discouraged.
 func Log(err /*Errno*/ int32, msg string) {
 	cs := C.CString(msg)
-	defer C.free(unsafe.Pointer(cs))
 	C.my_log(C.int(err), cs)
+	C.free(unsafe.Pointer(cs))
 }
 
 // Logger is the signature of SQLite logger implementation.
