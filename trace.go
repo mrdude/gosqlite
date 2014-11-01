@@ -237,7 +237,7 @@ func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.
 func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
 		c.authorizer = nil
-		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil), "<Conn.SetAuthorizer")
+		return c.error(C.sqlite3_set_authorizer(c.db, nil, nil), "Conn.SetAuthorizer")
 	}
 	// To make sure it is not gced, keep a reference in the connection.
 	c.authorizer = &sqliteAuthorizer{f, udp}
