@@ -29,6 +29,21 @@ import (
 	"unsafe"
 )
 
+// OpenError is for detailed report on SQLite open failure.
+type OpenError struct {
+	Code         Errno // thread safe error code
+	ExtendedCode int
+	Msg          string
+	Filename     string
+}
+
+func (e OpenError) Error() string {
+	if len(e.Msg) > 0 {
+		return fmt.Sprintf("%s (%s)", e.Msg, e.Code.Error())
+	}
+	return e.Code.Error()
+}
+
 // ConnError is a wrapper for all SQLite connection related error.
 type ConnError struct {
 	c       *Conn
@@ -232,8 +247,14 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	}
 	rv := C.sqlite3_open_v2(cname, &db, C.int(openFlags), vfs)
 	if rv != C.SQLITE_OK {
-		if db != nil {
+		if db != nil { // try to extract futher details from db...
+			err := OpenError{Code: Errno(rv),
+				ExtendedCode: int(C.sqlite3_extended_errcode(db)),
+				Msg:          C.GoString(C.sqlite3_errmsg(db)),
+				Filename:     filename,
+			}
 			C.sqlite3_close(db)
+			return nil, err
 		}
 		return nil, Errno(rv)
 	}
