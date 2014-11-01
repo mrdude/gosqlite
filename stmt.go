@@ -97,11 +97,11 @@ func (c *Conn) prepare(sql string, args ...interface{}) (*Stmt, error) {
 		return nil, errors.New("nil sqlite database")
 	}
 	sqlstr := C.CString(sql)
+	defer C.free(unsafe.Pointer(sqlstr))
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
 	// If the caller knows that the supplied string is nul-terminated, then there is a small performance advantage to be gained by passing an nByte parameter that is equal to the number of bytes in the input string including the nul-terminator bytes as this saves SQLite from having to make a copy of the input string.
 	rv := C.sqlite3_prepare_v2(c.db, sqlstr, C.int(len(sql)+1), &stmt, &tail)
-	C.free(unsafe.Pointer(sqlstr))
 	if rv != C.SQLITE_OK {
 		return nil, c.error(rv, sql)
 	}
