@@ -207,6 +207,7 @@ func (s *Stmt) ColumnTypeAffinity(index int) Affinity {
 	return affinity
 }
 
+// Affinity returns the type affinity of the column.
 func (c Column) Affinity() Affinity {
 	return typeAffinity(c.DataType)
 }

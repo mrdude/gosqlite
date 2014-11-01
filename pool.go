@@ -21,6 +21,7 @@ type Pool struct {
 	idleTimeout time.Duration
 }
 
+// ConnOpen is the signature of connection factory.
 type ConnOpen func() (*Conn, error)
 
 // NewPool creates a connection pool.
@@ -140,6 +141,7 @@ func (p *Pool) Close() {
 	p.factory = nil
 }
 
+// IsClosed returns true when the pool has been closed.
 func (p *Pool) IsClosed() bool {
 	return p.factory == nil
 }
