@@ -81,7 +81,9 @@ func TestTrace(t *testing.T) {
 	checkNoError(t, err, "couldn't set an authorizer: %s")
 	db.Profile(profile, t)
 	db.ProgressHandler(progressHandler, 1, t)
-	db.Exists("SELECT 1 WHERE 1 = ?", 1)
+	b, err := db.Exists("SELECT 1 WHERE 1 = ?", 1)
+	checkNoError(t, err, "error while executing stmt: %s")
+	assert.T(t, b, "exists")
 }
 
 func TestProfile(t *testing.T) {
