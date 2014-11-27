@@ -8,7 +8,7 @@ before_install:
  - sudo apt-get install -qq libsqlite3-dev
 before_script:
  - go get github.com/bmizerany/assert
- - go get code.google.com/p/go.tools/cmd/cover
+ - go get golang.org/x/tools/cmd/cover
  - go get -tags all github.com/gwenn/gosqlite
 script:
  - go test -tags all -cover
