@@ -12,4 +12,4 @@ install:
 before_script:
  - go get github.com/bmizerany/assert
 script:
- - go test -tags all
+ - go test -v -tags all ./...
