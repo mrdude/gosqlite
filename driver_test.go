@@ -343,7 +343,7 @@ func TestTxQuery(t *testing.T) {
 }
 
 // Adapted from https://github.com/bradfitz/go-sql-test/blob/master/src/sqltest/sql_test.go
-func TestPreparedStmt(t *testing.T) {
+func _TestPreparedStmt(t *testing.T) {
 	db := sqlOpen(t)
 	defer checkSqlDbClose(db, t)
 
