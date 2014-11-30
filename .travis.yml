@@ -6,8 +6,10 @@ before_install:
  - echo "yes" | sudo add-apt-repository ppa:travis-ci/sqlite3
  - sudo apt-get update -qq
  - sudo apt-get install -qq libsqlite3-dev
+install:
+- go get github.com/gwenn/yacr
+- go get -tags all github.com/gwenn/gosqlite
 before_script:
  - go get github.com/bmizerany/assert
- - go get -tags all github.com/gwenn/gosqlite
 script:
  - go test -tags all
