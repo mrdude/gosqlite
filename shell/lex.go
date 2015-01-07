@@ -705,6 +705,6 @@ func Parse(line string) {
 		if item.typ == itemEOF {
 			break
 		}
-		fmt.Printf("%s\n", item)
+		//fmt.Printf("%s\n", item)
 	}
 }

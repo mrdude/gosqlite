@@ -4,7 +4,11 @@
 
 package shell
 
-import "github.com/gwenn/gosqlite"
+import (
+	"strings"
+
+	"github.com/gwenn/gosqlite"
+)
 
 type pendingAction struct {
 	action  sqlite.Action
@@ -40,7 +44,7 @@ func CreateCache() (*CompletionCache, error) {
 func (cc *CompletionCache) init() error {
 	cmd := `CREATE VIRTUAL TABLE pragma_names USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed=args);
 	CREATE VIRTUAL TABLE func_names USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed=args);
-	CREATE VIRTUAL TABLE moduleNames USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed=args);
+	CREATE VIRTUAL TABLE module_names USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed=args);
 	CREATE VIRTUAL TABLE cmd_names USING fts4(name, args, tokenize=porter, matchinfo=fts3, notindexed=args);
 	CREATE VIRTUAL TABLE col_names USING fts4(db_name, tbl_name, type, col_name, tokenize=porter, matchinfo=fts3, notindexed=type);
 	`
@@ -208,7 +212,7 @@ func (cc *CompletionCache) init() error {
 	}
 	// Only built-in modules are supported.
 	// TODO make possible to register extended/user-defined modules
-	s, err = cc.memDb.Prepare("INSERT INTO moduleNames (name, args) VALUES (?, ?)")
+	s, err = cc.memDb.Prepare("INSERT INTO module_names (name, args) VALUES (?, ?)")
 	if err != nil {
 		return err
 	}
@@ -303,7 +307,9 @@ func (cc *CompletionCache) Cache(db *sqlite.Conn) error {
 			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: arg1})
 		case sqlite.Attach:
 			// database name is not available, only the path...
-			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: arg1})
+			if arg1 != "" && arg1 != ":memory:" { // temporary db: "" and memory db: ":memory:" are empty when attached.
+				cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: arg1})
+			}
 		case sqlite.DropTable, sqlite.DropTempTable, sqlite.DropView, sqlite.DropTempView, sqlite.DropVTable:
 			cc.pendingActions = append(cc.pendingActions, pendingAction{action: action, dbName: dbName, tblName: arg1})
 		case sqlite.CreateTable, sqlite.CreateTempTable, sqlite.CreateVTable:
@@ -427,7 +433,7 @@ func (cc *CompletionCache) CompleteCmd(prefix string) ([]string, error) {
 }
 
 func (cc *CompletionCache) complete(tbl, prefix string) ([]string, error) {
-	s, err := cc.memDb.Prepare("SELECT name FROM " + tbl + " WHERE name MATCH ?||'*' ORDER BY 1")
+	s, err := cc.memDb.Prepare("SELECT name FROM "+tbl+" WHERE name MATCH ?||'*' ORDER BY 1", prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +443,97 @@ func (cc *CompletionCache) complete(tbl, prefix string) ([]string, error) {
 		name, _ := s.ScanText(0)
 		names = append(names, name)
 		return nil
-	}, prefix); err != nil {
+	}); err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
+func (cc *CompletionCache) CompleteDbName(prefix string) ([]string, error) {
+	s, err := cc.memDb.Prepare("SELECT DISTINCT db_name FROM col_names WHERE db_name MATCH ?||'*' ORDER BY 1", prefix)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var names []string
+	if err = s.Select(func(s *sqlite.Stmt) error {
+		name, _ := s.ScanText(0)
+		names = append(names, name)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
+func (cc *CompletionCache) CompleteTableName(dbName, prefix, typ string) ([]string, error) {
+	args := make([]interface{}, 0, 3)
+	if dbName != "" {
+		args = append(args, dbName)
+	}
+	args = append(args, prefix)
+	if typ != "" {
+		args = append(args, typ)
+	}
+	var sql string
+	if dbName == "" {
+		if typ == "" {
+			sql = "SELECT DISTINCT tbl_name FROM col_names WHERE tbl_name MATCH ?||'*' ORDER BY 1"
+		} else {
+			sql = "SELECT DISTINCT tbl_name FROM col_names WHERE tbl_name MATCH ?||'*' AND type = ? ORDER BY 1"
+		}
+	} else {
+		if typ == "" {
+			sql = "SELECT DISTINCT tbl_name FROM col_names WHERE db_name = ? AND tbl_name MATCH ?||'*' ORDER BY 1"
+		} else {
+			sql = "SELECT DISTINCT tbl_name FROM col_names WHERE db_name = ? AND tbl_name MATCH ?||'*' AND type = ? ORDER BY 1"
+		}
+	}
+	s, err := cc.memDb.Prepare(sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var names []string
+	if err = s.Select(func(s *sqlite.Stmt) error {
+		name, _ := s.ScanText(0)
+		names = append(names, name)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
+// tbl_names is mandatory
+func (cc *CompletionCache) CompleteColName(dbName string, tbl_names []string, prefix string) ([]string, error) {
+	args := make([]interface{}, 0, 10)
+	if dbName != "" {
+		args = append(args, dbName)
+	}
+	phs := make([]string, 0, 10)
+	for _, tbl_name := range tbl_names {
+		args = append(args, tbl_name)
+		phs = append(phs, "?")
+	}
+	args = append(args, prefix)
+	var sql string
+	if dbName == "" {
+		sql = "SELECT DISTINCT col_name FROM col_names WHERE tbl_name IN (" + strings.Join(phs, ",") + ") AND col_name MATCH ?||'*' ORDER BY 1"
+	} else {
+		sql = "SELECT DISTINCT col_name FROM col_names WHERE db_name = ? AND tbl_name IN (" + strings.Join(phs, ",") + ") AND col_name MATCH ?||'*' ORDER BY 1"
+	}
+	s, err := cc.memDb.Prepare(sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Finalize()
+	var names []string
+	if err = s.Select(func(s *sqlite.Stmt) error {
+		name, _ := s.ScanText(0)
+		names = append(names, name)
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 	return names, nil
