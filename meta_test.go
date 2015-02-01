@@ -205,3 +205,17 @@ func TestColumnTypeAffinity(t *testing.T) {
 	assert.Equal(t, Textual, s.ColumnTypeAffinity(4), "affinity")
 	assert.Equal(t, None, s.ColumnTypeAffinity(5), "affinity")
 }
+
+func TestExpressionTypeAffinity(t *testing.T) {
+	db := open(t)
+	defer checkClose(db, t)
+	checkNoError(t, db.FastExec("CREATE TABLE test (i INT, f REAL, n NUM, b BLOB, t TEXT, v);"), "%s")
+	s, err := db.Prepare("SELECT abs(i), f * 2, n / 2, lower(t) FROM test")
+	checkNoError(t, err, "%s")
+	defer checkFinalize(s, t)
+
+	assert.Equal(t, None, s.ColumnTypeAffinity(0), "affinity")
+	assert.Equal(t, None, s.ColumnTypeAffinity(1), "affinity")
+	assert.Equal(t, None, s.ColumnTypeAffinity(2), "affinity")
+	assert.Equal(t, None, s.ColumnTypeAffinity(3), "affinity")
+}
