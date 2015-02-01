@@ -20,12 +20,12 @@ import (
 // The database name is "main", "temp", or the name specified in an ATTACH statement.
 //
 // (See http://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
-func NewBackup(dst *Conn, dstDbName string, src *Conn, srcDbName string) (*Backup, error) {
+func NewBackup(dst *Conn, dstName string, src *Conn, srcName string) (*Backup, error) {
 	if dst == nil || src == nil {
 		return nil, errors.New("nil sqlite backup source or destination")
 	}
-	dname := C.CString(dstDbName)
-	sname := C.CString(srcDbName)
+	dname := C.CString(dstName)
+	sname := C.CString(srcName)
 
 	sb := C.sqlite3_backup_init(dst.db, dname, src.db, sname)
 	C.free(unsafe.Pointer(sname))
