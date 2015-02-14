@@ -187,7 +187,7 @@ func (v *csvTab) readRow(r *yacr.Reader) error {
 			v.eof = err == nil
 			return err
 		}
-		if r.EmptyLine() { // skip empty line (or line comment)
+		if r.EndOfRecord() && len(r.Bytes()) == 0 { // skip empty line (or line comment)
 			continue
 		}
 		col := r.Text()
@@ -393,8 +393,10 @@ func (db *Conn) ImportCSV(in io.Reader, ic ImportConfig, dbName, table string) e
 			sql = fmt.Sprintf(`CREATE TABLE %s."%s" `, doubleQuote(dbName), escapeQuote(table))
 		}
 		sep := '('
+		// TODO if headers flag is false...
 		for i := 0; r.Scan(); i++ {
-			if r.EmptyLine() {
+			if i == 0 && r.EndOfRecord() && len(r.Bytes()) == 0 { // empty line
+				i = -1
 				continue
 			}
 			sql += fmt.Sprintf("%c\n  \"%s\" %s", sep, r.Text(), ic.getType(i))
@@ -449,7 +451,7 @@ func (db *Conn) ImportCSV(in io.Reader, ic ImportConfig, dbName, table string) e
 	}()
 	startLine := r.LineNumber()
 	for i := 1; r.Scan(); i++ {
-		if r.EmptyLine() {
+		if i == 1 && r.EndOfRecord() && len(r.Bytes()) == 0 { // empty line
 			i = 0
 			startLine = r.LineNumber()
 			continue
