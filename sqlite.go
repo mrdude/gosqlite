@@ -150,6 +150,7 @@ func (c *Conn) specificError(msg string, a ...interface{}) error {
 
 // LastError returns the error for the most recent failed sqlite3_* API call associated with a database connection.
 // (See http://sqlite.org/c3ref/errcode.html)
+// FIXME it might be the case that a second error occurs on a separate thread in between the time of the first error and the call to this method.
 func (c *Conn) LastError() error {
 	if c == nil {
 		return errors.New("nil sqlite database")
