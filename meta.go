@@ -300,7 +300,10 @@ func (c *Conn) TableIndexes(dbName, table string) ([]Index, error) {
 	var indexes = make([]Index, 0, 5)
 	err = s.execQuery(func(s *Stmt) (err error) {
 		i := Index{}
-		if err = s.Scan(nil, &i.Name, &i.Unique); err != nil {
+		if _, err = s.ScanByIndex(1, &i.Name); err != nil {
+			return
+		}
+		if _, err = s.ScanByIndex(2, &i.Unique); err != nil {
 			return
 		}
 		indexes = append(indexes, i)
