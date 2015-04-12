@@ -206,17 +206,22 @@ func TestImportAffinity(t *testing.T) {
 	err := db.ImportCSV(r, ic, "", "test")
 	checkNoError(t, err, "error while importing CSV file: %s")
 	err = db.Select("SELECT typeof(t), typeof(i), typeof(r), typeof(b), typeof(n) from test", func(s *Stmt) error {
-		tot, _ := s.ScanText(0)
+		tot, _, err := s.ScanText(0)
+		checkNoError(t, err, "error while scanning: %s")
 		assert.Equal(t, "text", tot)
-		toi, _ := s.ScanText(1)
+		toi, _, err := s.ScanText(1)
+		checkNoError(t, err, "error while scanning: %s")
 		assert.Equal(t, "integer", toi)
-		tor, _ := s.ScanText(2)
+		tor, _, err := s.ScanText(2)
+		checkNoError(t, err, "error while scanning: %s")
 		assert.Equal(t, "real", tor)
-		tob, _ := s.ScanText(3)
+		tob, _, err := s.ScanText(3)
+		checkNoError(t, err, "error while scanning: %s")
 		assert.Equal(t, "text", tob)
-		ton, _ := s.ScanText(4)
+		ton, _, err := s.ScanText(4)
+		checkNoError(t, err, "error while scanning: %s")
 		assert.Equal(t, "integer", ton)
-		return nil
+		return err
 	})
 	checkNoError(t, err, "error while selecting: %s")
 }

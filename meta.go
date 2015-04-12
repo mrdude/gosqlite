@@ -56,8 +56,11 @@ func (c *Conn) Tables(dbName string) ([]string, error) {
 	defer s.finalize()
 	var tables = make([]string, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
-		name, _ := s.ScanText(0)
-		tables = append(tables, name)
+		if name, _, err := s.ScanText(0); err != nil {
+			return err
+		} else {
+			tables = append(tables, name)
+		}
 		return
 	})
 	if err != nil {
@@ -84,8 +87,11 @@ func (c *Conn) Views(dbName string) ([]string, error) {
 	defer s.finalize()
 	var views = make([]string, 0, 20)
 	err = s.Select(func(s *Stmt) (err error) {
-		name, _ := s.ScanText(0)
-		views = append(views, name)
+		if name, _, err := s.ScanText(0); err != nil {
+			return err
+		} else {
+			views = append(views, name)
+		}
 		return
 	})
 	if err != nil {
@@ -172,8 +178,11 @@ func (c *Conn) Columns(dbName, table string) ([]Column, error) {
 // If the result column is an expression or subquery, then an empty string is returned.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_decltype.html)
-func (s *Stmt) ColumnDeclaredType(index int) string {
-	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index)))
+func (s *Stmt) ColumnDeclaredType(index int) (string, error) {
+	if index < 0 || index >= s.ColumnCount() {
+		return "", s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+	}
+	return C.GoString(C.sqlite3_column_decltype(s.stmt, C.int(index))), nil
 }
 
 // Affinity enumerates SQLite column type affinity
@@ -192,7 +201,13 @@ const (
 // If the result column is an expression or subquery, then None is returned.
 // The left-most column is column 0.
 // (See http://sqlite.org/datatype3.html)
-func (s *Stmt) ColumnTypeAffinity(index int) Affinity {
+func (s *Stmt) ColumnTypeAffinity(index int) (Affinity, error) {
+	if index < 0 || index >= s.ColumnCount() {
+		return None, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+	}
+	return s.columnTypeAffinity(index), nil
+}
+func (s *Stmt) columnTypeAffinity(index int) Affinity {
 	if s.affinities == nil {
 		count := s.ColumnCount()
 		s.affinities = make([]Affinity, count)
@@ -201,7 +216,7 @@ func (s *Stmt) ColumnTypeAffinity(index int) Affinity {
 			return affinity
 		}
 	}
-	declType := s.ColumnDeclaredType(index)
+	declType, _ := s.ColumnDeclaredType(index)
 	affinity := typeAffinity(declType)
 	s.affinities[index] = affinity
 	return affinity
