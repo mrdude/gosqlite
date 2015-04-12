@@ -216,7 +216,7 @@ func TestImportAffinity(t *testing.T) {
 		assert.Equal(t, "text", tob)
 		ton, _ := s.ScanText(4)
 		assert.Equal(t, "integer", ton)
-		return err
+		return nil
 	})
 	checkNoError(t, err, "error while selecting: %s")
 }
