@@ -331,9 +331,8 @@ func (s *Stmt) ExportToCSV(nullvalue string, headers bool, w *yacr.Writer) error
 	}
 	s.Select(func(s *Stmt) error {
 		for i := 0; i < s.ColumnCount(); i++ {
-			if rb, null, err := s.ScanRawBytes(i); err != nil {
-				return err
-			} else if null {
+			rb, null := s.ScanRawBytes(i)
+			if null {
 				w.Write([]byte(nullvalue))
 			} else {
 				w.Write(rb)

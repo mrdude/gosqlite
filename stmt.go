@@ -499,12 +499,12 @@ func (s *Stmt) DataCount() int {
 // ColumnName returns the name of the Nth column of the result set returned by the SQL statement. (not cached)
 // The leftmost column is number 0.
 // (See http://sqlite.org/c3ref/column_name.html)
-func (s *Stmt) ColumnName(index int) (string, error) {
+func (s *Stmt) ColumnName(index int) string {
 	if index < 0 || index >= s.ColumnCount() {
-		return "", s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	// If there is no AS clause then the name of the column is unspecified and may change from one release of SQLite to the next.
-	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index))), nil
+	return C.GoString(C.sqlite3_column_name(s.stmt, C.int(index)))
 }
 
 // ColumnNames returns the name of the columns of the result set returned by the SQL statement. (not cached)
@@ -512,7 +512,7 @@ func (s *Stmt) ColumnNames() []string {
 	count := s.ColumnCount()
 	names := make([]string, count)
 	for i := 0; i < count; i++ {
-		names[i], _ = s.ColumnName(i)
+		names[i] = s.ColumnName(i)
 	}
 	return names
 }
@@ -547,14 +547,11 @@ var typeText = map[Type]string{
 //
 // After a type conversion, the value returned by sqlite3_column_type() is undefined.
 // (See sqlite3_column_type: http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ColumnType(index int) (Type, error) {
+func (s *Stmt) ColumnType(index int) Type {
 	if index < 0 || index >= s.ColumnCount() {
-		return Null, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
-	return s.columnType(index), nil // TODO request all columns type at once
-}
-func (s *Stmt) columnType(index int) Type {
-	return Type(C.sqlite3_column_type(s.stmt, C.int(index)))
+	return Type(C.sqlite3_column_type(s.stmt, C.int(index))) // TODO request all columns type at once
 }
 
 // NamedScan scans result values from a query by name (name1, value1, ...).
@@ -634,8 +631,7 @@ func (s *Stmt) ColumnIndex(name string) (int, error) {
 		count := s.ColumnCount()
 		s.cols = make(map[string]int, count)
 		for i := 0; i < count; i++ {
-			n, _ := s.ColumnName(i)
-			s.cols[n] = i
+			s.cols[s.ColumnName(i)] = i
 		}
 	}
 	index, ok := s.cols[name]
@@ -677,20 +673,18 @@ func (s *Stmt) ScanByName(name string, value interface{}) (isNull bool, err erro
 // (See http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByIndex(index int, value interface{}) (isNull bool, err error) {
 	if index < 0 || index >= s.ColumnCount() {
-		return false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	switch value := value.(type) {
 	case nil:
 	case *string:
-		*value, isNull, err = s.ScanText(index)
+		*value, isNull = s.ScanText(index)
 	case **string:
 		var st string
-		if st, isNull, err = s.ScanText(index); err == nil {
-			if isNull {
-				*value = nil
-			} else {
-				**value = st
-			}
+		if st, isNull = s.ScanText(index); isNull {
+			*value = nil
+		} else {
+			**value = st
 		}
 	case *int:
 		*value, isNull, err = s.ScanInt(index)
@@ -759,25 +753,22 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (isNull bool, err error
 			}
 		}
 	case *[]byte:
-		*value, isNull, err = s.ScanBlob(index)
+		*value, isNull = s.ScanBlob(index)
 	case **[]byte:
 		var bs []byte
-		if bs, isNull, err = s.ScanBlob(index); err == nil {
-			if isNull {
-				*value = nil
-			} else {
-				**value = bs
-			}
+		if bs, isNull = s.ScanBlob(index); isNull {
+			*value = nil
+		} else {
+			**value = bs
 		}
 	case *time.Time: // go fix doesn't like this type!
 		*value, isNull, err = s.ScanTime(index)
 	case sql.Scanner:
 		var v interface{}
-		if v, isNull, err = s.ScanValue(index, false); err == nil {
-			err = value.Scan(v)
-		}
+		v, isNull = s.ScanValue(index, false)
+		err = value.Scan(v)
 	case *interface{}:
-		*value, isNull, err = s.ScanValue(index, false)
+		*value, isNull = s.ScanValue(index, false)
 	default:
 		return s.ScanReflect(index, value)
 	}
@@ -798,7 +789,7 @@ func (s *Stmt) ScanByIndex(index int, value interface{}) (isNull bool, err error
 // Returns true when column is null.
 func (s *Stmt) ScanReflect(index int, v interface{}) (isNull bool, err error) {
 	if index < 0 || index >= s.ColumnCount() {
-		return false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -808,9 +799,8 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (isNull bool, err error) {
 	switch dv.Kind() {
 	case reflect.String:
 		var t string
-		if t, isNull, err = s.ScanText(index); err == nil {
-			dv.SetString(t)
-		}
+		t, isNull = s.ScanText(index)
+		dv.SetString(t)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i int64
 		if i, isNull, err = s.ScanInt64(index); err == nil {
@@ -854,64 +844,61 @@ func (s *Stmt) ScanReflect(index int, v interface{}) (isNull bool, err error) {
 //
 // Calls sqlite3_column_(blob|double|int|int64|text) depending on columns type.
 // (See http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool, err error) {
+func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool) {
 	if index < 0 || index >= s.ColumnCount() {
-		return nil, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
-	switch s.columnType(index) {
+	switch s.ColumnType(index) {
 	case Null:
-		return nil, true, nil
+		return nil, true
 	case Text: // does not work as expected if column type affinity is TEXT but inserted value was a numeric
-		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout != "" && s.columnTypeAffinity(index) == Numerical {
+		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout != "" && s.ColumnTypeAffinity(index) == Numerical {
 			p := C.sqlite3_column_text(s.stmt, C.int(index))
 			txt := C.GoString((*C.char)(unsafe.Pointer(p)))
 			value, err := time.Parse(s.c.DefaultTimeLayout, txt)
 			if err == nil {
-				return value, false, nil
+				return value, false
 			}
 			Log(-1, err.Error())
 		}
 		if blob {
 			p := C.sqlite3_column_blob(s.stmt, C.int(index))
 			n := C.sqlite3_column_bytes(s.stmt, C.int(index))
-			return C.GoBytes(p, n), false, nil
+			return C.GoBytes(p, n), false
 		}
 		p := C.sqlite3_column_text(s.stmt, C.int(index))
-		return C.GoString((*C.char)(unsafe.Pointer(p))), false, nil
+		return C.GoString((*C.char)(unsafe.Pointer(p))), false
 	case Integer:
 		value := int64(C.sqlite3_column_int64(s.stmt, C.int(index)))
-		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout == "" && s.columnTypeAffinity(index) == Numerical {
-			return time.Unix(value, 0), false, nil
+		if s.c.ScanNumericalAsTime && s.c.DefaultTimeLayout == "" && s.ColumnTypeAffinity(index) == Numerical {
+			return time.Unix(value, 0), false
 		}
-		return value, false, nil
+		return value, false
 	case Float: // does not work as expected if column type affinity is REAL but inserted value was an integer
-		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false, nil
+		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false
 	case Blob:
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
-		return C.GoBytes(p, n), false, nil // The memory space used to hold strings and BLOBs is freed automatically.
+		return C.GoBytes(p, n), false // The memory space used to hold strings and BLOBs is freed automatically.
 	}
 	panic("The column type is not one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL")
 }
 
 // ScanValues is like ScanValue on several columns.
-func (s *Stmt) ScanValues(values []interface{}) (err error) {
+func (s *Stmt) ScanValues(values []interface{}) {
 	for i := range values {
-		if values[i], _, err = s.ScanValue(i, false); err != nil {
-			break
-		}
+		values[i], _ = s.ScanValue(i, false)
 	}
-	return
 }
 
 // ScanText scans result value from a query.
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 // (See sqlite3_column_text: http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanText(index int) (value string, isNull bool, err error) {
+func (s *Stmt) ScanText(index int) (value string, isNull bool) {
 	if index < 0 || index >= s.ColumnCount() {
-		return "", false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	p := C.sqlite3_column_text(s.stmt, C.int(index))
 	if p == nil {
@@ -928,10 +915,7 @@ func (s *Stmt) ScanText(index int) (value string, isNull bool, err error) {
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 // TODO Factorize with ScanByte, ScanBool
 func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return 0, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -953,10 +937,7 @@ func (s *Stmt) ScanInt(index int) (value int, isNull bool, err error) {
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 // TODO Factorize with ScanByte, ScanBool
 func (s *Stmt) ScanInt32(index int) (value int32, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return 0, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -973,10 +954,7 @@ func (s *Stmt) ScanInt32(index int) (value int32, isNull bool, err error) {
 // Returns true when column is null.
 // (See sqlite3_column_int64: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return 0, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -993,10 +971,7 @@ func (s *Stmt) ScanInt64(index int) (value int64, isNull bool, err error) {
 // Returns true when column is null.
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return 0, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -1013,10 +988,7 @@ func (s *Stmt) ScanByte(index int) (value byte, isNull bool, err error) {
 // Returns true when column is null.
 // (See sqlite3_column_int: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return false, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -1033,10 +1005,7 @@ func (s *Stmt) ScanBool(index int) (value bool, isNull bool, err error) {
 // Returns true when column is null.
 // (See sqlite3_column_double: http://sqlite.org/c3ref/column_blob.html)
 func (s *Stmt) ScanDouble(index int) (value float64, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		return 0, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	if ctype == Null {
 		isNull = true
 	} else {
@@ -1052,9 +1021,9 @@ func (s *Stmt) ScanDouble(index int) (value float64, isNull bool, err error) {
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 // (See sqlite3_column_blob: http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool, err error) {
+func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool) {
 	if index < 0 || index >= s.ColumnCount() {
-		return nil, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	p := C.sqlite3_column_blob(s.stmt, C.int(index))
 	if p == nil {
@@ -1071,9 +1040,9 @@ func (s *Stmt) ScanBlob(index int) (value []byte, isNull bool, err error) {
 // The leftmost column/index is number 0.
 // Returns true when column is null.
 // (See sqlite3_column_blob: http://sqlite.org/c3ref/column_blob.html)
-func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool, err error) {
+func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool) {
 	if index < 0 || index >= s.ColumnCount() {
-		return nil, false, s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
 	p := C.sqlite3_column_blob(s.stmt, C.int(index))
 	if p == nil {
@@ -1092,11 +1061,7 @@ func (s *Stmt) ScanRawBytes(index int) (value []byte, isNull bool, err error) {
 // Returns true when column is null.
 // The column type affinity must be consistent with the format used (INTEGER or NUMERIC or NONE for unix time, REAL or NONE for julian day).
 func (s *Stmt) ScanTime(index int) (value time.Time, isNull bool, err error) {
-	if index < 0 || index >= s.ColumnCount() {
-		err = s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
-		return
-	}
-	ctype := s.columnType(index)
+	ctype := s.ColumnType(index)
 	switch ctype {
 	case Null:
 		isNull = true

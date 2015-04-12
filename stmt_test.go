@@ -78,9 +78,7 @@ func TestInsertWithStatement(t *testing.T) {
 	defer checkFinalize(rs, t)
 	columnCount = rs.ColumnCount()
 	assert.Equal(t, 3, columnCount, "column count")
-	secondColumnName, err := rs.ColumnName(1)
-	checkNoError(t, err, "error accessing column name: %s")
-	assert.Equal(t, "int_num", secondColumnName, "column name")
+	assert.Equal(t, "int_num", rs.ColumnName(1), "column name")
 
 	if checkStep(t, rs) {
 		var fnum float64
@@ -231,8 +229,7 @@ func TestScanNull(t *testing.T) {
 	assert.T(t, null, "expected null value")
 	assert.Equal(t, false, bo, "expected false")
 
-	rb, null, err := s.ScanRawBytes(0)
-	checkNoError(t, err, "scan error: %s")
+	rb, null := s.ScanRawBytes(0)
 	assert.T(t, null, "expected null value")
 	assert.Equal(t, 0, len(rb), "expected empty")
 }
@@ -256,8 +253,7 @@ func TestScanNotNull(t *testing.T) {
 	assert.T(t, !null, "expected not null value")
 	assert.Equal(t, "1", *ps)
 
-	rb, null, err := s.ScanRawBytes(0)
-	checkNoError(t, err, "scan error: %s")
+	rb, null := s.ScanRawBytes(0)
 	assert.T(t, !null, "expected not null value")
 	assert.Equal(t, 1, len(rb), "expected not empty")
 
@@ -512,8 +508,7 @@ func TestScanBytes(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(s, t)
 	assert.T(t, checkStep(t, s))
-	blob, _, err := s.ScanBlob(0)
-	checkNoError(t, err, "scan error: %s")
+	blob, _ := s.ScanBlob(0)
 	assert.Equal(t, "test", string(blob))
 }
 
@@ -532,11 +527,9 @@ func TestBindEmptyZero(t *testing.T) {
 	err = s.Scan(&ps, &zt)
 	checkNoError(t, err, "scan error: %s")
 	assert.T(t, ps == nil && zt.IsZero(), "null pointers expected")
-	_, null, err := s.ScanValue(0, false)
-	checkNoError(t, err, "scan error: %s")
+	_, null := s.ScanValue(0, false)
 	assert.T(t, null, "null string expected")
-	_, null, err = s.ScanValue(1, false)
-	checkNoError(t, err, "scan error: %s")
+	_, null = s.ScanValue(1, false)
 	assert.T(t, null, "null time expected")
 }
 
@@ -562,11 +555,9 @@ func TestBindEmptyZeroNotTransformedToNull(t *testing.T) {
 	err = s.Scan(&st, &zt)
 	checkNoError(t, err, "scan error: %s")
 	assert.T(t, len(st) == 0 && zt.IsZero(), "null pointers expected")
-	_, null, err := s.ScanValue(0, false)
-	checkNoError(t, err, "scan error: %s")
+	_, null := s.ScanValue(0, false)
 	assert.T(t, !null, "empty string expected")
-	_, null, err = s.ScanValue(1, false)
-	checkNoError(t, err, "scan error: %s")
+	_, null = s.ScanValue(1, false)
 	assert.T(t, !null, "zero time expected")
 }
 
@@ -582,12 +573,8 @@ func TestColumnType(t *testing.T) {
 	expectedAffinities := []Affinity{Integral, Real, Integral, Textual}
 	for col := 0; col < s.ColumnCount(); col++ {
 		//println(col, s.ColumnName(col), s.ColumnOriginName(col), s.ColumnType(col), s.ColumnDeclaredType(col))
-		ct, err := s.ColumnType(col)
-		checkNoError(t, err, "column type error: %s")
-		assert.Equal(t, Null, ct, "column type")
-		cta, err := s.ColumnTypeAffinity(col)
-		checkNoError(t, err, "column type affinity error: %s")
-		assert.Equal(t, expectedAffinities[col], cta, "column type affinity")
+		assert.Equal(t, Null, s.ColumnType(col), "column type")
+		assert.Equal(t, expectedAffinities[col], s.ColumnTypeAffinity(col), "column type affinity")
 	}
 }
 

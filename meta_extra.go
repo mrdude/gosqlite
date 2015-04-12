@@ -46,31 +46,31 @@ func (c *Conn) Column(dbName, tableName, columnName string) (*Column, error) {
 // that is the origin of a particular result column in SELECT statement.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
-func (s *Stmt) ColumnDatabaseName(index int) (string, error) {
+func (s *Stmt) ColumnDatabaseName(index int) string {
 	if index < 0 || index >= s.ColumnCount() {
-		return "", s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
-	return C.GoString(C.sqlite3_column_database_name(s.stmt, C.int(index))), nil
+	return C.GoString(C.sqlite3_column_database_name(s.stmt, C.int(index)))
 }
 
 // ColumnTableName returns the original un-aliased table name
 // that is the origin of a particular result column in SELECT statement.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
-func (s *Stmt) ColumnTableName(index int) (string, error) {
+func (s *Stmt) ColumnTableName(index int) string {
 	if index < 0 || index >= s.ColumnCount() {
-		return "", s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
-	return C.GoString(C.sqlite3_column_table_name(s.stmt, C.int(index))), nil
+	return C.GoString(C.sqlite3_column_table_name(s.stmt, C.int(index)))
 }
 
 // ColumnOriginName returns the original un-aliased table column name
 // that is the origin of a particular result column in SELECT statement.
 // The left-most column is column 0.
 // (See http://www.sqlite.org/c3ref/column_database_name.html)
-func (s *Stmt) ColumnOriginName(index int) (string, error) {
+func (s *Stmt) ColumnOriginName(index int) string {
 	if index < 0 || index >= s.ColumnCount() {
-		return "", s.specificError("column index %d out of range [0,%d[.", index, s.ColumnCount())
+		panic(fmt.Sprintf("column index %d out of range [0,%d[.", index, s.ColumnCount()))
 	}
-	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index))), nil
+	return C.GoString(C.sqlite3_column_origin_name(s.stmt, C.int(index)))
 }
