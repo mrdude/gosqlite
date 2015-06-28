@@ -100,8 +100,7 @@ func (c *Conn) prepare(sql string, args ...interface{}) (*Stmt, error) {
 	defer C.free(unsafe.Pointer(sqlstr))
 	var stmt *C.sqlite3_stmt
 	var tail *C.char
-	// If the caller knows that the supplied string is nul-terminated, then there is a small performance advantage to be gained by passing an nByte parameter that is equal to the number of bytes in the input string including the nul-terminator bytes as this saves SQLite from having to make a copy of the input string.
-	rv := C.sqlite3_prepare_v2(c.db, sqlstr, C.int(len(sql)+1), &stmt, &tail)
+	rv := C.sqlite3_prepare_v2(c.db, sqlstr, -1, &stmt, &tail)
 	if rv != C.SQLITE_OK {
 		// C.sqlite3_finalize(stmt) // If there is an error, *stmt is set to NULL
 		return nil, c.error(rv, sql)
