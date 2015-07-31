@@ -36,6 +36,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -109,7 +110,7 @@ func (c *Conn) prepare(sql string, args ...interface{}) (*Stmt, error) {
 	if tail != nil && *tail != '\000' {
 		t = C.GoString(tail)
 	}
-	s := &Stmt{c: c, stmt: stmt, tail: t, columnCount: -1, bindParameterCount: -1}
+	s := &Stmt{c: c, stmt: stmt, tail: strings.TrimSpace(t), columnCount: -1, bindParameterCount: -1}
 	if len(args) > 0 {
 		err := s.Bind(args...)
 		if err != nil {
