@@ -25,7 +25,7 @@ func checkNoError(t *testing.T, err error, format string) {
 }
 
 func skipIfCgoCheckActive(t *testing.T) {
-	if runtime.Version() >= "go1.6" && !strings.Contains(os.Getenv("GODEBUG"), "cgocheck=0") {
+	if /*runtime.Version() >= "go1.6" &&*/ !strings.Contains(os.Getenv("GODEBUG"), "cgocheck=0") {
 		t.Skip("cgocheck")
 	}
 }
