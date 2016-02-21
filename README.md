@@ -14,7 +14,7 @@ There are two layers:
 [2]: http://www.travis-ci.org/gwenn/gosqlite
 
 ### Caveat
-With Go 1.6, this driver does not work anymore without `GODEBUG=cgocheck=0` (see [Cgo major change](https://golang.org/doc/go1.6#cgo)).
+With Go 1.6, some features do not work anymore without `GODEBUG=cgocheck=0` (see [Cgo major change](https://golang.org/doc/go1.6#cgo)).
 It seems that the solution is a global variable/lock (see [here](https://github.com/mattn/go-sqlite3/pull/268)).
 "I would prefer not to" do this.
 
