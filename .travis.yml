@@ -1,7 +1,7 @@
 language: go
 sudo: false
 go:
-  - 1.4
+  - 1.6
   - tip
 addons:
   apt:
@@ -15,4 +15,4 @@ install:
 before_script:
  - go get github.com/bmizerany/assert
 script:
- - go test -v -tags all github.com/gwenn/gosqlite
+ - GODEBUG=cgocheck=0 go test -v -tags all github.com/gwenn/gosqlite
