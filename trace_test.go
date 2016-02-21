@@ -17,12 +17,12 @@ import (
 func init() {
 	if os.Getenv("SQLITE_LOG") == "" {
 		err := ConfigLog(func(d interface{}, err error, msg string) {
-			fmt.Printf("%s: %s, %s\n", d, err, msg)
-		}, "SQLITE")
+			fmt.Printf("SQLITE: %s, %s\n", err, msg)
+		}, nil)
 		if err != nil {
 			panic(fmt.Sprintf("couldn't config log: '%s'", err))
 		}
-		err = ConfigLog(nil, "")
+		err = ConfigLog(nil, nil)
 		if err != nil {
 			panic(fmt.Sprintf("couldn't unset logger: '%s'", err))
 		}
@@ -74,6 +74,8 @@ func TestNoTrace(t *testing.T) {
 }
 
 func TestTrace(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	db.Trace(trace, t)
@@ -88,6 +90,8 @@ func TestTrace(t *testing.T) {
 }
 
 func TestProfile(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	db.Profile(profile, t)

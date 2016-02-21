@@ -24,6 +24,8 @@ func half(ctx *ScalarContext, nArg int) {
 }
 
 func TestScalarFunction(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := db.CreateScalarFunction("half", 1, true, nil, half, nil)
@@ -71,6 +73,8 @@ func reDestroy(ad interface{}) {
 }
 
 func TestRegexpFunction(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := db.CreateScalarFunction("regexp", 2, true, nil, re, reDestroy)
@@ -106,6 +110,8 @@ func user(ctx *ScalarContext, nArg int) {
 }
 
 func TestUserFunction(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := db.CreateScalarFunction("user", 0, false, nil, user, nil)
@@ -140,6 +146,8 @@ func sumFinal(ctx *AggregateContext) {
 }
 
 func TestSumFunction(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := db.CreateAggregateFunction("mysum", 1, nil, sumStep, sumFinal, nil)

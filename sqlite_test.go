@@ -6,6 +6,7 @@ package sqlite_test
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"reflect"
 	"runtime"
@@ -20,6 +21,12 @@ func checkNoError(t *testing.T, err error, format string) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
 		t.Fatalf("\n%s:%d: %s", path.Base(file), line, fmt.Sprintf(format, err))
+	}
+}
+
+func skipIfCgoCheckActive(t *testing.T) {
+	if runtime.Version() >= "go1.6" && !strings.Contains(os.Getenv("GODEBUG"), "cgocheck=0") {
+		t.Skip("cgocheck")
 	}
 }
 

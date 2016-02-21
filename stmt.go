@@ -382,11 +382,11 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 		if i64 && len(value) > math.MaxInt32 {
 			return s.specificError("blob too big: %d at index %d", len(value), index)
 		}
-		var p *byte
-		if len(value) > 0 {
-			p = &value[0]
+		if len(value) == 0 {
+			rv = C.my_bind_blob(s.stmt, i, nil, 0)
+		} else {
+			rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(&value[0]), C.int(len(value)))
 		}
-		rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(p), C.int(len(value)))
 	case time.Time:
 		if NullIfZeroTime && value.IsZero() {
 			rv = C.sqlite3_bind_null(s.stmt, i)

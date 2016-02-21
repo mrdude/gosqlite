@@ -15,6 +15,8 @@ import (
 )
 
 func TestInterrupt(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	db.CreateScalarFunction("interrupt", 0, false, nil, func(ctx *ScalarContext, nArg int) {
@@ -85,6 +87,8 @@ func TestBusyTimeout(t *testing.T) {
 }
 
 func TestBusyHandler(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	f, db1, db2 := openTwoConnSameDb(t)
 	defer os.Remove(f.Name())
 	defer checkClose(db1, t)

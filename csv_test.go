@@ -17,6 +17,8 @@ import (
 )
 
 func TestCsvModule(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := LoadCsvModule(db)
@@ -112,6 +114,8 @@ var csvModuleTests = []struct {
 }
 
 func TestCsvModuleArguments(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	err := LoadCsvModule(db)

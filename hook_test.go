@@ -7,6 +7,7 @@ package sqlite_test
 import (
 	"fmt"
 	"testing"
+
 	. "github.com/gwenn/gosqlite"
 )
 
@@ -44,6 +45,8 @@ func TestNoHook(t *testing.T) {
 }
 
 func TestCommitHook(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 
@@ -54,6 +57,8 @@ func TestCommitHook(t *testing.T) {
 }
 
 func TestRollbackHook(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 
@@ -64,6 +69,8 @@ func TestRollbackHook(t *testing.T) {
 }
 
 func TestUpdateHook(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	createTable(db, t)

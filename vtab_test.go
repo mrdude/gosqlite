@@ -99,6 +99,8 @@ func (vc *testVTabCursor) Rowid() (int64, error) {
 }
 
 func TestCreateModule(t *testing.T) {
+	skipIfCgoCheckActive(t)
+
 	db := open(t)
 	defer checkClose(db, t)
 	intarray := []int{1, 2, 3}
