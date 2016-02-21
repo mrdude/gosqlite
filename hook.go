@@ -34,6 +34,7 @@ func goXCommitHook(udp unsafe.Pointer) C.int {
 }
 
 // CommitHook registers a callback function to be invoked whenever a transaction is committed.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/commit_hook.html)
 func (c *Conn) CommitHook(f CommitHook, udp interface{}) {
 	if f == nil {
@@ -61,6 +62,7 @@ func goXRollbackHook(udp unsafe.Pointer) {
 }
 
 // RollbackHook registers a callback to be invoked each time a transaction is rolled back.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/commit_hook.html)
 func (c *Conn) RollbackHook(f RollbackHook, udp interface{}) {
 	if f == nil {
@@ -89,6 +91,7 @@ func goXUpdateHook(udp unsafe.Pointer, action int, dbName, tableName *C.char, ro
 
 // UpdateHook registers a callback to be invoked each time a row is updated,
 // inserted or deleted using this database connection.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/update_hook.html)
 func (c *Conn) UpdateHook(f UpdateHook, udp interface{}) {
 	if f == nil {

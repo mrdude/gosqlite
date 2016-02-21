@@ -50,6 +50,7 @@ func goXTrace(udp unsafe.Pointer, sql *C.char) {
 // There can only be a single tracer defined for each database connection.
 // Setting a new tracer clears the old one.
 // If f is nil, the current tracer is removed.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See sqlite3_trace, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Trace(f Tracer, udp interface{}) {
 	if f == nil {
@@ -82,6 +83,7 @@ func goXProfile(udp unsafe.Pointer, sql *C.char, nanoseconds C.sqlite3_uint64) {
 // There can only be a single profiler defined for each database connection.
 // Setting a new profiler clears the old one.
 // If f is nil, the current profiler is removed.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See sqlite3_profile, http://sqlite.org/c3ref/profile.html)
 func (c *Conn) Profile(f Profiler, udp interface{}) {
 	if f == nil {
@@ -233,6 +235,7 @@ func goXAuth(udp unsafe.Pointer, action int, arg1, arg2, dbName, triggerName *C.
 }
 
 // SetAuthorizer sets or clears the access authorization function.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/set_authorizer.html)
 func (c *Conn) SetAuthorizer(f Authorizer, udp interface{}) error {
 	if f == nil {
@@ -265,6 +268,7 @@ func goXBusy(udp unsafe.Pointer, count int) C.int {
 // There can only be a single busy handler defined for each database connection.
 // Setting a new busy handler clears any previously set handler.
 // If f is nil, the current handler is removed.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/busy_handler.html)
 func (c *Conn) BusyHandler(f BusyHandler, udp interface{}) error {
 	if f == nil {
@@ -299,6 +303,7 @@ func goXProgress(udp unsafe.Pointer) C.int {
 // Only a single progress handler may be defined at one time per database connection.
 // Setting a new progress handler cancels the old one.
 // If f is nil, the current handler is removed.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/progress_handler.html)
 func (c *Conn) ProgressHandler(f ProgressHandler, numOps int32, udp interface{}) {
 	if f == nil {
@@ -396,6 +401,7 @@ var logger *sqliteLogger
 // ConfigLog configures the logger of the SQLite library.
 // Only one logger can be registered at a time for the whole program.
 // The logger must be threadsafe.
+// Cannot be used with Go >= 1.6 and cgocheck enabled when udp is not nil.
 // (See sqlite3_config(SQLITE_CONFIG_LOG,...): http://sqlite.org/c3ref/config.html and http://www.sqlite.org/errlog.html)
 func ConfigLog(f Logger, udp interface{}) error {
 	var rv C.int

@@ -233,6 +233,7 @@ func (c *Conn) DeclareVTab(sql string) error {
 }
 
 // CreateModule registers a virtual table implementation.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // (See http://sqlite.org/c3ref/create_module.html)
 func (c *Conn) CreateModule(moduleName string, module Module) error {
 	mname := C.CString(moduleName)

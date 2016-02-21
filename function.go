@@ -470,6 +470,7 @@ func goXDestroy(pApp unsafe.Pointer) {
 const sqliteDeterministic = 0x800 // C.SQLITE_DETERMINISTIC
 
 // CreateScalarFunction creates or redefines SQL scalar functions.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateScalarFunction(functionName string, nArg int32, deterministic bool, pApp interface{},
@@ -498,6 +499,7 @@ func (c *Conn) CreateScalarFunction(functionName string, nArg int32, determinist
 }
 
 // CreateAggregateFunction creates or redefines SQL aggregate functions.
+// Cannot be used with Go >= 1.6 and cgocheck enabled.
 // TODO Make possible to specify the preferred encoding
 // (See http://sqlite.org/c3ref/create_function.html)
 func (c *Conn) CreateAggregateFunction(functionName string, nArg int32, pApp interface{},
