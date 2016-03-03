@@ -44,6 +44,19 @@ type rowsImpl struct {
 	columnNames []string // cache
 }
 
+type result struct {
+	id   int64
+	rows int64
+}
+
+func (r *result) LastInsertId() (int64, error) {
+	return r.id, nil
+}
+
+func (r *result) RowsAffected() (int64, error) {
+	return r.rows, nil
+}
+
 // NewDriver creates a new driver with specialized connection creation/configuration.
 //   NewDriver(customOpen, nil) // no post-creation hook
 //   NewDriver(nil, customConfigure) // default connection creation but specific configuration step
@@ -105,7 +118,7 @@ func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 		if err := c.c.FastExec(query); err != nil {
 			return nil, err
 		}
-		return c, nil
+		return c.c.result(), nil
 	}
 	// https://code.google.com/p/go-wiki/wiki/cgo#Turning_C_arrays_into_Go_slices
 	var iargs []interface{}
@@ -116,17 +129,7 @@ func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	if err := c.c.Exec(query, iargs...); err != nil {
 		return nil, err
 	}
-	return c, nil // FIXME RowAffected/noRows
-}
-
-// TODO How to know that the last Stmt has done an INSERT? An authorizer?
-func (c *conn) LastInsertId() (int64, error) {
-	return c.c.LastInsertRowid(), nil
-}
-
-// TODO How to know that the last Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
-func (c *conn) RowsAffected() (int64, error) {
-	return int64(c.c.Changes()), nil
+	return c.c.result(), nil
 }
 
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
@@ -180,17 +183,7 @@ func (s *stmt) Exec(args []driver.Value) (driver.Result, error) {
 	if err := s.s.exec(); err != nil {
 		return nil, err
 	}
-	return s, nil // FIXME RowAffected/noRows
-}
-
-// TODO How to know that this Stmt has done an INSERT? An authorizer?
-func (s *stmt) LastInsertId() (int64, error) {
-	return s.s.c.LastInsertRowid(), nil
-}
-
-// TODO How to know that this Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
-func (s *stmt) RowsAffected() (int64, error) {
-	return int64(s.s.c.Changes()), nil
+	return s.s.c.result(), nil
 }
 
 func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
@@ -243,4 +236,12 @@ func (r *rowsImpl) Close() error {
 		return r.s.Close()
 	}
 	return r.s.s.Reset()
+}
+
+func (c *Conn) result() driver.Result {
+	// TODO How to know that the last Stmt has done an INSERT? An authorizer?
+	id := c.LastInsertRowid()
+	// TODO How to know that the last Stmt has done a DELETE/INSERT/UPDATE? An authorizer?
+	rows := int64(c.Changes())
+	return &result{id, rows} // FIXME RowAffected/noRows
 }
