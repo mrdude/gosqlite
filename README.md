@@ -1,5 +1,5 @@
 Yet another SQLite binding based on:
- - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation,
+ - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation (or [here](https://github.com/rsc/sqlite)),
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
 
 There are two layers:
