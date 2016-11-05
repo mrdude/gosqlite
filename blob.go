@@ -84,11 +84,14 @@ func (r *BlobReader) Close() error {
 	if r == nil {
 		return errors.New("nil sqlite blob")
 	}
-	rv := C.sqlite3_blob_close(r.bl)
+	if r.bl == nil {
+		return nil
+	}
+	rv := C.sqlite3_blob_close(r.bl) // must be called only once
+	r.bl = nil
 	if rv != C.SQLITE_OK {
 		return r.c.error(rv, "BlobReader.Close")
 	}
-	r.bl = nil
 	return nil
 }
 

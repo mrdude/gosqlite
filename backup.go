@@ -112,10 +112,13 @@ func (b *Backup) Close() error {
 	if b == nil {
 		return errors.New("nil sqlite backup")
 	}
-	rv := C.sqlite3_backup_finish(b.sb)
+	if b.sb == nil {
+		return nil
+	}
+	rv := C.sqlite3_backup_finish(b.sb) // must be called only once
+	b.sb = nil
 	if rv != C.SQLITE_OK {
 		return b.dst.error(rv, "backup finish failed")
 	}
-	b.sb = nil
 	return nil
 }

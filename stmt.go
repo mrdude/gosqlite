@@ -1167,7 +1167,7 @@ func (s *Stmt) finalize() error {
 		Log(C.SQLITE_MISUSE, "sqlite statement with already closed database connection")
 		return errors.New("sqlite statement with already closed database connection")
 	}
-	rv := C.sqlite3_finalize(s.stmt)
+	rv := C.sqlite3_finalize(s.stmt) // must be called only once
 	s.stmt = nil
 	if rv != C.SQLITE_OK {
 		Log(int32(rv), "error while finalizing Stmt")
