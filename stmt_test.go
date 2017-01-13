@@ -481,12 +481,8 @@ func TestInsertMisuse(t *testing.T) {
 	checkNoError(t, err, "prepare error: %s")
 	defer checkFinalize(ois, t)
 	rowID, err := ois.Insert()
-	if VersionNumber() < 3016000 {
-		checkNoError(t, err, "insert error: %s")
-		assert.Equal(t, int64(-1), rowID)
-	} else {
-		assert.T(t, err != nil, "wrapper specific error expected")
-	}
+	checkNoError(t, err, "insert error: %s")
+	assert.Equal(t, int64(-1), rowID)
 }
 
 func TestScanValues(t *testing.T) {

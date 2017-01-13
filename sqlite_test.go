@@ -130,10 +130,8 @@ func TestExists(t *testing.T) {
 	//println(err.Error())
 
 	_, err = db.Exists("PRAGMA shrink_memory")
-	if VersionNumber() < 3016000 {
-		assert.T(t, err != nil)
-		//println(err.Error())
-	}
+	assert.T(t, err != nil)
+	//println(err.Error())
 }
 
 func TestInsert(t *testing.T) {
