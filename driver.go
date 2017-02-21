@@ -5,9 +5,11 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -105,6 +107,14 @@ func Unwrap(db *sql.DB) *Conn {
 	return nil
 }
 
+func (c *conn) Ping(ctx context.Context) error {
+	if c.c.IsClosed() {
+		return driver.ErrBadConn
+	}
+	_, err := c.Exec("PRAGMA schema_verion", []driver.Value{})
+	return err
+}
+
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
@@ -155,6 +165,31 @@ func (c *conn) Begin() (driver.Tx, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+func (c *conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
+	if !c.c.GetAutocommit() {
+		return nil, errors.New("Nested transcations are not supported")
+	}
+	if err := c.c.SetQueryOnly("", opts.ReadOnly); err != nil {
+		return nil, err
+	}
+	switch sql.IsolationLevel(opts.Isolation) {
+	case sql.LevelDefault, sql.LevelSerializable:
+		if err := c.c.FastExec("PRAGMA read_uncommitted=0"); err != nil {
+			return nil, err
+		}
+	case sql.LevelReadUncommitted:
+		if err := c.c.FastExec("PRAGMA read_uncommitted=1"); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("Isolation level %d is not supported.", opts.Isolation)
+	}
+	return c.Begin()
 }
 
 func (c *conn) Commit() error {
