@@ -153,6 +153,34 @@ func (c *conn) Prepare(query string) (driver.Stmt, error) {
 	return &stmt{s: s}, nil
 }
 
+func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	return c.Prepare(query)
+}
+
+/*func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
+	s, err := c.c.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	st := stmt{s: s}
+	return st.QueryContext(ctx, args)
+}
+
+func (c *conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
+	s, err := c.c.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	st := stmt{s: s}
+	return st.ExecContext(ctx, args)
+}*/
+
 func (c *conn) Close() error {
 	return c.c.Close()
 }
@@ -232,6 +260,27 @@ func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
 	return &rowsImpl{s, nil}, nil
 }
 
+/*func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	panic("TBD")
+}
+
+func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	panic("TBD")
+}
+
+func progressHandler(p interface{}) bool {
+	if ctx, ok := p.(context.Context); ok {
+		select {
+		case <-ctx.Done():
+			// Cancelled
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}*/
+
 func (s *stmt) bind(args []driver.Value) error {
 	for i, v := range args {
 		if err := s.s.BindByIndex(i+1, v); err != nil {
@@ -271,6 +320,29 @@ func (r *rowsImpl) Close() error {
 		return r.s.Close()
 	}
 	return r.s.s.Reset()
+}
+
+// TODO HasNextResultSet && Stmt.tail ?
+
+func (r *rowsImpl) ColumnTypeScanType(index int) reflect.Type {
+	switch r.s.s.ColumnType(index) {
+	case Integer:
+		return reflect.TypeOf(int64(0))
+	case Float:
+		return reflect.TypeOf(float64(0))
+	case Text:
+		return reflect.TypeOf("")
+	case Null:
+		return reflect.TypeOf(nil)
+	case Blob:
+		fallthrough
+	default:
+		return reflect.TypeOf([]byte{})
+	}
+}
+
+func (r *rowsImpl) ColumnTypeDatabaseTypeName(index int) string {
+	return r.s.s.ColumnDeclaredType(index)
 }
 
 func (c *Conn) result() driver.Result {
