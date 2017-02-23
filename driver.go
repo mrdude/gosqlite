@@ -44,6 +44,7 @@ type stmt struct {
 type rowsImpl struct {
 	s           *stmt
 	columnNames []string // cache
+	ctx         context.Context
 }
 
 type result struct {
@@ -157,7 +158,7 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 	return c.Prepare(query)
 }
 
-/*func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	if c.c.IsClosed() {
 		return nil, driver.ErrBadConn
 	}
@@ -179,7 +180,7 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 	}
 	st := stmt{s: s}
 	return st.ExecContext(ctx, args)
-}*/
+}
 
 func (c *conn) Close() error {
 	return c.c.Close()
@@ -257,15 +258,46 @@ func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 	s.rowsRef = true
-	return &rowsImpl{s, nil}, nil
+	return &rowsImpl{s, nil, nil}, nil
 }
 
-/*func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	panic("TBD")
+func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	if err := s.bindNamedValue(args); err != nil {
+		return nil, err
+	}
+	s.s.c.ProgressHandler(progressHandler, 100, ctx)
+	defer s.s.c.ProgressHandler(nil, 0, nil)
+	if err := s.s.exec(); err != nil {
+		return nil, err
+	}
+	return s.s.c.result(), nil
 }
 
 func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	panic("TBD")
+	if err := s.bindNamedValue(args); err != nil {
+		return nil, err
+	}
+	s.rowsRef = true
+	return &rowsImpl{s, nil, ctx}, nil
+}
+
+func (s *stmt) bindNamedValue(args []driver.NamedValue) error {
+	for _, v := range args {
+		if len(v.Name) == 0 {
+			if err := s.s.BindByIndex(v.Ordinal, v.Value); err != nil {
+				return err
+			}
+		} else {
+			index, err := s.s.BindParameterIndex(v.Name)
+			if err != nil {
+				return err
+			}
+			if err = s.s.BindByIndex(index, v.Value); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func progressHandler(p interface{}) bool {
@@ -279,7 +311,7 @@ func progressHandler(p interface{}) bool {
 		}
 	}
 	return false
-}*/
+}
 
 func (s *stmt) bind(args []driver.Value) error {
 	for i, v := range args {
@@ -298,6 +330,10 @@ func (r *rowsImpl) Columns() []string {
 }
 
 func (r *rowsImpl) Next(dest []driver.Value) error {
+	if r.ctx != nil {
+		r.s.s.c.ProgressHandler(progressHandler, 100, r.ctx)
+		defer r.s.s.c.ProgressHandler(nil, 0, nil)
+	}
 	ok, err := r.s.s.Next()
 	if err != nil {
 		return err
