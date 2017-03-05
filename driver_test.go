@@ -426,7 +426,7 @@ func TestCancel(t *testing.T) {
 	db := sqlCreate(ddl, t)
 	defer checkSqlDbClose(db, t)
 
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 100; i++ {
 		_, err := db.Exec(insert, "Bart "+strconv.Itoa(i))
 		checkNoError(t, err, "Error updating data: %s")
 	}
