@@ -440,10 +440,10 @@ func TestCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		cancel()
 	}()
-	_, err := db.ExecContext(ctx, "SELECT sleep() FROM test")
+	_, err := db.ExecContext(ctx, "UPDATE test SET name = sleep()")
 	if err != context.Canceled {
 		t.Errorf("ExecContext expected to fail with Cancelled but it returned %v", err)
 	}
