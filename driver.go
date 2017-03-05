@@ -356,7 +356,7 @@ func (s *Stmt) bindNamedValue(args []driver.NamedValue) error {
 				return err
 			}
 		} else {
-			index, err := s.BindParameterIndex(v.Name)
+			index, err := s.BindParameterIndex(":" + v.Name) // TODO "$" and "@"
 			if err != nil {
 				return err
 			}
