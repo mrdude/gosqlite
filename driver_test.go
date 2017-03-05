@@ -5,6 +5,7 @@
 package sqlite_test
 
 import (
+	"context"
 	"database/sql"
 	"math/rand"
 	"testing"
@@ -417,5 +418,37 @@ func _TestPreparedStmt(t *testing.T) {
 	}
 	for i := 0; i < nRuns; i++ {
 		<-ch
+	}
+}
+
+func TestCancel(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+	/*conn := sqlite.Unwrap(db)
+	assert.Tf(t, conn != nil, "got %#v; want *sqlite.Conn", conn)
+	conn.CreateScalarFunction("sleep", 0, false, nil, func(ctx *sqlite.ScalarContext, nArg int) {
+		time.Sleep(500 * time.Millisecond)
+		ctx.ResultText("ok")
+	}, nil)*/
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
+	_, err := db.ExecContext(ctx, `
+WITH RECURSIVE
+  cnt(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM cnt WHERE x<1000000)
+SELECT x FROM cnt;`)
+	if err != context.Canceled {
+		t.Errorf("ExecContext expected to fail with Cancelled but it returned %v", err)
+	}
+
+	// connection should be usable after timeout
+	row := db.QueryRow("SELECT 1")
+	var val int64
+	err = row.Scan(&val)
+	if err != nil {
+		t.Fatal("Scan failed with", err)
 	}
 }
