@@ -440,7 +440,7 @@ func TestCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		cancel()
 	}()
 	_, err := db.ExecContext(ctx, "SELECT sleep() FROM test")
