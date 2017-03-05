@@ -15,7 +15,6 @@ import (
 	"os"
 	"reflect"
 	"time"
-	"unsafe"
 )
 
 func init() {
@@ -112,38 +111,21 @@ func (c *conn) Ping(ctx context.Context) error {
 	if c.c.IsClosed() {
 		return driver.ErrBadConn
 	}
-	_, err := c.Exec("PRAGMA schema_verion", []driver.Value{})
+	_, err := c.ExecContext(ctx, "PRAGMA schema_verion", []driver.NamedValue{})
 	return err
 }
 
 // PRAGMA schema_version may be used to detect when the database schema is altered
 
 func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	if c.c.IsClosed() {
-		return nil, driver.ErrBadConn
-	}
-	if len(args) == 0 {
-		if query == "unwrap" {
-			return nil, ConnError{c: c.c}
-		}
-		if err := c.c.FastExec(query); err != nil {
-			return nil, err
-		}
-		return c.c.result(), nil
-	}
-	// https://code.google.com/p/go-wiki/wiki/cgo#Turning_C_arrays_into_Go_slices
-	var iargs []interface{}
-	h := (*reflect.SliceHeader)(unsafe.Pointer(&iargs))
-	h.Data = uintptr(unsafe.Pointer(&args[0]))
-	h.Len = len(args)
-	h.Cap = cap(args)
-	if err := c.c.Exec(query, iargs...); err != nil {
-		return nil, err
-	}
-	return c.c.result(), nil
+	panic("ExecContext was not called.")
 }
 
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
+	panic("use PrepareContext")
+}
+
+func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	if c.c.IsClosed() {
 		return nil, driver.ErrBadConn
 	}
@@ -152,22 +134,6 @@ func (c *conn) Prepare(query string) (driver.Stmt, error) {
 		return nil, err
 	}
 	return &stmt{s: s}, nil
-}
-
-func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	return c.Prepare(query)
-}
-
-func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if c.c.IsClosed() {
-		return nil, driver.ErrBadConn
-	}
-	s, err := c.c.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	st := stmt{s: s}
-	return st.QueryContext(ctx, args)
 }
 
 func (c *conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -277,24 +243,11 @@ func (s *stmt) NumInput() int {
 }
 
 func (s *stmt) Exec(args []driver.Value) (driver.Result, error) {
-	if err := s.bind(args); err != nil {
-		return nil, err
-	}
-	if err := s.s.exec(); err != nil {
-		return nil, err
-	}
-	return s.s.c.result(), nil
+	panic("Using ExecContext")
 }
 
 func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
-	if s.rowsRef {
-		return nil, errors.New("previously returned Rows still not closed")
-	}
-	if err := s.bind(args); err != nil {
-		return nil, err
-	}
-	s.rowsRef = true
-	return &rowsImpl{s, nil, nil}, nil
+	panic("Use QueryContext")
 }
 
 func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
@@ -310,6 +263,9 @@ func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (drive
 }
 
 func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	if s.rowsRef {
+		return nil, errors.New("previously returned Rows still not closed")
+	}
 	if err := s.s.bindNamedValue(args); err != nil {
 		return nil, err
 	}
