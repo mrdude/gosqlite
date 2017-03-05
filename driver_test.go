@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
@@ -422,24 +423,27 @@ func _TestPreparedStmt(t *testing.T) {
 }
 
 func TestCancel(t *testing.T) {
-	db := sqlOpen(t)
+	db := sqlCreate(ddl, t)
 	defer checkSqlDbClose(db, t)
-	/*conn := sqlite.Unwrap(db)
+
+	for i := 0; i < 40; i++ {
+		_, err := db.Exec(insert, "Bart "+strconv.Itoa(i))
+		checkNoError(t, err, "Error updating data: %s")
+	}
+
+	conn := sqlite.Unwrap(db)
 	assert.Tf(t, conn != nil, "got %#v; want *sqlite.Conn", conn)
 	conn.CreateScalarFunction("sleep", 0, false, nil, func(ctx *sqlite.ScalarContext, nArg int) {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 		ctx.ResultText("ok")
-	}, nil)*/
+	}, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		cancel()
 	}()
-	_, err := db.ExecContext(ctx, `
-WITH RECURSIVE
-  cnt(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM cnt WHERE x<1000000)
-SELECT x FROM cnt;`)
+	_, err := db.ExecContext(ctx, "SELECT sleep() FROM test")
 	if err != context.Canceled {
 		t.Errorf("ExecContext expected to fail with Cancelled but it returned %v", err)
 	}
