@@ -7,6 +7,8 @@ package sqlite
 
 /*
 #cgo LDFLAGS: -lsqlite3
+#cgo freebsd LDFLAGS: -lsqlite3 -L/usr/local/lib
+#cgo freebsd CFLAGS: -I/usr/local/include
 
 #include <sqlite3.h>
 #include <stdlib.h>
