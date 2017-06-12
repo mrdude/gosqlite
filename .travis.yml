@@ -1,14 +1,9 @@
-language: go
+dist: trusty
 sudo: false
+language: go
 go:
   - 1.8
   - tip
-addons:
-  apt:
-    sources:
-    - travis-ci/sqlite3
-    packages:
-    - libsqlite3-dev
 install:
 - go get github.com/gwenn/yacr
 - go get -tags all github.com/gwenn/gosqlite
