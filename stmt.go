@@ -383,7 +383,7 @@ func (s *Stmt) BindByIndex(index int, value interface{}) error {
 			return s.specificError("blob too big: %d at index %d", len(value), index)
 		}
 		if len(value) == 0 {
-			rv = C.my_bind_blob(s.stmt, i, nil, 0)
+			rv = C.sqlite3_bind_zeroblob(s.stmt, i, 0)
 		} else {
 			rv = C.my_bind_blob(s.stmt, i, unsafe.Pointer(&value[0]), C.int(len(value)))
 		}
