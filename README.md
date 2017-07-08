@@ -36,7 +36,7 @@ $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gw
 
 ### Features (not supported by database/sql/driver):
 
-* Named bind parameters.
+* ~~Named bind parameters~~.
 * Partial scan: scan values may be partially scanned (by index or name) or skipped/ignored by passing nil pointer(s).
 * Null value: by default, empty string and zero time are bound to NULL for prepared statement's parameters (no need for NullString, NullTime but still supported).
 * Null value: Stmt.*Scan* methods return default Go zero value (0, "", ...) for SQL NULL (no need for NullInt64, NullString, NullTime but still supported).
