@@ -5,8 +5,10 @@
 package sqlite_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -454,5 +456,61 @@ func TestCancel(t *testing.T) {
 	err = row.Scan(&val)
 	if err != nil {
 		t.Fatal("Scan failed with", err)
+	}
+}
+
+func TestNilAndEmptyBytes(t *testing.T) {
+	db := sqlOpen(t)
+	defer checkSqlDbClose(db, t)
+	actualNil := []byte("use this to use an actual nil not a reference to nil")
+	emptyBytes := []byte{}
+	for tsti, tst := range []struct {
+		name          string
+		columnType    string
+		insertBytes   []byte
+		expectedBytes []byte
+	}{
+		{"actual nil blob", "blob", actualNil, nil},
+		// In Go, []byte cannot be nil (only empty).
+		// And, the return value from sqlite3_column_blob() for a zero-length BLOB is a NULL pointer.
+		{"referenced nil blob", "blob", nil, emptyBytes},
+		{"empty blob", "blob", emptyBytes, emptyBytes},
+		//{"actual nil text", "text", actualNil, nil},
+		//{"referenced nil text", "text", nil, nil},
+		//{"empty text", "text", emptyBytes, emptyBytes},
+	} {
+		if _, err := db.Exec(fmt.Sprintf("create table tbl%d (txt %s)", tsti, tst.columnType)); err != nil {
+			t.Fatal(tst.name, err)
+		}
+		if bytes.Equal(tst.insertBytes, actualNil) {
+			if _, err := db.Exec(fmt.Sprintf("insert into tbl%d (txt) values (?)", tsti), nil); err != nil {
+				t.Fatal(tst.name, err)
+			}
+		} else {
+			if _, err := db.Exec(fmt.Sprintf("insert into tbl%d (txt) values (?)", tsti), &tst.insertBytes); err != nil {
+				t.Fatal(tst.name, err)
+			}
+		}
+		rows, err := db.Query(fmt.Sprintf("select txt from tbl%d", tsti))
+		if err != nil {
+			t.Fatal(tst.name, err)
+		}
+		defer checkSqlRowsClose(rows, t)
+		if !rows.Next() {
+			t.Fatal(tst.name, "no rows")
+		}
+		var scanBytes []byte
+		if err = rows.Scan(&scanBytes); err != nil {
+			t.Fatal(tst.name, err)
+		}
+		if err = rows.Err(); err != nil {
+			t.Fatal(tst.name, err)
+		}
+		if tst.expectedBytes == nil && scanBytes != nil {
+			t.Errorf("%s: %#v != %#v", tst.name, scanBytes, tst.expectedBytes)
+		} else if !bytes.Equal(scanBytes, tst.expectedBytes) {
+			t.Errorf("%s: %#v != %#v", tst.name, scanBytes, tst.expectedBytes)
+		}
+		checkSqlRowsClose(rows, t)
 	}
 }

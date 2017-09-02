@@ -877,6 +877,7 @@ func (s *Stmt) ScanValue(index int, blob bool) (value interface{}, isNull bool) 
 	case Float: // does not work as expected if column type affinity is REAL but inserted value was an integer
 		return float64(C.sqlite3_column_double(s.stmt, C.int(index))), false
 	case Blob:
+		// The return value from sqlite3_column_blob() for a zero-length BLOB is a NULL pointer.
 		p := C.sqlite3_column_blob(s.stmt, C.int(index))
 		n := C.sqlite3_column_bytes(s.stmt, C.int(index))
 		// value = (*[1 << 30]byte)(unsafe.Pointer(p))[:n]
