@@ -609,7 +609,7 @@ func (c *Conn) Close() error {
 
 	rv := C.sqlite3_close(c.db)
 
-	if rv == C.SQLITE_BUSY {
+	if rv&0xFF == C.SQLITE_BUSY {
 		// Dangling statements
 		stmt := C.sqlite3_next_stmt(c.db, nil)
 		for stmt != nil {

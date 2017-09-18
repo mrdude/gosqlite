@@ -50,7 +50,7 @@ func (b *Backup) Step(npage int32) error {
 		return errors.New("nil sqlite backup")
 	}
 	rv := C.sqlite3_backup_step(b.sb, C.int(npage))
-	if rv == C.SQLITE_OK || Errno(rv) == ErrBusy || Errno(rv) == ErrLocked { // TODO Trace busy/locked errors
+	if rv == C.SQLITE_OK || Errno(rv&0xFF) == ErrBusy || Errno(rv&0xFF) == ErrLocked { // TODO Trace busy/locked errors
 		return nil
 	} else if rv == C.SQLITE_DONE {
 		return Errno(rv)
