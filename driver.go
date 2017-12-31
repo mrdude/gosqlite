@@ -316,7 +316,37 @@ func (r *rowsImpl) Close() error {
 	return r.s.s.Reset()
 }
 
-// TODO HasNextResultSet && Stmt.tail ?
+func (r *rowsImpl) HasNextResultSet() bool {
+	return len(r.s.s.tail) > 0
+}
+
+func (r *rowsImpl) NextResultSet() error {
+	currentStmt := r.s.s
+	nextQuery := currentStmt.tail
+	var nextStmt *Stmt
+	var err error
+	for len(nextQuery) > 0 {
+		nextStmt, err = currentStmt.c.Prepare(nextQuery)
+		if err != nil {
+			return err
+		} else if nextStmt.stmt == nil {
+			// this happens for a comment or white-space
+			nextQuery = nextStmt.tail
+			continue
+		}
+		break
+	}
+	if nextStmt == nil {
+		return io.EOF
+	}
+	// TODO close vs reset ?
+	err = currentStmt.Finalize()
+	if err != nil {
+		return err
+	}
+	r.s.s = nextStmt
+	return nil
+}
 
 func (r *rowsImpl) ColumnTypeScanType(index int) reflect.Type {
 	switch r.s.s.ColumnType(index) {
