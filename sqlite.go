@@ -500,7 +500,15 @@ func (c *Conn) BeginTransaction(t TransactionType) error {
 // Commit commits transaction.
 // It is strongly discouraged to defer Commit without checking the error returned.
 func (c *Conn) Commit() error {
-	return c.FastExec("COMMIT")
+	// Although there are situations when it is possible to recover and continue a transaction,
+	// it is considered a best practice to always issue a ROLLBACK if an error is encountered.
+	// In situations when SQLite was already forced to roll back the transaction and has returned to autocommit mode,
+	// the ROLLBACK will do nothing but return an error that can be safely ignored.
+	err := c.FastExec("COMMIT")
+	if err != nil && !c.GetAutocommit() {
+		c.Rollback()
+	}
+	return err
 }
 
 // Rollback rollbacks transaction
