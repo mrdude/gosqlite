@@ -140,8 +140,10 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 	if c.c.IsClosed() {
 		return nil, driver.ErrBadConn
 	}
-	c.c.ProgressHandler(progressHandler, 100, ctx)
-	defer c.c.ProgressHandler(nil, 0, nil)
+	if ctx.Done() != nil {
+		c.c.ProgressHandler(progressHandler, 100, ctx)
+		defer c.c.ProgressHandler(nil, 0, nil)
+	}
 	if len(args) == 0 {
 		if query == "unwrap" {
 			return nil, ConnError{c: c.c}
@@ -254,8 +256,10 @@ func (s *stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (drive
 	if err := s.s.bindNamedValue(args); err != nil {
 		return nil, err
 	}
-	s.s.c.ProgressHandler(progressHandler, 100, ctx)
-	defer s.s.c.ProgressHandler(nil, 0, nil)
+	if ctx.Done() != nil {
+		s.s.c.ProgressHandler(progressHandler, 100, ctx)
+		defer s.s.c.ProgressHandler(nil, 0, nil)
+	}
 	if err := s.s.exec(); err != nil {
 		return nil, ctxError(ctx, err)
 	}
@@ -270,7 +274,9 @@ func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 		return nil, err
 	}
 	s.rowsRef = true
-	s.s.c.ProgressHandler(progressHandler, 100, ctx)
+	if ctx.Done() != nil {
+		s.s.c.ProgressHandler(progressHandler, 100, ctx)
+	}
 	return &rowsImpl{s, nil, ctx}, nil
 }
 
@@ -308,7 +314,9 @@ func (r *rowsImpl) Next(dest []driver.Value) error {
 }
 
 func (r *rowsImpl) Close() error {
-	r.s.s.c.ProgressHandler(nil, 0, nil)
+	if r.ctx.Done() != nil {
+		r.s.s.c.ProgressHandler(nil, 0, nil)
+	}
 	r.s.rowsRef = false
 	if r.s.pendingClose {
 		return r.s.Close()
