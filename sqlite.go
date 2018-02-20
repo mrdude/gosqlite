@@ -40,10 +40,23 @@ type OpenError struct {
 }
 
 func (e OpenError) Error() string {
-	if len(e.Msg) > 0 {
-		return fmt.Sprintf("%s (%s)", e.Msg, e.Code.Error())
+	file := e.Filename
+	if file == "" {
+		file = "(temporary)"
 	}
-	return e.Code.Error()
+	s := fmt.Sprintf("%s: ", file)
+	codeErr := e.Code.Error()
+	if len(e.Msg) > 0 {
+		s += e.Msg
+		// error code and msg are often redundant but not always
+		// (see sqlite3ErrorWithMsg usages in SQLite3 sources)
+		if codeErr != e.Msg {
+			s += fmt.Sprintf(" (%s)", codeErr)
+		}
+	} else {
+		s += codeErr
+	}
+	return s
 }
 
 // ConnError is a wrapper for all SQLite connection related error.
@@ -250,16 +263,17 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 	}
 	rv := C.sqlite3_open_v2(cname, &db, C.int(openFlags), vfs)
 	if rv != C.SQLITE_OK {
+		err := OpenError{
+			Code:     Errno(rv),
+			Filename: filename,
+		}
 		if db != nil { // try to extract futher details from db...
-			err := OpenError{Code: Errno(rv),
-				ExtendedCode: int(C.sqlite3_extended_errcode(db)),
-				Msg:          C.GoString(C.sqlite3_errmsg(db)),
-				Filename:     filename,
-			}
+			err.ExtendedCode = int(C.sqlite3_extended_errcode(db))
+			err.Msg = C.GoString(C.sqlite3_errmsg(db))
 			C.sqlite3_close(db)
 			return nil, err
 		}
-		return nil, Errno(rv)
+		return nil, err
 	}
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
