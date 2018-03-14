@@ -6,9 +6,8 @@
 package sqlite
 
 /*
-#cgo LDFLAGS: -lsqlite3
-#cgo freebsd LDFLAGS: -lsqlite3 -L/usr/local/lib
-#cgo freebsd CFLAGS: -I/usr/local/include
+#cgo linux freebsd pkg-config: sqlite3
+#cgo !linux,!freebsd LDFLAGS: -lsqlite3
 
 #include <sqlite3.h>
 #include <stdlib.h>

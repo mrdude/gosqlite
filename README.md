@@ -29,7 +29,8 @@ $ cp ~/Downloads/sqlite-amalgamation-xxx/sqlite3.{c,h} $GOPATH/src/github.com/gw
 - patch sqlite.go file
 
 ```
--#cgo LDFLAGS: -lsqlite3
+-#cgo linux freebsd pkg-config: sqlite3
+-#cgo !linux,!freebsd LDFLAGS: -lsqlite3
 +#cgo CFLAGS: -I.
 +#cgo CFLAGS: -DSQLITE_ENABLE_COLUMN_METADATA=1
 ```
