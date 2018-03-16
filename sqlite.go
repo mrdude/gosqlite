@@ -44,7 +44,7 @@ func (e OpenError) Error() string {
 	if file == "" {
 		file = "(temporary)"
 	}
-	s := fmt.Sprintf("%s: ", file)
+	s := fmt.Sprintf("%s: open: ", file)
 	codeErr := e.Code.Error()
 	if len(e.Msg) > 0 {
 		s += e.Msg
