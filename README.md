@@ -81,6 +81,7 @@ SQLite logs (SQLITE_CONFIG_LOG) can be activated by:
 
 https://github.com/mattn/go-sqlite3 (Nov 11, 2011)  
 https://github.com/mxk/go-sqlite (Feb 12, 2013)  
+https://github.com/crawshaw/sqlite (Mar 28, 2018)
 
 ### Additions:
 
