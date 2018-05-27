@@ -225,7 +225,7 @@ func TestUnwrap(t *testing.T) {
 
 func TestCustomRegister(t *testing.T) {
 	sql.Register("sqlite3ReadOnly", sqlite.NewDriver(func(name string) (*sqlite.Conn, error) {
-		c, err := sqlite.Open(name, sqlite.OpenUri, sqlite.OpenNoMutex, sqlite.OpenReadOnly)
+		c, err := sqlite.Open(name, sqlite.OpenURI, sqlite.OpenNoMutex, sqlite.OpenReadOnly)
 		if err != nil {
 			return nil, err
 		}

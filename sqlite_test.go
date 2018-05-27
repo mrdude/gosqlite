@@ -181,13 +181,13 @@ func TestLoadExtension(t *testing.T) { // OMIT_LOAD_EXTENSION
 */
 
 func TestOpenSameMemoryDb(t *testing.T) {
-	db1, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
+	db1, err := Open("file:dummy.db?mode=memory&cache=shared", OpenURI, OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "open error: %s")
 	defer checkClose(db1, t)
 	err = db1.Exec("CREATE TABLE test (data TEXT)")
 	checkNoError(t, err, "exec error: %s")
 
-	db2, err := Open("file:dummy.db?mode=memory&cache=shared", OpenUri, OpenReadWrite, OpenCreate, OpenFullMutex)
+	db2, err := Open("file:dummy.db?mode=memory&cache=shared", OpenURI, OpenReadWrite, OpenCreate, OpenFullMutex)
 	checkNoError(t, err, "open error: %s")
 	defer checkClose(db2, t)
 	_, err = db2.Exists("SELECT 1 FROM test")

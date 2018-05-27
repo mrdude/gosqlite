@@ -71,7 +71,7 @@ func NewDriver(open func(name string) (*Conn, error), configure func(*Conn) erro
 
 var defaultOpen = func(name string) (*Conn, error) {
 	// OpenNoMutex == multi-thread mode (http://sqlite.org/compile.html#threadsafe and http://sqlite.org/threadsafe.html)
-	c, err := Open(name, OpenUri, OpenNoMutex, OpenReadWrite, OpenCreate)
+	c, err := Open(name, OpenURI, OpenNoMutex, OpenReadWrite, OpenCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (c *conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, e
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("Isolation level %d is not supported.", opts.Isolation)
+		return nil, fmt.Errorf("isolation level %d is not supported", opts.Isolation)
 	}
 	return c.Begin()
 }

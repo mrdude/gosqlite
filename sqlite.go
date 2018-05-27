@@ -222,7 +222,7 @@ const (
 	OpenReadOnly     OpenFlag = C.SQLITE_OPEN_READONLY
 	OpenReadWrite    OpenFlag = C.SQLITE_OPEN_READWRITE
 	OpenCreate       OpenFlag = C.SQLITE_OPEN_CREATE
-	OpenUri          OpenFlag = C.SQLITE_OPEN_URI
+	OpenURI          OpenFlag = C.SQLITE_OPEN_URI
 	OpenNoMutex      OpenFlag = C.SQLITE_OPEN_NOMUTEX
 	OpenFullMutex    OpenFlag = C.SQLITE_OPEN_FULLMUTEX
 	OpenSharedCache  OpenFlag = C.SQLITE_OPEN_SHAREDCACHE

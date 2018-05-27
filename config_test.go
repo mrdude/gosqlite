@@ -21,7 +21,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("cannot activate mem status: '%s'", err))
 	}
-	err = ConfigUri(true)
+	err = ConfigURI(true)
 	if err != nil {
 		panic(fmt.Sprintf("cannot activate uri handling: '%s'", err))
 	}

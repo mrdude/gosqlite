@@ -51,9 +51,9 @@ func ConfigMemStatus(b bool) error {
 	return Errno(rv)
 }
 
-// ConfigUri enables or disables URI handling.
+// ConfigURI enables or disables URI handling.
 // (See sqlite3_config(SQLITE_CONFIG_URI): http://sqlite.org/c3ref/config.html)
-func ConfigUri(b bool) error {
+func ConfigURI(b bool) error {
 	rv := C.goSqlite3Config(C.SQLITE_CONFIG_URI, btocint(b))
 	if rv == C.SQLITE_OK {
 		return nil
