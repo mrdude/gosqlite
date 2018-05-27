@@ -48,7 +48,7 @@ func TestTables(t *testing.T) {
 	checkNoError(t, err, "error looking for tables: %s")
 	assert.Equal(t, 0, len(tables), "table count")
 
-	tables, err = db.Tables("bim")
+	_, err = db.Tables("bim")
 	assert.T(t, err != nil, "error expected")
 	//println(err.Error())
 }
@@ -88,7 +88,7 @@ func TestIndexes(t *testing.T) {
 	assert.T(t, ok, "no index")
 	assert.Equalf(t, "test", tbl, "got: %s; want: %s", tbl, "test")
 
-	indexes, err = db.Indexes("main")
+	_, err = db.Indexes("main")
 	checkNoError(t, err, "error looking for indexes: %s")
 
 	_, err = db.Indexes("temp")
@@ -111,7 +111,7 @@ func TestColumns(t *testing.T) {
 	column := columns[2]
 	assert.Equal(t, "int_num", column.Name, "column name")
 
-	columns, err = db.Columns("main", "test")
+	_, err = db.Columns("main", "test")
 	checkNoError(t, err, "error listing columns: %s")
 
 	_, err = db.Columns("bim", "test")
@@ -141,7 +141,7 @@ func TestForeignKeys(t *testing.T) {
 		t.Errorf("unexpected FK data: %#v", fk)
 	}
 
-	fks, err = db.ForeignKeys("main", "child")
+	_, err = db.ForeignKeys("main", "child")
 	checkNoError(t, err, "error listing FKs: %s")
 
 	_, err = db.ForeignKeys("bim", "child")
@@ -176,9 +176,9 @@ func TestTableIndexes(t *testing.T) {
 	column := columns[0]
 	assert.Equal(t, "a_string", column.Name, "column name")
 
-	indexes, err = db.TableIndexes("main", "test")
+	_, err = db.TableIndexes("main", "test")
 	checkNoError(t, err, "error listing indexes: %s")
-	columns, err = db.IndexColumns("main", "test_index")
+	_, err = db.IndexColumns("main", "test_index")
 	checkNoError(t, err, "error listing index columns: %s")
 
 	_, err = db.TableIndexes("bim", "test")

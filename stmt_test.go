@@ -665,7 +665,7 @@ func TestBindAndScanReflect(t *testing.T) {
 
 	type Amount float64
 	var amount Amount
-	null, err = s.ScanReflect(0, &amount)
+	_, err = s.ScanReflect(0, &amount)
 	checkNoError(t, err, "scan error: %s")
 	assert.Equal(t, Amount(1), amount)
 
