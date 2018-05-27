@@ -266,7 +266,7 @@ func OpenVfs(filename string, vfsname string, flags ...OpenFlag) (*Conn, error) 
 			Code:     Errno(rv),
 			Filename: filename,
 		}
-		if db != nil { // try to extract futher details from db...
+		if db != nil { // try to extract further details from db...
 			err.ExtendedCode = int(C.sqlite3_extended_errcode(db))
 			err.Msg = C.GoString(C.sqlite3_errmsg(db))
 			C.sqlite3_close(db)

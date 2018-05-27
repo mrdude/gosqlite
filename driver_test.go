@@ -151,14 +151,14 @@ func TestSqlTx(t *testing.T) {
 	defer checkSqlDbClose(db, t)
 
 	tx, err := db.Begin()
-	checkNoError(t, err, "Error while begining tx: %s")
+	checkNoError(t, err, "Error while beginning tx: %s")
 	err = tx.Rollback()
 	checkNoError(t, err, "Error while rollbacking tx: %s")
 
 	tx, err = db.Begin()
-	checkNoError(t, err, "Error while begining tx: %s")
+	checkNoError(t, err, "Error while beginning tx: %s")
 	err = tx.Commit()
-	checkNoError(t, err, "Error while commiting tx: %s")
+	checkNoError(t, err, "Error while committing tx: %s")
 }
 
 func TestSqlPrepare(t *testing.T) {

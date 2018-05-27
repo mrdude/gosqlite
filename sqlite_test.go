@@ -95,11 +95,11 @@ func TestManualTransaction(t *testing.T) {
 	if err := db.Begin(); err == nil {
 		t.Fatalf("Error expected (transaction cannot be nested)")
 	}
-	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
+	checkNoError(t, db.Commit(), "Error while committing transaction: %s")
 	checkNoError(t, db.BeginTransaction(Immediate), "Error while beginning immediate transaction: %s")
-	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
+	checkNoError(t, db.Commit(), "Error while committing transaction: %s")
 	checkNoError(t, db.BeginTransaction(Exclusive), "Error while beginning immediate transaction: %s")
-	checkNoError(t, db.Commit(), "Error while commiting transaction: %s")
+	checkNoError(t, db.Commit(), "Error while committing transaction: %s")
 }
 
 func TestSavepoint(t *testing.T) {
