@@ -107,7 +107,7 @@ func saveHistory(state *liner.State, historyFileName string) error {
 func catchInterrupt() {
 	ch := make(chan os.Signal)
 	go func() {
-		for _ = range ch {
+		for range ch {
 			/*db.Interrupt()
 			if !interactive {
 				os.Exit(0)
