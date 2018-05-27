@@ -89,7 +89,6 @@ func (p *Pool) get(wait bool) (*Conn, error) {
 			return conn, err
 		}
 	}
-	panic("unreachable")
 }
 
 func (p *Pool) waitForCreate() (*Conn, error) {

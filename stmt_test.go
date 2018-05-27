@@ -657,7 +657,7 @@ func TestBindAndScanReflect(t *testing.T) {
 
 	type Enum uint
 	var enum Enum
-	null, err = s.ScanReflect(0, &enum)
+	_, err = s.ScanReflect(0, &enum)
 	checkNoError(t, err, "scan error: %s")
 	assert.Equal(t, Enum(1), enum)
 
