@@ -226,7 +226,7 @@ func TestReadonlyMisuse(t *testing.T) {
 	defer checkClose(db, t)
 	_, err := db.Readonly("doesnotexist")
 	assert.T(t, err != nil, "error expected")
-	err.Error()
+	_ = err.Error()
 	//println(err.Error())
 }
 

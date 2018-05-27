@@ -1,3 +1,8 @@
+[![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.svg)](https://godoc.org/github.com/gwenn/gosqlite) [![Build Status][1]][2] [![Go Report Card](https://goreportcard.com/badge/github.com/gwenn/gosqlite)](https://goreportcard.com/report/github.com/gwenn/gosqlite)
+
+[1]: https://secure.travis-ci.org/gwenn/gosqlite.png
+[2]: http://www.travis-ci.org/gwenn/gosqlite
+
 Yet another SQLite binding based on:
  - original [Russ Cox's](http://code.google.com/p/gosqlite/) implementation (or [here](https://github.com/rsc/sqlite)),
  - the [Patrick Crosby's](https://github.com/patrickxb/fgosqlite/) fork.
@@ -5,13 +10,6 @@ Yet another SQLite binding based on:
 There are two layers:
  * one matching the SQLite API (with Backup, Blob, user-defined Function/Module, ...).
  * and another implementing the "database/sql/driver" interface.
-
-[![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.svg)](https://godoc.org/github.com/gwenn/gosqlite)
-
-[![Build Status][1]][2]
-
-[1]: https://secure.travis-ci.org/gwenn/gosqlite.png
-[2]: http://www.travis-ci.org/gwenn/gosqlite
 
 ### Caveat
 With Go 1.6, some features do not work anymore without `GODEBUG=cgocheck=0` (see [Cgo major change](https://golang.org/doc/go1.6#cgo)).
