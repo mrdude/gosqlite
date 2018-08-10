@@ -186,6 +186,18 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 	return c.c.result(), nil
 }
 
+func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	if c.c.IsClosed() {
+		return nil, driver.ErrBadConn
+	}
+	st, err := c.c.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	s := &stmt{s: st}
+	return s.QueryContext(ctx, args)
+}
+
 func (c *conn) Close() error {
 	return c.c.Close()
 }
