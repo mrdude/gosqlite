@@ -1,3 +1,11 @@
+A fork of [gwenn/gosqlite](https://github.com/gwenn/gosqlite) at [commit 41d085f06b1f248df1f23cd1d34a6e6931c5e6d6](https://github.com/gwenn/gosqlite/tree/41d085f06b1f248df1f23cd1d34a6e6931c5e6d6).
+
+I'm going to attempt to add support to `xBestIndex()` and `xFilter()` in the vtable implementation.
+
+Origin README is below.
+
+==
+
 [![GoDoc](https://godoc.org/github.com/gwenn/gosqlite?status.svg)](https://godoc.org/github.com/gwenn/gosqlite) [![Build Status][1]][2] [![Go Report Card](https://goreportcard.com/badge/github.com/gwenn/gosqlite)](https://goreportcard.com/report/github.com/gwenn/gosqlite)
 
 [1]: https://secure.travis-ci.org/gwenn/gosqlite.png
